@@ -1,0 +1,7 @@
+classifier
+periodic
+cfg/imagenet1k.data
+cfg/extraction.cfg
+weights/extraction.weights
+220
+./coco/100.part

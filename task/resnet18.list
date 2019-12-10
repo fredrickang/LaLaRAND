@@ -1,0 +1,7 @@
+classifier
+periodic
+cfg/imagenet1k.data
+cfg/resnet18.cfg
+weights/resnet18.weights
+220
+./coco/100.part

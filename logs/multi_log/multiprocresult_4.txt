@@ -1,0 +1,267 @@
+My pid: 26234, my_identifier: 4
+   layer   filters  size/strd(dil)      input                output
+   0 conv     16       3 x 3/ 1    416 x 416 x   3 ->  416 x 416 x  16 0.150 BF
+   1 max               2 x 2/ 2    416 x 416 x  16 ->  208 x 208 x  16 0.003 BF
+   2 conv     32       3 x 3/ 1    208 x 208 x  16 ->  208 x 208 x  32 0.399 BF
+   3 max               2 x 2/ 2    208 x 208 x  32 ->  104 x 104 x  32 0.001 BF
+   4 conv     64       3 x 3/ 1    104 x 104 x  32 ->  104 x 104 x  64 0.399 BF
+   5 max               2 x 2/ 2    104 x 104 x  64 ->   52 x  52 x  64 0.001 BF
+   6 conv    128       3 x 3/ 1     52 x  52 x  64 ->   52 x  52 x 128 0.399 BF
+   7 max               2 x 2/ 2     52 x  52 x 128 ->   26 x  26 x 128 0.000 BF
+   8 conv    256       3 x 3/ 1     26 x  26 x 128 ->   26 x  26 x 256 0.399 BF
+   9 max               2 x 2/ 2     26 x  26 x 256 ->   13 x  13 x 256 0.000 BF
+  10 conv    512       3 x 3/ 1     13 x  13 x 256 ->   13 x  13 x 512 0.399 BF
+  11 max               2 x 2/ 1     13 x  13 x 512 ->   13 x  13 x 512 0.000 BF
+  12 conv   1024       3 x 3/ 1     13 x  13 x 512 ->   13 x  13 x1024 1.595 BF
+  13 conv    256       1 x 1/ 1     13 x  13 x1024 ->   13 x  13 x 256 0.089 BF
+  14 conv    512       3 x 3/ 1     13 x  13 x 256 ->   13 x  13 x 512 0.399 BF
+  15 conv    255       1 x 1/ 1     13 x  13 x 512 ->   13 x  13 x 255 0.044 BF
+  16 yolo
+[yolo] params: iou loss: mse, iou_norm: 0.75, cls_norm: 1.00, scale_x_y: 1.00
+  17 route  13
+  18 conv    128       1 x 1/ 1     13 x  13 x 256 ->   13 x  13 x 128 0.011 BF
+  19 upsample                 2x    13 x  13 x 128 ->   26 x  26 x 128
+  20 route  19 8
+  21 conv    256       3 x 3/ 1     26 x  26 x 384 ->   26 x  26 x 256 1.196 BF
+  22 conv    255       1 x 1/ 1     26 x  26 x 256 ->   26 x  26 x 255 0.088 BF
+  23 yolo
+[yolo] params: iou loss: mse, iou_norm: 0.75, cls_norm: 1.00, scale_x_y: 1.00
+Total BFLOPS 5.571 
+ Allocate additional workspace_size = 52.43 MB 
+Loading weights from ./yolov3-tiny.weights...
+ seen 64 
+Done!
+
+identifier: 4, Starting at 530394558.94900
+///////// Period : 220.000000 //////////
+=====================JOB 0=====================
+[Process 4] layer:   0 type:   convolutional - Predicted in 4144.41300 milli-seconds.
+[Process 4] layer:   1 type:         maxpool - Predicted in 355.31900 milli-seconds.
+[Process 4] layer:   2 type:   convolutional - Predicted in 3678.44500 milli-seconds.
+[Process 4] layer:   3 type:         maxpool - Predicted in 118.53600 milli-seconds.
+[Process 4] layer:   4 type:   convolutional - Predicted in 2648.01100 milli-seconds.
+[Process 4] layer:   5 type:         maxpool - Predicted in 57.33500 milli-seconds.
+[Process 4] layer:   6 type:   convolutional - Predicted in 1761.35200 milli-seconds.
+[Process 4] layer:   7 type:         maxpool - Predicted in  1.75300 milli-seconds.
+[Process 4] layer:   8 type:   convolutional - Predicted in 1656.86500 milli-seconds.
+[Process 4] layer:   9 type:         maxpool - Predicted in  0.80600 milli-seconds.
+[Process 4] layer:  10 type:   convolutional - Predicted in 2123.24800 milli-seconds.
+[Process 4] layer:  11 type:         maxpool - Predicted in 43.35200 milli-seconds.
+[Process 4] layer:  12 type:   convolutional - Predicted in 8821.42100 milli-seconds.
+[Process 4] layer:  13 type:   convolutional - Predicted in 452.46200 milli-seconds.
+[Process 4] layer:  14 type:   convolutional - Predicted in 2004.15500 milli-seconds.
+[Process 4] layer:  15 type:   convolutional - Predicted in 207.59500 milli-seconds.
+[Process 4] layer:  16 type:            yolo - Predicted in  1.03300 milli-seconds.
+[Process 4] layer:  17 type:           route - Predicted in  0.23400 milli-seconds.
+[Process 4] layer:  18 type:   convolutional - Predicted in  4.09400 milli-seconds.
+[Process 4] layer:  19 type:        upsample - Predicted in  0.80800 milli-seconds.
+[Process 4] layer:  20 type:           route - Predicted in  3.27400 milli-seconds.
+[Process 4] layer:  21 type:   convolutional - Predicted in 5650.50400 milli-seconds.
+[Process 4] layer:  22 type:   convolutional - Predicted in 280.72900 milli-seconds.
+[Process 4] layer:  23 type:            yolo - Predicted in 24.61800 milli-seconds.
+PRE : 1164.58400, PREDICT :35113.13200, POST : 0.00100, TOTAL :36277.71700
+=====================JOB 1=====================
+[Process 4] layer:   0 type:   convolutional - Predicted in 987.66700 milli-seconds.
+[Process 4] layer:   1 type:         maxpool - Predicted in 67.53900 milli-seconds.
+[Process 4] layer:   2 type:   convolutional - Predicted in 1904.09300 milli-seconds.
+[Process 4] layer:   3 type:         maxpool - Predicted in  3.67700 milli-seconds.
+[Process 4] layer:   4 type:   convolutional - Predicted in 2623.38600 milli-seconds.
+[Process 4] layer:   5 type:         maxpool - Predicted in  1.85000 milli-seconds.
+[Process 4] layer:   6 type:   convolutional - Predicted in 1771.29700 milli-seconds.
+[Process 4] layer:   7 type:         maxpool - Predicted in  0.95200 milli-seconds.
+[Process 4] layer:   8 type:   convolutional - Predicted in 1608.42600 milli-seconds.
+[Process 4] layer:   9 type:         maxpool - Predicted in  0.51900 milli-seconds.
+[Process 4] layer:  10 type:   convolutional - Predicted in 1942.80000 milli-seconds.
+[Process 4] layer:  11 type:         maxpool - Predicted in  1.17500 milli-seconds.
+[Process 4] layer:  12 type:   convolutional - Predicted in 8816.67000 milli-seconds.
+[Process 4] layer:  13 type:   convolutional - Predicted in 445.15500 milli-seconds.
+[Process 4] layer:  14 type:   convolutional - Predicted in 1989.31600 milli-seconds.
+[Process 4] layer:  15 type:   convolutional - Predicted in 223.96800 milli-seconds.
+[Process 4] layer:  16 type:            yolo - Predicted in  6.34900 milli-seconds.
+[Process 4] layer:  17 type:           route - Predicted in  0.12700 milli-seconds.
+[Process 4] layer:  18 type:   convolutional - Predicted in 52.09000 milli-seconds.
+[Process 4] layer:  19 type:        upsample - Predicted in  0.96000 milli-seconds.
+[Process 4] layer:  20 type:           route - Predicted in  0.34400 milli-seconds.
+[Process 4] layer:  21 type:   convolutional - Predicted in 5634.62500 milli-seconds.
+[Process 4] layer:  22 type:   convolutional - Predicted in 280.41200 milli-seconds.
+[Process 4] layer:  23 type:            yolo - Predicted in  1.47300 milli-seconds.
+PRE : 1208.69400, PREDICT :28932.81800, POST : 0.00000, TOTAL :30141.51400
+=====================JOB 2=====================
+[Process 4] layer:   0 type:   convolutional - Predicted in 1001.51300 milli-seconds.
+[Process 4] layer:   1 type:         maxpool - Predicted in  7.72200 milli-seconds.
+[Process 4] layer:   2 type:   convolutional - Predicted in 1870.89500 milli-seconds.
+[Process 4] layer:   3 type:         maxpool - Predicted in  3.68300 milli-seconds.
+[Process 4] layer:   4 type:   convolutional - Predicted in 2673.40400 milli-seconds.
+[Process 4] layer:   5 type:         maxpool - Predicted in  1.86400 milli-seconds.
+[Process 4] layer:   6 type:   convolutional - Predicted in 1758.73500 milli-seconds.
+[Process 4] layer:   7 type:         maxpool - Predicted in  0.95400 milli-seconds.
+[Process 4] layer:   8 type:   convolutional - Predicted in 1604.57600 milli-seconds.
+[Process 4] layer:   9 type:         maxpool - Predicted in  0.53200 milli-seconds.
+[Process 4] layer:  10 type:   convolutional - Predicted in 1987.32600 milli-seconds.
+[Process 4] layer:  11 type:         maxpool - Predicted in  1.17600 milli-seconds.
+[Process 4] layer:  12 type:   convolutional - Predicted in 8734.49900 milli-seconds.
+[Process 4] layer:  13 type:   convolutional - Predicted in 387.05700 milli-seconds.
+[Process 4] layer:  14 type:   convolutional - Predicted in 2005.59600 milli-seconds.
+[Process 4] layer:  15 type:   convolutional - Predicted in 171.54100 milli-seconds.
+[Process 4] layer:  16 type:            yolo - Predicted in  0.38900 milli-seconds.
+[Process 4] layer:  17 type:           route - Predicted in  0.11100 milli-seconds.
+[Process 4] layer:  18 type:   convolutional - Predicted in 60.15700 milli-seconds.
+[Process 4] layer:  19 type:        upsample - Predicted in  0.96300 milli-seconds.
+[Process 4] layer:  20 type:           route - Predicted in  0.34200 milli-seconds.
+[Process 4] layer:  21 type:   convolutional - Predicted in 5683.76100 milli-seconds.
+[Process 4] layer:  22 type:   convolutional - Predicted in 312.39100 milli-seconds.
+[Process 4] layer:  23 type:            yolo - Predicted in  1.47300 milli-seconds.
+PRE : 743.83600, PREDICT :28886.25300, POST : 0.00100, TOTAL :29630.09100
+=====================JOB 3=====================
+[Process 4] layer:   0 type:   convolutional - Predicted in 1002.93800 milli-seconds.
+[Process 4] layer:   1 type:         maxpool - Predicted in 63.49900 milli-seconds.
+[Process 4] layer:   2 type:   convolutional - Predicted in 1956.94900 milli-seconds.
+[Process 4] layer:   3 type:         maxpool - Predicted in  3.69800 milli-seconds.
+[Process 4] layer:   4 type:   convolutional - Predicted in 2651.50800 milli-seconds.
+[Process 4] layer:   5 type:         maxpool - Predicted in  1.85400 milli-seconds.
+[Process 4] layer:   6 type:   convolutional - Predicted in 1710.19700 milli-seconds.
+[Process 4] layer:   7 type:         maxpool - Predicted in  0.91700 milli-seconds.
+[Process 4] layer:   8 type:   convolutional - Predicted in 1569.68600 milli-seconds.
+[Process 4] layer:   9 type:         maxpool - Predicted in  0.53100 milli-seconds.
+[Process 4] layer:  10 type:   convolutional - Predicted in 1988.47200 milli-seconds.
+[Process 4] layer:  11 type:         maxpool - Predicted in  1.15600 milli-seconds.
+[Process 4] layer:  12 type:   convolutional - Predicted in 8550.31600 milli-seconds.
+[Process 4] layer:  13 type:   convolutional - Predicted in 425.90400 milli-seconds.
+[Process 4] layer:  14 type:   convolutional - Predicted in 1994.52000 milli-seconds.
+[Process 4] layer:  15 type:   convolutional - Predicted in 206.01200 milli-seconds.
+[Process 4] layer:  16 type:            yolo - Predicted in  0.45500 milli-seconds.
+[Process 4] layer:  17 type:           route - Predicted in  0.14600 milli-seconds.
+[Process 4] layer:  18 type:   convolutional - Predicted in 53.64800 milli-seconds.
+[Process 4] layer:  19 type:        upsample - Predicted in  0.96500 milli-seconds.
+[Process 4] layer:  20 type:           route - Predicted in  0.36300 milli-seconds.
+[Process 4] layer:  21 type:   convolutional - Predicted in 5601.28600 milli-seconds.
+[Process 4] layer:  22 type:   convolutional - Predicted in 267.41100 milli-seconds.
+[Process 4] layer:  23 type:            yolo - Predicted in  1.58400 milli-seconds.
+PRE : 677.01100, PREDICT :28700.66800, POST : 0.00000, TOTAL :29377.67900
+=====================JOB 4=====================
+[Process 4] layer:   0 type:   convolutional - Predicted in 1029.79100 milli-seconds.
+[Process 4] layer:   1 type:         maxpool - Predicted in 55.61900 milli-seconds.
+[Process 4] layer:   2 type:   convolutional - Predicted in 1882.01500 milli-seconds.
+[Process 4] layer:   3 type:         maxpool - Predicted in  3.68700 milli-seconds.
+[Process 4] layer:   4 type:   convolutional - Predicted in 2619.77800 milli-seconds.
+[Process 4] layer:   5 type:         maxpool - Predicted in  1.86100 milli-seconds.
+[Process 4] layer:   6 type:   convolutional - Predicted in 1709.92100 milli-seconds.
+[Process 4] layer:   7 type:         maxpool - Predicted in  0.96600 milli-seconds.
+[Process 4] layer:   8 type:   convolutional - Predicted in 1592.49900 milli-seconds.
+[Process 4] layer:   9 type:         maxpool - Predicted in  0.52400 milli-seconds.
+[Process 4] layer:  10 type:   convolutional - Predicted in 1989.85100 milli-seconds.
+[Process 4] layer:  11 type:         maxpool - Predicted in  1.17100 milli-seconds.
+[Process 4] layer:  12 type:   convolutional - Predicted in 8656.74200 milli-seconds.
+[Process 4] layer:  13 type:   convolutional - Predicted in 387.24700 milli-seconds.
+[Process 4] layer:  14 type:   convolutional - Predicted in 1970.50600 milli-seconds.
+[Process 4] layer:  15 type:   convolutional - Predicted in 190.24800 milli-seconds.
+[Process 4] layer:  16 type:            yolo - Predicted in  4.11000 milli-seconds.
+[Process 4] layer:  17 type:           route - Predicted in  0.12400 milli-seconds.
+[Process 4] layer:  18 type:   convolutional - Predicted in 60.06700 milli-seconds.
+[Process 4] layer:  19 type:        upsample - Predicted in  0.88100 milli-seconds.
+[Process 4] layer:  20 type:           route - Predicted in  0.34100 milli-seconds.
+[Process 4] layer:  21 type:   convolutional - Predicted in 5639.84000 milli-seconds.
+[Process 4] layer:  22 type:   convolutional - Predicted in 243.70100 milli-seconds.
+[Process 4] layer:  23 type:            yolo - Predicted in  1.55600 milli-seconds.
+PRE : 531.48600, PREDICT :28686.72700, POST : 0.00000, TOTAL :29218.21400
+1164.58400 35113.13200  0.00100
+1208.69400 28932.81800  0.00000
+743.83600 28886.25300  0.00100
+677.01100 28700.66800  0.00000
+531.48600 28686.72700  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+528461421339119192089400266954564307375473345735286460304975884690523901225153376910399068452607599088789646045188386110179518024017669290547915247755528219123153506487923845943513156566142316874502780746863130755245462828660608310786392270968254644964189797136070011130369454650597763448832.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+    -nan  0.00000  0.00000
+ 0.00000     -nan  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+    -nan  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000 528461421339119192089400266954564307375473345735286460304975884690523901225153376910399068452607599088789646045188386110179518024017669290547915247755528219123153506487923845943513156566142316874502780746863130755245462828660608310786392270968254644964189797136070011130369454650597763448832.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000     -nan  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000     -nan
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+ 0.00000  0.00000  0.00000
+free(): invalid pointer
