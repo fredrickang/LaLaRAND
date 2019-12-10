@@ -658,54 +658,6 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    // //////////// GET MODEL CONFIGURATIONS ////////////
-    // char * model_list = find_char_arg(argc,argv,"-models",0);
-    // if(model_list == 0){
-    //     printf("No information about models\n");
-    //     exit(-1);
-    // }
-
-    // list *mlist = get_paths(model_list);
-    // char **mpaths = (char **)list_to_array(mlist);
-    // int model_list_number = mlist->size;
-
-    // if(process_num != model_list_number){
-    //     printf("Model lists and process number doesn't mach!\n");
-    //     exit(-1);
-    // }
-
-    // /////////// GET WEIGHT CONFIGURATIONS ////////////
-    // char * weight_list = find_char_arg(argc,argv,"-weights",0);
-    // if(weight_list == 0){
-    //     printf("No information about weights\n");
-    //     exit(-1);
-    // }
-
-    // list *wlist = get_paths(weight_list);
-    // char **wpaths = (char **)list_to_array(wlist);
-    // int weight_list_number = wlist->size;
-
-    // if(process_num != weight_list_number){
-    //     printf("Weight lists and process number doesn't mach!\n");
-    //     exit(-1);        
-    // }
-
-    // /////////// GET DATA CONFIGURATIONS ////////////
-    // char * data_list = find_char_arg(argc,argv,"-data",0);
-    // if(data_list == 0){
-    //     printf("No information about datas\n");
-    //     exit(-1);
-    // }
-
-    // list *dlist = get_paths(data_list);
-    // char **dpaths = (char **)list_to_array(dlist);
-    // int data_list_number = wlist->size;
-
-    // if(process_num != data_list_number){
-    //     printf("Data lists and process number doesn't mach!\n");
-    //     exit(-1);        
-    // }
-
     /////// DEFINE SHARED MEMORY ////////
     shmem_rescfg = (int **)create_shared_memory(sizeof(int **));
     shmem_pid = (int *)create_shared_memory(sizeof(int)*process_num);
@@ -801,6 +753,7 @@ int main(int argc, char **argv)
         //allocate resource configuration of each process.
 
         test_extern_arr = shmem_rescfg[identifier];
+        
         get_task_info(mytask, argv);
         ///// data cfg
         printf("[%d], data path %s\n",identifier, argv[3]);
@@ -809,23 +762,30 @@ int main(int argc, char **argv)
         ///// weight cfg
         printf("[%d], weight path %s\n",identifier, argv[5]);
         //redirect stdout & stderr to certain file.
-        int fd;                 //fd
-        char output_idx[4];     //idx of output file
-        char output_name[100];   //name of output file
-        char file_extension[20];
         
-        sprintf(file_extension,"%s",".txt");
-        sprintf(output_idx,"%d",identifier);
-        strcpy(output_name,"logs/multi_log/multiprocresult_");
-        strcat(output_name,output_idx);
-        strcat(output_name,file_extension);
-        if((fd = open(output_name, O_RDWR | O_CREAT,0666))==-1){
-            perror("open");
-            return 1;
+        int log = find_arg(argc, argv, "-log");
+
+        if (log){
+            int fd;                 //fd
+            char output_idx[4];     //idx of output file
+            char output_name[100];   //name of output file
+            char file_extension[20];
+            
+            sprintf(file_extension,"%s",".txt");
+            sprintf(output_idx,"%d",identifier);
+            strcpy(output_name,"logs/multi_log/multiprocresult_");
+            strcat(output_name,output_idx);
+            strcat(output_name,file_extension);
+            if((fd = open(output_name, O_RDWR | O_CREAT,0666))==-1){
+                perror("open");
+                return 1;
+            }
+            dup2(fd,STDOUT_FILENO);
+            dup2(fd,STDERR_FILENO);
+            close(fd);
         }
-        dup2(fd,STDOUT_FILENO);
-        dup2(fd,STDERR_FILENO);
-        close(fd);
+
+        
         //!stdout redirection.
         printf("My pid: %d, my_identifier: %d\n",getpid(),identifier);
         //original darknet main process.

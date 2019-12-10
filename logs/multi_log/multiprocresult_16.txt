@@ -1,3 +1,0 @@
-My pid: 25461, my_identifier: 16
-   layer   filters  size/strd(dil)      input                output
-   0 
