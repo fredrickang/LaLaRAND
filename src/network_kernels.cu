@@ -77,35 +77,28 @@ void forward_network_gpu(network net, network_state state)
         time  = get_time_point();
         
         if (res_arr[i] == 0){ // on cpu
-//            printf("[%2dth] Excess  : %8.5f\n",i,get_time_point());
             if (l.type == CONVOLUTIONAL && net.quantized == 1 && l.index >=1 && l.activation != LINEAR) {
                 l.forward_quant(l, state); // w/ quantize
             }
             else {
                 l.forward(l,state);   //  w/o quantize
             }
-//            printf("[%2dth] Finish  : %8.5f\n",i,get_time_point());
         }
         else{ // on gpu 
-            //            printf("[%2dth] Request : %8.5f\n",i,get_time_point());
             // gpu access control by mutex
             while(pthread_mutex_trylock(gpu_lock)){
-                //printf("[Process %d put into wait]\n", identifier);
                 enqueue(queue, getpid());
                 kill(getpid(), SIGSTOP);
                 setpriority(PRIO_PROCESS, getpid(), -20);
                 continue;
             }
-//            printf("[%2dth] Excess  : %8.5f\n",i,get_time_point());
             l.forward_gpu(l, state);
             CHECK_CUDA(cudaDeviceSynchronize());
 
             setpriority(PRIO_PROCESS, getpid(), -10-identifier);
             
             pthread_mutex_unlock(gpu_lock);
-//            printf("[%2dth] Finish  : %8.5f\n",i,get_time_point());
             kill( pid = dequeue(queue), SIGCONT);        
-//            printf("pid: %d, has been waked\n",pid);
         }
         printf("[Process %d] layer: %3d type: %15s - Predicted in %8.5f milli-seconds.\n", identifier, i, get_layer_string(l.type), ((double)get_time_point() -time) / 1000);
         

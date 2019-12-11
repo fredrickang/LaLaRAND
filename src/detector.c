@@ -1714,8 +1714,6 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         }
         free(alphabet[j]);
     }
-    for (j=0;j<100;j++)
-        printf("%8.5f %8.5f %8.5f\n",time_pre_arr[j],time_predict_arr[j],time_post_arr[j]);
 
     free(alphabet);
     free_network(net);
