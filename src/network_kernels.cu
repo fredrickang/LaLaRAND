@@ -35,6 +35,10 @@
 #include "shortcut_layer.h"
 #include "blas.h"
 
+
+#define CPU 0
+#define GPU 1
+
 //#ifdef OPENCV
 //#include <opencv2/highgui/highgui_c.h>
 //#endif
@@ -106,20 +110,36 @@ void forward_network_gpu(network net, network_state state)
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
 
+
+        if(res_arr[i] == CPU){
+            if (res_arr[i+1] == CPU) state.input = l.output
+            else{
+                cuda_push_arry(l.output_gpu, l.output, l.bach * l.outputs);
+                state.input = l.output_gpu
+            }
+        }
+        else{
+            if (res_arr[i+1] == GPU) state.input = l.output_gpu
+            else{
+                cuda_pull_array(l.output_gpu, l.output, l.batch*l.outputs);
+                state.input = l.output
+            }
+        }
+
         if(res_arr[i] == 0){//currently running on CPU
             if(res_arr[i+1] == 0){//next is running on CPU
                 state.input = l.output;    
             }
             else{//next is running on GPU
                 _time = get_time_point();
-                //cuda_push_array(l.output_gpu, l.output, l.batch*l.outputs);
+                cuda_push_array(l.output_gpu, l.output, l.batch*l.outputs);
                 state.input = l.output;
             }
         }
         else{//currently running on GPU
             if(res_arr[i+1] == 0){//next is running on CPU
                 _time = get_time_point();
-                //cuda_pull_array(l.output_gpu, l.output, l.batch*l.outputs);
+                cuda_pull_array(l.output_gpu, l.output, l.batch*l.outputs);
                 state.input = l.output_gpu;
             }
             else{//next is running on GPU
@@ -545,7 +565,7 @@ float *network_predict_gpu(network net, float *input)
     
     res_arr = test_extern_arr;
 
-    if (res_arr[0] == 0){//first network runs on cpu.
+    if (res_arr[0] == CPU){//first network runs on cpu.
         memcpy(net.input_pinned_cpu, input, size*sizeof(float));
         state.input = net.input_pinned_cpu;
     //      printf("this is input%d\n",*state.input);
@@ -560,23 +580,23 @@ float *network_predict_gpu(network net, float *input)
     state.train = 0;
     state.delta = 0;
 
-    //allocate unified cuda memories.
-    //printf("start of unified memory reallocation\n");
-    for(i = 0; i < net.n; ++i){
-        if((res_arr[i] != res_arr[i+1]) || (i==8) || (i==13) || (i==19)){//computation resource change || route layer target.
-            layer *lptr = &(net.layers[i]);
-            if(res_arr[i] == 0){//if prev resource was CPU
-                temp_ptr[i] = lptr->output;
-                lptr->output = cuda_make_array_global(lptr->output,lptr->batch * lptr->outputs);
-            }
-            else{//if prev resource was GPU
-                temp_ptr[i] = lptr->output_gpu;
-                lptr->output_gpu = cuda_make_array_global(lptr->output,lptr->batch * lptr->outputs);
-            }
-        }
-    }
-    //printf("end of unified memory reallocation\n");
-    //!allocated.
+    // //allocate unified cuda memories.
+    // //printf("start of unified memory reallocation\n");
+    // for(i = 0; i < net.n; ++i){
+    //     if((res_arr[i] != res_arr[i+1]) || (i==8) || (i==13) || (i==19)){//computation resource change || route layer target.
+    //         layer *lptr = &(net.layers[i]);
+    //         if(res_arr[i] == 0){//if prev resource was CPU
+    //             temp_ptr[i] = lptr->output;
+    //             lptr->output = cuda_make_array_global(lptr->output,lptr->batch * lptr->outputs);
+    //         }
+    //         else{//if prev resource was GPU
+    //             temp_ptr[i] = lptr->output_gpu;
+    //             lptr->output_gpu = cuda_make_array_global(lptr->output,lptr->batch * lptr->outputs);
+    //         }
+    //     }
+    // }
+    // //printf("end of unified memory reallocation\n");
+    // //!allocated.
 
     forward_network_gpu(net, state);
     float *out = get_network_output_gpu(net);
