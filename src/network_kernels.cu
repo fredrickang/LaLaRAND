@@ -124,30 +124,10 @@ void forward_network_gpu(network net, network_state state)
                 cuda_pull_array(l.output_gpu, l.output, l.batch*l.outputs);
                 state.input = l.output
             }
-        }
-
-        if(res_arr[i] == 0){//currently running on CPU
-            if(res_arr[i+1] == 0){//next is running on CPU
-                state.input = l.output;    
-            }
-            else{//next is running on GPU
-                _time = get_time_point();
-                cuda_push_array(l.output_gpu, l.output, l.batch*l.outputs);
-                state.input = l.output;
-            }
-        }
-        else{//currently running on GPU
-            if(res_arr[i+1] == 0){//next is running on CPU
-                _time = get_time_point();
-                cuda_pull_array(l.output_gpu, l.output, l.batch*l.outputs);
-                state.input = l.output_gpu;
-            }
-            else{//next is running on GPU
-                state.input = l.output_gpu;
-            }
-        }
+        }        
     }
 }
+
 
 void backward_network_gpu(network net, network_state state)
 {
