@@ -114,7 +114,7 @@ void forward_network_gpu(network net, network_state state)
         if(res_arr[i] == CPU){
             if (res_arr[i+1] == CPU) state.input = l.output
             else{
-                cuda_push_arry(l.output_gpu, l.output, l.bach * l.outputs);
+                cuda_push_array(l.output_gpu, l.output, l.bach * l.outputs);
                 state.input = l.output_gpu
             }
         }
