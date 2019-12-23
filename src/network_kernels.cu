@@ -112,17 +112,17 @@ void forward_network_gpu(network net, network_state state)
 
 
         if(res_arr[i] == CPU){
-            if (res_arr[i+1] == CPU) state.input = l.output
+            if (res_arr[i+1] == CPU) state.input = l.output;
             else{
-                cuda_push_array(l.output_gpu, l.output, l.bach * l.outputs);
-                state.input = l.output_gpu
+                cuda_push_array(l.output_gpu, l.output, l.batch * l.outputs);
+                state.input = l.output_gpu;
             }
         }
         else{
-            if (res_arr[i+1] == GPU) state.input = l.output_gpu
+            if (res_arr[i+1] == GPU) state.input = l.output_gpu;
             else{
                 cuda_pull_array(l.output_gpu, l.output, l.batch*l.outputs);
-                state.input = l.output
+                state.input = l.output;
             }
         }        
     }
@@ -583,19 +583,19 @@ float *network_predict_gpu(network net, float *input)
 
     //free cuda memories and return original memory pointer.
     //printf("start of returning memory reallocation\n");
-    for(i=0; i<net.n; ++i){
-        if(res_arr[i] != res_arr[i+1]){
-            layer *lptr = &(net.layers[i]);
-            if(res_arr[i] == 0){
-                cuda_free(lptr->output);
-                lptr->output = temp_ptr[i];
-            }
-            else{
-                cuda_free(lptr->output_gpu);
-                lptr->output_gpu = temp_ptr[i];
-            }
-        }
-    }
+    //for(i=0; i<net.n; ++i){
+    //    if(res_arr[i] != res_arr[i+1]){
+    //        layer *lptr = &(net.layers[i]);
+    //       if(res_arr[i] == 0){
+    //            cuda_free(lptr->output);
+    //            lptr->output = temp_ptr[i];
+    //        }
+    //       else{
+    //           cuda_free(lptr->output_gpu);
+    //            lptr->output_gpu = temp_ptr[i];
+    //       }
+    //    }
+    // }
     //printf("end of returning memory reallocation\n");
     //!freed.
 
