@@ -76,19 +76,25 @@ void forward_route_layer(const route_layer l, network_state state)
 {
     int i, j;
     int offset = 0;
+    float * tmp;
     for(i = 0; i < l.n; ++i){
         int index = l.input_layers[i];
         
         //route layers should lookup the allocation status of previous layers.
         //change the input pointer according to resource allocation array.
         float *input;
+        int input_size = l.input_sizes[i];
+
         if(test_extern_arr[index] == 0)
             input = state.net.layers[index].output;
         else
-            input = state.net.layers[index].output_gpu;
+            tmp = (float *)malloc(input_size * sizeof(float));
+            cuda_pull_array(state.net.layers[index].output_gpu,tmp, input_size);
+            
+            input = tmp;
         //!pointer allocation
         
-        int input_size = l.input_sizes[i];
+        
         for(j = 0; j < l.batch; ++j){
             copy_cpu(input_size, input + j*input_size, 1, l.output + offset + j*l.outputs, 1);
         }
@@ -116,18 +122,22 @@ void forward_route_layer_gpu(const route_layer l, network_state state)
 {
     int i, j;
     int offset = 0;
+    float * d_tmp;
     for(i = 0; i < l.n; ++i){
         int index = l.input_layers[i];
         
         //change the input pointer according to resource allocation array.
         float *input;
+        int input_size = l.input_sizes[i];
+
         if(test_extern_arr[index] == 0)
-            input = state.net.layers[index].output;
+            cudaMalloc(&d_tmp, input_size* sizeof(float));
+            cuda_push_array(d_tmp, state.net.layers[index].output, input_size);
+            input = d_tmp;
         else
             input = state.net.layers[index].output_gpu;
         //!pointer allocation
         
-        int input_size = l.input_sizes[i];
         for(j = 0; j < l.batch; ++j){
             //copy_ongpu(input_size, input + j*input_size, 1, l.output_gpu + offset + j*l.outputs, 1);
             simple_copy_ongpu(input_size, input + j*input_size, l.output_gpu + offset + j*l.outputs);
