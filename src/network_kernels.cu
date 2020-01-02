@@ -57,6 +57,12 @@ extern int * queue;
 extern pthread_mutex_t *gpu_lock;
 extern int N;
 
+
+// 20.01.02 global unified memory development
+// 1. local(host or device) memory write
+// 2. copy on um memory
+// 3. if resource migration happend => read um memory
+// 4. if not => use local memory
 void forward_network_gpu(network net, network_state state)
 {
     cudaDeviceSynchronize();
@@ -69,6 +75,7 @@ void forward_network_gpu(network net, network_state state)
     double _time;
     double time;
     res_arr = test_extern_arr;
+    turn = 0;
     for(i = 0; i < net.n; ++i){
         
         state.index = i;
@@ -80,13 +87,16 @@ void forward_network_gpu(network net, network_state state)
         
         time  = get_time_point();
         
-        if (res_arr[i] == 0){ // on cpu
+        if (res_arr[i] == CPU){ // on cpu
             if (l.type == CONVOLUTIONAL && net.quantized == 1 && l.index >=1 && l.activation != LINEAR) {
                 l.forward_quant(l, state); // w/ quantize
             }
             else {
                 l.forward(l,state);   //  w/o quantize
             }
+
+            // copying on um memory 
+            memcpy(net.global_um,l.output, l.outputs);
         }
         else{ // on gpu 
             // gpu access control by mutex
@@ -98,6 +108,9 @@ void forward_network_gpu(network net, network_state state)
             }
             l.forward_gpu(l, state);
             CHECK_CUDA(cudaDeviceSynchronize());
+            
+            // copying on um memory
+            cudaMemcpy(net.global_um, l.output_gpu, l.outputs, cudaMemcpyDeviceToDevice);
 
             setpriority(PRIO_PROCESS, getpid(), -10-identifier);
             
@@ -114,17 +127,17 @@ void forward_network_gpu(network net, network_state state)
         if(res_arr[i] == CPU){
             if (res_arr[i+1] == CPU) state.input = l.output;
             else{
-                cuda_push_array(l.output_gpu, l.output, l.batch * l.outputs);
-                state.input = l.output_gpu;
+                // using um memory as an input
+                state.input = net.global_um;
             }
         }
         else{
             if (res_arr[i+1] == GPU) state.input = l.output_gpu;
             else{
-                cuda_pull_array(l.output_gpu, l.output, l.batch*l.outputs);
-                state.input = l.output;
+                // using um memory as an input
+                state.input = net.global_um;
             }
-        }        
+        }
     }
 }
 

@@ -584,6 +584,12 @@ typedef enum {
 
 // network.h
 typedef struct network {
+
+    // 20.01.02 global unified memory development
+    
+    float * global_um;
+
+    //
     int quantized;
     int t_idx; 
     int n;

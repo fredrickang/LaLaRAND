@@ -1074,6 +1074,13 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
         printf("\n Warning: width=%d and height=%d in cfg-file must be divisible by 32 for default networks Yolo v1/v2/v3!!! \n\n",
             net.w, net.h);
     }
+
+    // 20.01.02 global unified memory development
+    cudaMallocManaged(net.global_um, max_outputs * sizeof(float));
+    
+
+    //
+
     return net;
 }
 
