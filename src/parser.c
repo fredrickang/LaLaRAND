@@ -1076,7 +1076,7 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     }
 
     // 20.01.02 global unified memory development
-    cudaMallocManaged(net.global_um, max_outputs * sizeof(float));
+    cudaMallocManaged(&net.global_um, max_outputs * sizeof(float), cudaMemAttachGlobal);
     
 
     //

@@ -75,7 +75,6 @@ void forward_network_gpu(network net, network_state state)
     double _time;
     double time;
     res_arr = test_extern_arr;
-    turn = 0;
     for(i = 0; i < net.n; ++i){
         
         state.index = i;
