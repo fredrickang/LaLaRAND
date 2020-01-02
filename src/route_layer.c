@@ -74,6 +74,7 @@ void resize_route_layer(route_layer *l, network *net)
 
 void forward_route_layer(const route_layer l, network_state state)
 {
+    printf("[ROUTE] I have been summoned\n");
     int i, j;
     int offset = 0;
     float * tmp;
@@ -87,13 +88,13 @@ void forward_route_layer(const route_layer l, network_state state)
 
         if(test_extern_arr[index] == 0)
             input = state.net.layers[index].output;
-        else
+        else{
             tmp = (float *)malloc(input_size * sizeof(float));
             cuda_pull_array(state.net.layers[index].output_gpu,tmp, input_size);
             
             input = tmp;
         //!pointer allocation
-        
+        }
         
         for(j = 0; j < l.batch; ++j){
             copy_cpu(input_size, input + j*input_size, 1, l.output + offset + j*l.outputs, 1);
@@ -130,10 +131,11 @@ void forward_route_layer_gpu(const route_layer l, network_state state)
         float *input;
         int input_size = l.input_sizes[i];
 
-        if(test_extern_arr[index] == 0)
+        if(test_extern_arr[index] == 0){
             cudaMalloc(&d_tmp, input_size* sizeof(float));
             cuda_push_array(d_tmp, state.net.layers[index].output, input_size);
             input = d_tmp;
+        }
         else
             input = state.net.layers[index].output_gpu;
         //!pointer allocation
