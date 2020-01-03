@@ -33,6 +33,12 @@ layer make_normalization_layer(int batch, int w, int h, int c, int size, float a
     layer.squared_gpu = cuda_make_array(layer.squared, h * w * c * batch);
     layer.norms_gpu =   cuda_make_array(layer.norms, h * w * c * batch);
     #endif
+    
+    // 20.01.03 Local unified memory 
+    cudaMallocManaged(&layer.output_um, h * w * c * batch * sizeof(float),cudaMemAttachGlobal);
+    layer.output = layer.output_um;
+    layer.output_gpu = layer.output_um;
+    
     return layer;
 }
 

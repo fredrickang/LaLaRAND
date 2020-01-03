@@ -51,6 +51,12 @@ softmax_layer make_softmax_layer(int batch, int inputs, int groups)
     l.loss_gpu = cuda_make_array(l.loss, inputs*batch);
     l.delta_gpu = cuda_make_array(l.delta, inputs*batch);
     #endif
+
+    // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, inputs * batch * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
+
     return l;
 }
 

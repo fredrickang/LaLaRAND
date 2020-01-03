@@ -153,6 +153,12 @@ connected_layer make_connected_layer(int batch, int steps, int inputs, int outpu
     l.workspace_size = get_connected_workspace_size(l);
 #endif  // CUDNN
 #endif  // GPU
+
+            // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, total_batch * outputs * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
+
     fprintf(stderr, "connected                            %4d  ->  %4d\n", inputs, outputs);
     return l;
 }

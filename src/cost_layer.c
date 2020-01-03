@@ -54,6 +54,11 @@ cost_layer make_cost_layer(int batch, int inputs, COST_TYPE cost_type, float sca
     l.delta_gpu = cuda_make_array(l.delta, inputs*batch);
     l.output_gpu = cuda_make_array(l.output, inputs*batch);
     #endif
+
+    // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, inputs*batch * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
     return l;
 }
 

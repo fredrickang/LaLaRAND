@@ -39,6 +39,12 @@ layer make_reorg_old_layer(int batch, int w, int h, int c, int stride, int rever
     l.output_gpu  = cuda_make_array(l.output, output_size);
     l.delta_gpu   = cuda_make_array(l.delta, output_size);
 #endif
+    
+    // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, output_size * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
+
     return l;
 }
 

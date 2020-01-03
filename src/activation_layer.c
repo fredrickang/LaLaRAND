@@ -31,6 +31,12 @@ layer make_activation_layer(int batch, int inputs, ACTIVATION activation)
     l.delta_gpu = cuda_make_array(l.delta, inputs*batch);
 #endif
     l.activation = activation;
+    
+    // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, batch * inputs * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
+
     fprintf(stderr, "Activation Layer: %d inputs\n", inputs);
     return l;
 }

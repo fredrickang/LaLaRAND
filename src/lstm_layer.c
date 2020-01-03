@@ -154,6 +154,11 @@ layer make_lstm_layer(int batch, int inputs, int outputs, int steps, int batch_n
 
 #endif
 
+    // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, batch * outputs* steps * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
+
     return l;
 }
 

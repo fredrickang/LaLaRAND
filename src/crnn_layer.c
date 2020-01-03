@@ -88,7 +88,12 @@ layer make_crnn_layer(int batch, int h, int w, int c, int hidden_filters, int ou
 #endif
 
     l.bflops = l.input_layer->bflops + l.self_layer->bflops + l.output_layer->bflops;
-
+    
+    // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, batch * steps *l.outputs * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
+    
     return l;
 }
 
