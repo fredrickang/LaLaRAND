@@ -93,9 +93,6 @@ void forward_network_gpu(network net, network_state state)
             else {
                 l.forward(l,state);   //  w/o quantize
             }
-
-            // copying on um memory 
-            memcpy(net.global_um,l.output, l.outputs);
         }
         else{ // on gpu 
             // gpu access control by mutex
@@ -107,36 +104,29 @@ void forward_network_gpu(network net, network_state state)
             }
             l.forward_gpu(l, state);
             CHECK_CUDA(cudaDeviceSynchronize());
-            
-            // copying on um memory
-            cudaMemcpy(net.global_um, l.output_gpu, l.outputs, cudaMemcpyDeviceToDevice);
 
             setpriority(PRIO_PROCESS, getpid(), -10-identifier);
             
             pthread_mutex_unlock(gpu_lock);
             kill( pid = dequeue(queue), SIGCONT);        
         }
-        printf("[Process %d] layer: %3d type: %15s - Predicted in %8.5f milli-seconds.\n", identifier, i, get_layer_string(l.type), ((double)get_time_point() -time) / 1000);
+        //printf("[Process %d] layer: %3d type: %15s - Predicted in %8.5f milli-seconds.\n", identifier, i, get_layer_string(l.type), ((double)get_time_point() -time) / 1000);
+        printf("[Execution] %d %3d %8.5f \n",res_arr[i], i, ((double)get_time_point() -time) /1000 ); 
         
-        sleep(0.01);
+        //sleep(0.01);
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
-
-
-        if(res_arr[i] == CPU){
-            if (res_arr[i+1] == CPU) state.input = l.output;
-            else{
-                // using um memory as an input
-                state.input = net.global_um;
-            }
-        }
-        else{
-            if (res_arr[i+1] == GPU) state.input = l.output_gpu;
-            else{
-                // using um memory as an input
-                state.input = net.global_um;
-            }
-        }
+       
+        time = get_time_point();
+        //global UM
+        if(res_arr[i] == CPU) memcpy(net.global_um, l.output, l.outputs);
+        else cudaMemcpy(net.global_um, l.output_gpu, l.outputs, cudaMemcpyDeviceToDevice);
+        
+        printf("[Transfer] %d %3d %8.5f \n",res_arr[i], i, ((double)get_time_point() - time) /1000);
+        
+        if(res_arr[i] == CPU) state.input = (res_arr[i+1] == CPU) ? l.output : net.global_um;
+        else state.input = (res_arr[i+1] == GPU) ? l.output_gpu : net.global_um;
+    
     }
 }
 

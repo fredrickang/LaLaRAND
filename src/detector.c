@@ -1597,7 +1597,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     //double t_period;
     //double t_period_end;
 
-    for (k =0; k< 5; k++){
+    for (k =0; k< 10; k++){
         //t_period = get_time_point();
         ///// IMAGE PREPROCESSING /////
         printf("=====================JOB %d=====================\n",k);
