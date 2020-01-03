@@ -39,6 +39,11 @@ detection_layer make_detection_layer(int batch, int inputs, int n, int side, int
     l.output_gpu = cuda_make_array(l.output, batch*l.outputs);
     l.delta_gpu = cuda_make_array(l.delta, batch*l.outputs);
 #endif
+    
+    // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, l.batch* l.outputs * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
 
     fprintf(stderr, "Detection Layer\n");
     srand(time(0));

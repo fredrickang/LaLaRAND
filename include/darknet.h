@@ -376,6 +376,9 @@ struct layer {
     float * squared;
     float * norms;
 
+    // 20.01.03 Local Unified memory 
+    float * output_um;
+ 
     float * spatial_mean;
     float * mean;
     float * variance;

@@ -74,7 +74,12 @@ layer make_rnn_layer(int batch, int inputs, int hidden, int outputs, int steps, 
     l.state_gpu = cuda_make_array(l.state, batch*hidden*(steps+1));
     l.output_gpu = l.output_layer->output_gpu;
     l.delta_gpu = l.output_layer->delta_gpu;
-#endif
+#endif 
+    
+    // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, l.outputs * batch * steps * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
 
     return l;
 }

@@ -204,7 +204,11 @@ layer make_conv_lstm_layer(int batch, int h, int w, int c, int output_filters, i
 
     if(l.peephole) l.bflops += 12 * l.outputs*l.batch / 1000000000.;
     else l.bflops += 9 * l.outputs*l.batch / 1000000000.;
-
+    
+                // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, batch*outputs*steps * outputs * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
     return l;
 }
 

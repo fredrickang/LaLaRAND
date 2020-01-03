@@ -42,6 +42,11 @@ crop_layer make_crop_layer(int batch, int h, int w, int c, int crop_height, int 
     l.output_gpu = cuda_make_array(l.output, l.outputs*batch);
     l.rand_gpu   = cuda_make_array(0, l.batch*8);
     #endif
+    
+    // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, batch * l.outputs * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
     return l;
 }
 

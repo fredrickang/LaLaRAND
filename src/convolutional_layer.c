@@ -558,6 +558,11 @@ convolutional_layer make_convolutional_layer(int batch, int steps, int h, int w,
 #endif
     l.workspace_size = get_convolutional_workspace_size(l);
 
+                // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, total_batch*l.outputs * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
+
     //fprintf(stderr, "conv  %5d %2d x%2d /%2d  %4d x%4d x%4d   ->  %4d x%4d x%4d\n", n, size, size, stride, w, h, c, l.out_w, l.out_h, l.out_c);
     l.bflops = (2.0 * l.nweights * l.out_h*l.out_w) / 1000000000.;
     if (l.xnor && l.use_bin_output) fprintf(stderr, "convXB");

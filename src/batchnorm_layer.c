@@ -59,6 +59,11 @@ layer make_batchnorm_layer(int batch, int w, int h, int c)
     cudnnSetTensor4dDescriptor(layer.normTensorDesc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, 1, layer.out_c, 1, 1);
 #endif
 #endif
+        // 20.01.03 Local unified memory 
+    cudaMallocManaged(&layer.output_um, h * w * c * batch * sizeof(float),cudaMemAttachGlobal);
+    layer.output = layer.output_um;
+    layer.output_gpu = layer.output_um;
+
     return layer;
 }
 
@@ -170,7 +175,7 @@ void pull_batchnorm_layer(layer l)
     cuda_pull_array(l.rolling_mean_gpu, l.rolling_mean, l.c);
     cuda_pull_array(l.rolling_variance_gpu, l.rolling_variance, l.c);
 }
-void push_batchnorm_layer(layer l)
+void push_batchnorm_layer(layer l) 
 {
     cuda_push_array(l.scales_gpu, l.scales, l.c);
     cuda_push_array(l.rolling_mean_gpu, l.rolling_mean, l.c);

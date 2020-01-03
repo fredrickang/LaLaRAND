@@ -104,6 +104,10 @@ layer make_gru_layer(int batch, int inputs, int outputs, int steps, int batch_no
     l.z_gpu = cuda_make_array(l.output_gpu, batch*outputs);
     l.h_gpu = cuda_make_array(l.output_gpu, batch*outputs);
 #endif
+    // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, outputs * batch * steps * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
 
     return l;
 }

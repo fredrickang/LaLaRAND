@@ -68,7 +68,12 @@ layer make_yolo_layer(int batch, int w, int h, int n, int total, int *mask, int 
         l.delta = (float*)calloc(batch * l.outputs, sizeof(float));
     }
 #endif
-
+    
+    // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, batch* l.outputs * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
+    
     fprintf(stderr, "yolo\n");
     srand(time(0));
 

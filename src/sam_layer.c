@@ -36,6 +36,12 @@ layer make_sam_layer(int batch, int index, int w, int h, int c, int w2, int h2, 
     l.delta_gpu =  cuda_make_array(l.delta, l.outputs*batch);
     l.output_gpu = cuda_make_array(l.output, l.outputs*batch);
 #endif
+
+    // 20.01.03 Local unified memory 
+    cudaMallocManaged(&l.output_um, l.outputs * batch * sizeof(float),cudaMemAttachGlobal);
+    l.output = l.output_um;
+    l.output_gpu = l.output_um;
+
     return l;
 }
 
