@@ -74,7 +74,6 @@ void resize_route_layer(route_layer *l, network *net)
 
 void forward_route_layer(const route_layer l, network_state state)
 {
-    printf("[ROUTE] I have been summoned\n");
     int i, j;
     int offset = 0;
     float * tmp;

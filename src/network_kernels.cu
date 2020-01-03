@@ -104,12 +104,13 @@ void forward_network_gpu(network net, network_state state)
             pthread_mutex_unlock(gpu_lock);
             kill( pid = dequeue(queue), SIGCONT);        
         }
-        printf("[Process %d] layer: %3d type: %15s - Predicted in %8.5f milli-seconds.\n", identifier, i, get_layer_string(l.type), ((double)get_time_point() -time) / 1000);
+        //printf("[Process %d] layer: %3d type: %15s - Predicted in %8.5f milli-seconds.\n", identifier, i, get_layer_string(l.type), ((double)get_time_point() -time) / 1000);
+        printf("%d %3d %8.5f \n", res_arr[i] ,i, ((double)get_time_point() - time) / 1000);
         
-        sleep(0.01);
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
 
+        time = get_time_point();
 
         if(res_arr[i] == CPU){
             if (res_arr[i+1] == CPU) state.input = l.output;
@@ -124,7 +125,8 @@ void forward_network_gpu(network net, network_state state)
                 cuda_pull_array(l.output_gpu, l.output, l.batch*l.outputs);
                 state.input = l.output;
             }
-        }        
+        }
+        printf("%d%d %3d %3d %8.5f \n", res_arr[i], res_arr[i+1], i, i+1, ((double)get_time_point() - time) / 1000);
     }
 }
 
