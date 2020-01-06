@@ -110,8 +110,7 @@ void forward_network_gpu(network net, network_state state)
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
 
-        time = get_time_point();
-
+        /*    
         if(res_arr[i] == CPU){
             if (res_arr[i+1] == CPU) state.input = l.output;
             else{
@@ -126,7 +125,9 @@ void forward_network_gpu(network net, network_state state)
                 state.input = l.output;
             }
         }
-        printf("%d%d %3d %3d %8.5f \n", res_arr[i], res_arr[i+1], i, i+1, ((double)get_time_point() - time) / 1000);
+        */
+
+        state.input = l.output_um;
     }
 }
 

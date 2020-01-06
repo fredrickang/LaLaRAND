@@ -720,7 +720,7 @@ int main(int argc, char **argv)
                 if(!pid) { identifier = i+1;}
             }
         }
-        printf("my pid: %d, my_identifier: %d\n",getpid(),identifier);
+        //printf("my pid: %d, my_identifier: %d\n",getpid(),identifier);
     }
 
     if(identifier == -1){ /* mother process */ 
