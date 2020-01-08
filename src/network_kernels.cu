@@ -79,13 +79,19 @@ void forward_network_gpu(network net, network_state state)
         
         state.index = i;
         layer l = net.layers[i];
-        
         if(l.delta_gpu && state.train){
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
         }   
         
-        time  = get_time_point();
-        
+        // data handling 
+        if(res_arr[i-1] != res_arr[i] &&  i > 0 ){
+            layer tmp = net.layers[i-1];
+            if(res_arr[i-1] == CPU) memcpy(net.global_um, tmp.output, tmp.outputs);
+            else cudaMemcpy(net.global_um, tmp.output_gpu, tmp.outputs, cudaMemcpyDeviceToDevice);
+
+            state.input = net.global_um;
+        }
+
         if (res_arr[i] == CPU){ // on cpu
             if (l.type == CONVOLUTIONAL && net.quantized == 1 && l.index >=1 && l.activation != LINEAR) {
                 l.forward_quant(l, state); // w/ quantize
@@ -110,23 +116,15 @@ void forward_network_gpu(network net, network_state state)
             pthread_mutex_unlock(gpu_lock);
             kill( pid = dequeue(queue), SIGCONT);        
         }
-        //printf("[Process %d] layer: %3d type: %15s - Predicted in %8.5f milli-seconds.\n", identifier, i, get_layer_string(l.type), ((double)get_time_point() -time) / 1000);
-        printf("[Execution] %d %3d %8.5f \n",res_arr[i], i, ((double)get_time_point() -time) /1000 ); 
+        //printf("[Process %d] layer: %3d type: %15s - Predicted in %8.5f milli-seconds.\n", identifier, i, get_layer_string(l.type), ((double)get_time_point() -time) / 1000); 
         
         //sleep(0.01);
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
-       
-        time = get_time_point();
+        
         //global UM
-        if(res_arr[i] == CPU) memcpy(net.global_um, l.output, l.outputs);
-        else cudaMemcpy(net.global_um, l.output_gpu, l.outputs, cudaMemcpyDeviceToDevice);
         
-        printf("[Transfer] %d %3d %8.5f \n",res_arr[i], i, ((double)get_time_point() - time) /1000);
-        
-        if(res_arr[i] == CPU) state.input = (res_arr[i+1] == CPU) ? l.output : net.global_um;
-        else state.input = (res_arr[i+1] == GPU) ? l.output_gpu : net.global_um;
-    
+        state.input = (res_arr[i] == CPU) ? l.output : l.output_gpu;
     }
 }
 
