@@ -75,6 +75,7 @@ void forward_network_gpu(network net, network_state state)
     double _time;
     double time;
     res_arr = test_extern_arr;
+    time = get_time_point();
     for(i = 0; i < net.n; ++i){
         
         state.index = i;
@@ -126,6 +127,7 @@ void forward_network_gpu(network net, network_state state)
         
         state.input = (res_arr[i] == CPU) ? l.output : l.output_gpu;
     }
+    printf("%8.5f\n", ((double)get_time_point() - time) /1000);
 }
 
 
