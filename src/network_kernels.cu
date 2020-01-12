@@ -69,7 +69,6 @@ void forward_network_gpu(network net, network_state state)
     double _time;
     double time;
     res_arr = test_extern_arr;
-    time = get_time_point();
     for(i = 0; i < net.n; ++i){
         
         state.index = i;
@@ -79,7 +78,7 @@ void forward_network_gpu(network net, network_state state)
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
         }   
         
-        //time  = get_time_point();
+        time  = get_time_point();
         
         if (res_arr[i] == 0){ // on cpu
             if (l.type == CONVOLUTIONAL && net.quantized == 1 && l.index >=1 && l.activation != LINEAR) {
@@ -105,6 +104,7 @@ void forward_network_gpu(network net, network_state state)
             pthread_mutex_unlock(gpu_lock);
             kill( pid = dequeue(queue), SIGCONT);        
         }
+        printf(" Inferencing %8.5f\n", ((double)get_time_point() - time) / 1000);
         //printf("[Process %d] layer: %3d type: %15s - Predicted in %8.5f milli-seconds.\n", identifier, i, get_layer_string(l.type), ((double)get_time_point() -time) / 1000);
         //printf("%d %3d %8.5f \n", res_arr[i] ,i, ((double)get_time_point() - time) / 1000);
         
@@ -129,7 +129,7 @@ void forward_network_gpu(network net, network_state state)
         }
         //printf("%d%d %3d %3d %8.5f \n", res_arr[i], res_arr[i+1], i, i+1, ((double)get_time_point() - time) / 1000);
     }
-    printf("%8.5f\n", ((double)get_time_point() - time) / 1000);
+    //printf("%8.5f\n", ((double)get_time_point() - time) / 1000);
 }
 
 
