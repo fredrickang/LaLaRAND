@@ -66,9 +66,11 @@ void forward_network_gpu(network net, network_state state)
     int pid;
     int i;
     int *res_arr;
-    double _time;
-    double time;
     res_arr = test_extern_arr;
+    double total;
+    double execution;
+    double transfer;
+    total = get_time_point();
     for(i = 0; i < net.n; ++i){
         
         state.index = i;
@@ -77,9 +79,8 @@ void forward_network_gpu(network net, network_state state)
         if(l.delta_gpu && state.train){
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
         }   
-        
-        time  = get_time_point();
-        
+
+        execution = get_time_point();
         if (res_arr[i] == 0){ // on cpu
             if (l.type == CONVOLUTIONAL && net.quantized == 1 && l.index >=1 && l.activation != LINEAR) {
                 l.forward_quant(l, state); // w/ quantize
@@ -104,15 +105,12 @@ void forward_network_gpu(network net, network_state state)
             pthread_mutex_unlock(gpu_lock);
             kill( pid = dequeue(queue), SIGCONT);        
         }
-        printf(" Inferencing %8.5f\n", ((double)get_time_point() - time) / 1000);
+        execution = ((double)get_time_point() - execution)/ 1000;
         //printf("[Process %d] layer: %3d type: %15s - Predicted in %8.5f milli-seconds.\n", identifier, i, get_layer_string(l.type), ((double)get_time_point() -time) / 1000);
-        //printf("%d %3d %8.5f \n", res_arr[i] ,i, ((double)get_time_point() - time) / 1000);
-        
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
-
-        //time = get_time_point();
-
+        
+        transfer = get_time_point();
         if(res_arr[i] == CPU){
             if (res_arr[i+1] == CPU) state.input = l.output;
             else{
@@ -127,9 +125,10 @@ void forward_network_gpu(network net, network_state state)
                 state.input = l.output;
             }
         }
-        //printf("%d%d %3d %3d %8.5f \n", res_arr[i], res_arr[i+1], i, i+1, ((double)get_time_point() - time) / 1000);
+        transfer = ((double)get_time_point() - transfer)/1000;
+        printf("%3d %8.5f %8.5f\n", i, execution, transfer);
     }
-    //printf("%8.5f\n", ((double)get_time_point() - time) / 1000);
+    printf("%8.5f\n",((double)get_time_point() - total)/1000);
 }
 
 
