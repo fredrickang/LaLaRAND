@@ -89,8 +89,8 @@ void forward_network_gpu(network net, network_state state)
         // data handling 
         if(res_arr[i-1] != res_arr[i] &&  i > 0 ){
             layer tmp = net.layers[i-1];
-            if(res_arr[i-1] == CPU) memcpy(net.global_um, tmp.output, tmp.outputs);
-            else cudaMemcpy(net.global_um, tmp.output_gpu, tmp.outputs, cudaMemcpyDeviceToDevice);
+            if(res_arr[i-1] == CPU) memcpy(net.global_um, tmp.output, tmp.outputs* sizeof(float));
+            else cudaMemcpy(net.global_um, tmp.output_gpu, tmp.outputs * sizeof(float), cudaMemcpyDeviceToDevice);
 
             state.input = net.global_um;
         }
