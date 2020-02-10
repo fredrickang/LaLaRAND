@@ -2,11 +2,3 @@
 #./darknet classifier predict ./cfg/imagenet1k.data ./extraction.cfg ./extraction.weights -res_cfg res_cfg.part -process_num 1 ./data/eagle.jpg
 ./darknet -taskset taskset.list -resource resource.list -process_num 1
 
-
-
-
-
-
-
-#-thread_num 2 #< ./data/test_mult.txt
-
