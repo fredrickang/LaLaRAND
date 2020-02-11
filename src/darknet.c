@@ -62,6 +62,8 @@ extern int **shmem_rescfg = NULL;
 extern char **shmem_mlist = NULL;
 extern int *shmem_pid = NULL;
 extern struct timespec *shmem_timer = NULL;
+extern int *shmem_request = NULL;
+extern int *shmem_resource = NULL;
 
 //DetectorParameter structure for multi-threading.
 DetectorParams *_g_detector_params;
@@ -662,10 +664,14 @@ int main(int argc, char **argv)
     shmem_rescfg = (int **)create_shared_memory(sizeof(int **));
     shmem_pid = (int *)create_shared_memory(sizeof(int)*process_num);
     shmem_timer = (struct timespec *)create_shared_memory(sizeof(struct timespec));
-    
+    shmem_request = (int *)create_shared_memory(sizeof(int) * process_num);
+    shmem_resource = (int *)create_shared_memory(sizeof(int) * process_num);
+
     // init shared memory
     shmem_rescfg = store_res_cfg(res_cfg_num,rpaths);
     memset(shmem_pid,0, sizeof(int)*process_num);
+    memset(shmem_request, -1, sizeof(int)*process_num);
+    memset(shmem_resource,-1, sizeof(int)*process_num);
 
     int queue_id, mutex_id;
     int mode = S_IRWXU | S_IRWXG;
@@ -684,6 +690,7 @@ int main(int argc, char **argv)
         perror("mmap failed with " MYMUTEX);
         return -1;
     }
+
     /* cond */
     queue_id = shm_open(MYQUEUE, O_CREAT | O_RDWR | O_TRUNC, mode);
     if (queue_id < 0) {
@@ -700,6 +707,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    
 
     // gpu_lock = (pthread_mutex_t *)create_shared_memory(sizeof(pthread_mutex_t));
     // queue = (int *)create_shared_memory(sizeof(int)*process_num);
@@ -724,13 +732,27 @@ int main(int argc, char **argv)
     }
 
     if(identifier == -1){ /* mother process */ 
+        cpu_set_t mask_1;
+        CPU_ZERO(&mask_1);
+        CPU_SET(1, &mask_1);
+        sched_setaffinity(0,sizeof(mask_1), &mask_1);
 
         sleep(20);
         for (int i = 0; i < process_num; i++){
             kill(shmem_pid[i],SIGCONT);
         }
         
-        wait();
+        while(wait() > 0){
+            for(int i=0; i < process_num; i++){
+                if(shmem_request[i] != -1){
+                    printf("Process %d request %d layer\n",i, shmem_request[i]);
+                    kill(shmem_pid[i],SIGCONT);
+                }
+            }
+        }
+
+
+        
     }else{ /* child process */
 #ifndef GPU
         gpu_index = -1;

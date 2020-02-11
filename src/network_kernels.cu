@@ -56,6 +56,7 @@ extern int identifier;
 extern int * queue;
 extern pthread_mutex_t *gpu_lock;
 extern int N;
+extern int *shmem_request;
 
 void forward_network_gpu(network net, network_state state)
 {
@@ -69,13 +70,18 @@ void forward_network_gpu(network net, network_state state)
     res_arr = test_extern_arr;
     for(i = 0; i < net.n; ++i){
         
+
         state.index = i;
         layer l = net.layers[i];
         
         if(l.delta_gpu && state.train){
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
         }   
-
+        
+        //send request of current layer & sleep
+        shmem_request[identifier] = i;
+        kill(getpid(), SIGSTOP);
+        
         if (res_arr[i] == 0){ // on cpu
             if (l.type == CONVOLUTIONAL && net.quantized == 1 && l.index >=1 && l.activation != LINEAR) {
                 l.forward_quant(l, state); // w/ quantize
