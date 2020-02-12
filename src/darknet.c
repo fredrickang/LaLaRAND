@@ -55,6 +55,7 @@ extern int *test_extern_arr = NULL;
 extern int * queue = NULL;
 extern pthread_mutex_t *gpu_lock = NULL;
 extern int N = 0;
+extern pthread_mutex_t *request_lock = NULL; 
 
 // processes identifier & shared memory
 extern int identifier = -1;
@@ -673,7 +674,7 @@ int main(int argc, char **argv)
     memset(shmem_request, -1, sizeof(int)*process_num);
     memset(shmem_resource,-1, sizeof(int)*process_num);
 
-    int queue_id, mutex_id;
+    int queue_id, mutex_id, mutex;
     int mode = S_IRWXU | S_IRWXG;
     
     mutex_id = shm_open(MYMUTEX, O_CREAT | O_RDWR | O_TRUNC, mode);
@@ -690,6 +691,22 @@ int main(int argc, char **argv)
         perror("mmap failed with " MYMUTEX);
         return -1;
     }
+
+    mutex = shm_open(MYMUTEX, O_CREAT | O_RDWR | O_TRUNC, mode);
+    if (mutex < 0) {
+        perror("shm_open failed with " MYMUTEX);
+        return -1;
+    }
+    if (ftruncate(mutex, sizeof(pthread_mutex_t)) == -1) {
+        perror("ftruncate failed with " MYMUTEX);
+        return -1;
+    }
+    request_lock = (pthread_mutex_t *)mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED, mutex, 0);
+    if (request_lock == MAP_FAILED) {
+        perror("mmap failed with " MYMUTEX);
+        return -1;
+    }
+
 
     /* cond */
     queue_id = shm_open(MYQUEUE, O_CREAT | O_RDWR | O_TRUNC, mode);
@@ -718,6 +735,11 @@ int main(int argc, char **argv)
     pthread_mutex_init(gpu_lock, &mattr);
     pthread_mutexattr_destroy(&mattr);
    
+    pthread_mutexattr_t mattr2;
+    pthread_mutexattr_init(&mattr2);
+    pthread_mutexattr_setpshared(&mattr2, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(request_lock, &mattr2);
+    pthread_mutexattr_destroy(&mattr2);
 
     if(process_num){
         pid = fork();
@@ -746,8 +768,10 @@ int main(int argc, char **argv)
             for(int i=0; i < process_num; i++){
                 if(shmem_request[i] != -1){
                     printf("Process %d request %d layer\n",i, shmem_request[i]);
+                    while(pthread_mutex_trylock(request_lock)){}
                     shmem_request[i] = -1;
                     kill(shmem_pid[i],SIGCONT);
+                    pthread_mutex_unlock(request_lock);
                 }
             }
         }
