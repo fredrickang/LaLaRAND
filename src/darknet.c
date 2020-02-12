@@ -55,7 +55,7 @@ extern int *test_extern_arr = NULL;
 extern int * queue = NULL;
 extern pthread_mutex_t *gpu_lock = NULL;
 extern int N = 0;
-extern pthread_mutex_t *request_lock = NULL; 
+ 
 
 // processes identifier & shared memory
 extern int identifier = -1;
@@ -63,8 +63,10 @@ extern int **shmem_rescfg = NULL;
 extern char **shmem_mlist = NULL;
 extern int *shmem_pid = NULL;
 extern struct timespec *shmem_timer = NULL;
-extern int *shmem_request = NULL;
-extern int *shmem_resource = NULL;
+
+// IPC pipe protocol
+extern int fd[2];
+
 
 //DetectorParameter structure for multi-threading.
 DetectorParams *_g_detector_params;
@@ -692,22 +694,6 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    mutex = shm_open(MYMUTEX, O_CREAT | O_RDWR | O_TRUNC, mode);
-    if (mutex < 0) {
-        perror("shm_open failed with " MYMUTEX);
-        return -1;
-    }
-    if (ftruncate(mutex, sizeof(pthread_mutex_t)) == -1) {
-        perror("ftruncate failed with " MYMUTEX);
-        return -1;
-    }
-    request_lock = (pthread_mutex_t *)mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED, mutex, 0);
-    if (request_lock == MAP_FAILED) {
-        perror("mmap failed with " MYMUTEX);
-        return -1;
-    }
-
-
     /* cond */
     queue_id = shm_open(MYQUEUE, O_CREAT | O_RDWR | O_TRUNC, mode);
     if (queue_id < 0) {
@@ -735,12 +721,11 @@ int main(int argc, char **argv)
     pthread_mutex_init(gpu_lock, &mattr);
     pthread_mutexattr_destroy(&mattr);
    
-    pthread_mutexattr_t mattr2;
-    pthread_mutexattr_init(&mattr2);
-    pthread_mutexattr_setpshared(&mattr2, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(request_lock, &mattr2);
-    pthread_mutexattr_destroy(&mattr2);
 
+    // IPC pipe open
+    int rc = 0 ;
+    if((rc = pipe(fd)) < 0) printf("Pipe Error %d\n", rc);
+    
     if(process_num){
         pid = fork();
         if(!pid) { /*if child*/ identifier = 0; }
@@ -763,20 +748,16 @@ int main(int argc, char **argv)
         for (int i = 0; i < process_num; i++){
             kill(shmem_pid[i],SIGCONT);
         }
+
+        // IPC pipe 
+        close(fd[1]);
         
+        int request;
         while(1){
-            for(int i=0; i < process_num; i++){
-                if(shmem_request[i] != -1){
-                    printf("Process %d request %d layer\n",i, shmem_request[i]);
-                    while(pthread_mutex_trylock(request_lock)){}
-                    shmem_request[i] = -1;
-                    kill(shmem_pid[i],SIGCONT);
-                    pthread_mutex_unlock(request_lock);
-                }
-            }
+            read(fd[0], request, sizeof(request));
+            printf("layer %d requested\n", request);
         }
 
-       
         wait();
         
     }else{ /* child process */

@@ -55,9 +55,8 @@ extern int* test_extern_arr;
 extern int identifier;
 extern int * queue;
 extern pthread_mutex_t *gpu_lock;
-extern pthread_mutex_t *request_lock;
 extern int N;
-extern int *shmem_request;
+extern fd[2];
 
 void forward_network_gpu(network net, network_state state)
 {
@@ -84,11 +83,8 @@ void forward_network_gpu(network net, network_state state)
         execution = get_time_point();
         
         //send request of current layer & sleep
-        whlie(pthread_mutex_trylock(request_lock));
-        shmem_request[identifier] = i;
-        kill(getpid(), SIGSTOP);
-        pthread_mutex_unlock(request_lock);
-
+        close(fd[0]);
+        write(fd[1], i, sizeof(int));
         
         if (res_arr[i] == 0){ // on cpu
             if (l.type == CONVOLUTIONAL && net.quantized == 1 && l.index >=1 && l.activation != LINEAR) {
