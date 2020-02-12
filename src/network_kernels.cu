@@ -55,8 +55,11 @@ extern int* test_extern_arr;
 extern int identifier;
 extern int * queue;
 extern pthread_mutex_t *gpu_lock;
+extern pthread_mutex_t *request_lock;
 extern int N;
-extern fd[2];
+extern int *shmem_request;
+extern int *shmem_resource;
+
 
 void forward_network_gpu(network net, network_state state)
 {
@@ -82,10 +85,15 @@ void forward_network_gpu(network net, network_state state)
         }   
         execution = get_time_point();
         
-        //send request of current layer & sleep
-        close(fd[0]);
-        write(fd[1], i, sizeof(int));
+        pthread_mutex_lock(request_lock);
+        shmem_request[identifier] = i;
+        pthread_mutex_unlock(request_lock);
+
+        kill(getpid(), SIGSTOP);
         
+        res_arr[i] = shmem_resource[identifier];
+        printf("resource assigned to %d\n",res_arr[i]);
+
         if (res_arr[i] == 0){ // on cpu
             if (l.type == CONVOLUTIONAL && net.quantized == 1 && l.index >=1 && l.activation != LINEAR) {
                 l.forward_quant(l, state); // w/ quantize
@@ -95,21 +103,11 @@ void forward_network_gpu(network net, network_state state)
             }
         }
         else{ // on gpu 
-            // gpu access control by mutex
-            while(pthread_mutex_trylock(gpu_lock)){
-                enqueue(queue, getpid());
-                kill(getpid(), SIGSTOP);
-                setpriority(PRIO_PROCESS, getpid(), -20);
-                continue;
-            }
             l.forward_gpu(l, state);
             CHECK_CUDA(cudaDeviceSynchronize());
 
-            setpriority(PRIO_PROCESS, getpid(), -10-identifier);
-            
-            pthread_mutex_unlock(gpu_lock);
-            kill( pid = dequeue(queue), SIGCONT);        
         }
+        
         //printf("[Process %d] layer: %3d type: %15s - Predicted in %8.5f milli-seconds.\n", identifier, i, get_layer_string(l.type), ((double)get_time_point() -time) / 1000);
         execution = ((double)get_time_point() - execution)/1000;
         if(net.wait_stream)

@@ -15,6 +15,7 @@
 #include <string.h>
 #include <sys/resource.h>
 #include <sched.h>
+#include <sys/wait.h>
 
 #if defined(_MSC_VER) && defined(_DEBUG)
 #include <crtdbg.h>
@@ -55,7 +56,7 @@ extern int *test_extern_arr = NULL;
 extern int * queue = NULL;
 extern pthread_mutex_t *gpu_lock = NULL;
 extern int N = 0;
- 
+extern pthread_mutex_t *request_lock =  NULL;
 
 // processes identifier & shared memory
 extern int identifier = -1;
@@ -63,10 +64,8 @@ extern int **shmem_rescfg = NULL;
 extern char **shmem_mlist = NULL;
 extern int *shmem_pid = NULL;
 extern struct timespec *shmem_timer = NULL;
-
-// IPC pipe protocol
-extern int fd[2];
-
+extern int *shmem_request = NULL;
+extern int *shmem_resource = NULL;
 
 //DetectorParameter structure for multi-threading.
 DetectorParams *_g_detector_params;
@@ -522,45 +521,54 @@ int ** store_res_cfg(int res_cfg_num, char ** rpaths){
 }
 
 //////////////// GPU ACESSING MANAGEING ////////////////
-void swap(int *xp, int *yp)
-{
-    int temp = *xp;
-    *xp = *yp;
-    *yp = temp;
+typedef struct QNode{
+    int pid;
+    int id;
+    int layer;
+    struct QNode * next;
+}QNode;
+
+typedef struct Queue{
+    QNode *front, *rear;
+}Queue;
+
+QNode * newNode(int pid, int id, int layer){
+    QNode * tmp = (QNode *)malloc(sizeof(QNode));
+    tmp->pid = pid;
+    tmp->id = id;
+    tmp->layer =layer;
+    tmp->next = NULL;
+    return tmp;
 }
 
-void bubbleSort(int arr[], int n)
-{
-   int i, j;
-   for (i = 0; i < n-1; i++)      
- 
-       // Last i elements are already in place   
-       for (j = 0; j < n-i-1; j++) 
-           if (arr[j] < arr[j+1])
-              swap(&arr[j], &arr[j+1]);
+Queue * createQueue(){
+    Queue * q = (Queue *) malloc(sizeof(Queue));
+    q->front = q-> rear = NULL;
+    return q;
 }
 
-void enqueue(int* q, int val)
-{
-  for (int i=0; i<N; i++){
-	if (q[i] == 0){
-	q[i] = val;
-	break;
-	}
-  }  
+void enQueue(Queue * q,  int pid, int id, int layer){
+    QNode * tmp = newNode(pid, id, layer);
+    if(q->rear == NULL){
+        q->front = q->rear = tmp;
+        return;
+    }
+
+    q->rear->next = tmp;
+    q->rear = tmp;
 }
 
-int dequeue(int* q)
-{
-	/* sort */
-	bubbleSort(q, N);	
+QNode * deQueue(Queue *q){
+    if(q->front == NULL)
+        return;
+   QNode *tmp = q->front;
 
-	int tmp =  q[0];
-	for (int i=0; q[i]>0; i++){		
-	q[i] = q[i+1];
-	}
+   q->front = q->front->next;
 
-	return tmp;
+   if(q->front == NULL)
+       q->rear = NULL;
+   
+   return tmp;
 }
 
 void get_task_info(char * mytask, char ** argv){
@@ -600,6 +608,7 @@ void get_task_info(char * mytask, char ** argv){
         argv[7] = info[6];
     }
 }
+
 
 int main(int argc, char **argv)
 {
@@ -673,8 +682,8 @@ int main(int argc, char **argv)
     // init shared memory
     shmem_rescfg = store_res_cfg(res_cfg_num,rpaths);
     memset(shmem_pid,0, sizeof(int)*process_num);
-    memset(shmem_request, -1, sizeof(int)*process_num);
-    memset(shmem_resource,-1, sizeof(int)*process_num);
+    memset(shmem_request, -1, sizeof(int) * process_num);
+    memset(shmem_resource, -1, sizeof(int) * process_num);
 
     int queue_id, mutex_id, mutex;
     int mode = S_IRWXU | S_IRWXG;
@@ -693,7 +702,22 @@ int main(int argc, char **argv)
         perror("mmap failed with " MYMUTEX);
         return -1;
     }
-
+    
+    mutex = shm_open(MYMUTEX, O_CREAT | O_RDWR | O_TRUNC, mode);
+    if (mutex < 0) {
+        perror("shm_open failed with " MYMUTEX);
+        return -1;
+    }
+    if (ftruncate(mutex, sizeof(pthread_mutex_t)) == -1) {
+        perror("ftruncate failed with " MYMUTEX);
+        return -1;
+    }
+    request_lock = (pthread_mutex_t *)mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED, mutex, 0);
+    if (request_lock == MAP_FAILED) {
+        perror("mmap failed with " MYMUTEX);
+        return -1;
+    }
+ 
     /* cond */
     queue_id = shm_open(MYQUEUE, O_CREAT | O_RDWR | O_TRUNC, mode);
     if (queue_id < 0) {
@@ -720,11 +744,11 @@ int main(int argc, char **argv)
     pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
     pthread_mutex_init(gpu_lock, &mattr);
     pthread_mutexattr_destroy(&mattr);
-   
 
-    // IPC pipe open
-    int rc = 0 ;
-    if((rc = pipe(fd)) < 0) printf("Pipe Error %d\n", rc);
+    pthread_mutexattr_init(&mattr);
+    pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(request_lock, &mattr);
+    pthread_mutexattr_destroy(&mattr);
     
     if(process_num){
         pid = fork();
@@ -744,21 +768,46 @@ int main(int argc, char **argv)
         CPU_SET(1, &mask_1);
         sched_setaffinity(0,sizeof(mask_1), &mask_1);
 
-        sleep(20);
+        //// SYSTEM BOOTING ////
+        sleep(10);
+        
         for (int i = 0; i < process_num; i++){
             kill(shmem_pid[i],SIGCONT);
         }
-
-        // IPC pipe 
-        close(fd[1]);
         
-        int request;
-        while(1){
-            read(fd[0], request, sizeof(request));
-            printf("layer %d requested\n", request);
-        }
+        int status;
+        // REQEST QUE
+        Queue * request_q = createQueue();
+        QNode * target;
+        while(waitpid(-1, NULL, WNOHANG) == 0){
+            for(int i =0 ; i < process_num ; i++){
+                if(shmem_request[i] != -1){
+                    printf("Process %d request %d layer \n",shmem_pid[i], shmem_request[i]);
+                    
+                    enQueue(request_q, shmem_pid[i], i, shmem_request[i]);
+                    pthread_mutex_lock(request_lock);        
+                    shmem_request[i] = -1;
+                    pthread_mutex_unlock(request_lock);
+                }
+            }
 
-        wait();
+            
+            target = deQueue(request_q);
+            
+            if(target){
+                shmem_resource[target->id] = shmem_rescfg[target->id][target->layer];
+                while(1){
+                    waitpid(target->pid, &status, WUNTRACED);
+                    if(WIFSTOPPED(status))
+                        break;
+                }
+                
+                kill(target->pid, SIGCONT);
+            }
+            
+        }
+            
+        
         
     }else{ /* child process */
 #ifndef GPU
@@ -802,7 +851,7 @@ int main(int argc, char **argv)
             
             sprintf(file_extension,"%s",".txt");
             sprintf(output_idx,"%d",identifier);
-            strcpy(output_name,"logs/multi_log/multiprocresult_");
+            strcpy(output_name,"multi_process_");
             strcat(output_name,output_idx);
             strcat(output_name,file_extension);
             if((fd = open(output_name, O_RDWR | O_CREAT,0666))==-1){
