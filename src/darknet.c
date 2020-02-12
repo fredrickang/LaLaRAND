@@ -742,16 +742,18 @@ int main(int argc, char **argv)
             kill(shmem_pid[i],SIGCONT);
         }
         
-        while(wait() > 0){
+        while(1){
             for(int i=0; i < process_num; i++){
                 if(shmem_request[i] != -1){
                     printf("Process %d request %d layer\n",i, shmem_request[i]);
+                    shmem_request[i] = -1;
                     kill(shmem_pid[i],SIGCONT);
                 }
             }
         }
 
-
+       
+        wait();
         
     }else{ /* child process */
 #ifndef GPU
