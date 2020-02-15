@@ -763,52 +763,10 @@ int main(int argc, char **argv)
     }
 
     if(identifier == -1){ /* mother process */ 
-        cpu_set_t mask_1;
-        CPU_ZERO(&mask_1);
-        CPU_SET(1, &mask_1);
-        sched_setaffinity(0,sizeof(mask_1), &mask_1);
-
-        //// SYSTEM BOOTING ////
-        sleep(10);
-        
-        for (int i = 0; i < process_num; i++){
-            kill(shmem_pid[i],SIGCONT);
-        }
-        
-        int status;
-        // REQEST QUE
-        Queue * request_q = createQueue();
-        QNode * target;
-        while(waitpid(-1, NULL, WNOHANG) == 0){
-            for(int i =0 ; i < process_num ; i++){
-                if(shmem_request[i] != -1){
-                    printf("Process %d request %d layer \n",shmem_pid[i], shmem_request[i]);
-                    
-                    enQueue(request_q, shmem_pid[i], i, shmem_request[i]);
-                    pthread_mutex_lock(request_lock);        
-                    shmem_request[i] = -1;
-                    pthread_mutex_unlock(request_lock);
-                }
-            }
-
-            
-            target = deQueue(request_q);
-            
-            if(target){
-                shmem_resource[target->id] = shmem_rescfg[target->id][target->layer];
-                while(1){
-                    waitpid(target->pid, &status, WUNTRACED);
-                    if(WIFSTOPPED(status))
-                        break;
-                }
-                
-                kill(target->pid, SIGCONT);
-            }
-            
-        }
-            
-        
-        
+       int status;
+       
+       
+       while(wait(&status));
     }else{ /* child process */
 #ifndef GPU
         gpu_index = -1;

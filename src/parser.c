@@ -1,7 +1,10 @@
+#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "activation_layer.h"
 #include "activations.h"
@@ -863,6 +866,11 @@ network parse_network_cfg(char *filename)
     return parse_network_cfg_custom(filename, 0, 0);
 }
 
+typedef struct _Dnn_info{
+    int pid;
+    int layer_num;
+}dnn_info;
+
 network parse_network_cfg_custom(char *filename, int batch, int time_steps)
 {
     int quantized = 0;
@@ -906,6 +914,25 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     n = n->next;
     int count = 0;
     free_section(s);
+    
+
+    // Register to LaLaRAND 
+    int register_fd;
+
+    if( (register_fd = open("./lalarand/lalarand_register",O_WRONLY)) < 0){
+        puts("[ERROR]Fail to open channel for register");
+        exit(-1);
+    }
+    
+    dnn_info * info = (dnn_info *)malloc(sizeof(dnn_info));
+    info->pid = getpid();
+    info->layer_num = net.n;
+    
+    if(write(register_fd, info, sizeof(info)) == -1){
+        puts("[ERROR]Fail to register");
+        exit(-1);
+    }
+
     fprintf(stderr, "   layer   filters  size/strd(dil)      input                output\n");
     while(n){
         params.index = count;
