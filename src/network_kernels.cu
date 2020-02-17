@@ -6,6 +6,9 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/resource.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <stdlib.h>
 
 #include "network.h"
 #include "image.h"
@@ -66,73 +69,78 @@ void forward_network_gpu(network net, network_state state)
     cudaDeviceSynchronize();
     state.workspace = net.workspace;
     state.workspace_cpu = net.workspace_cpu;
-    int pid;
     int i;
-    int *res_arr;
-    double transfer;
-    double total;
-    double execution;
-    res_arr = test_extern_arr;
-    total = get_time_point();
+    char request[30];
+    char decision[30];
+    int request_fd;
+    int decision_fd;
+    int before = 0;
+    int resource;
+
+    snprintf(request, 30, "./lalarand_request_%d", getpid());
+    snprintf(decision, 30, "./lalarand_decision_%d", getpid());
+    
+    // communication channel open
+    if( (request_fd = open(request,O_WRONLY)) < 0){
+        printf("[ERROR]Fail to open channel for %s\n",request);
+        exit(-1);
+    }
+    
+    if( (decision_fd = open(decision,O_RDONLY)) < 0){
+        printf("[ERROR]Fail to open channel for %s\n" ,decision);
+        exit(-1);
+    }
+
     for(i = 0; i < net.n; ++i){
         
 
         state.index = i;
         layer l = net.layers[i];
         
+        // send request
+        if( write(request_fd, &i, sizeof(int))== -1){
+            printf("[ERROR]Fail to send request from %s\n",request);
+            exit(-1);
+        }
+        
+        // wait for decision 
+        if( read(decision_fd, &resource, sizeof(int)) == -1){
+            printf("[ERROR]Fail to read decision %s\n",decision);
+            exit(-1);
+        } 
+         
         if(l.delta_gpu && state.train){
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
         }   
-        execution = get_time_point();
         
-        pthread_mutex_lock(request_lock);
-        shmem_request[identifier] = i;
-        pthread_mutex_unlock(request_lock);
 
-        kill(getpid(), SIGSTOP);
-        
-        res_arr[i] = shmem_resource[identifier];
-        printf("resource assigned to %d\n",res_arr[i]);
-
-        if (res_arr[i] == 0){ // on cpu
-            if (l.type == CONVOLUTIONAL && net.quantized == 1 && l.index >=1 && l.activation != LINEAR) {
-                l.forward_quant(l, state); // w/ quantize
+        // migration data transfer
+        if( i > 0 && before != resource ){
+            layer tmp  = net.layers[i-1];
+            if( resource == GPU ){
+                cuda_push_array(tmp.output_gpu, tmp.output, tmp.batch * tmp.outputs);
+                state.input = tmp.output_gpu;
             }
-            else {
-                l.forward(l,state);   //  w/o quantize
+            else{
+                cuda_pull_array(tmp.output_gpu, tmp.output, tmp.batch * tmp.outputs);
+                state.input = tmp.output;
             }
         }
-        else{ // on gpu 
+        
+
+        // inference
+        if (resource == CPU) l.forward(l,state);   
+        else{ 
             l.forward_gpu(l, state);
             CHECK_CUDA(cudaDeviceSynchronize());
-
         }
         
-        //printf("[Process %d] layer: %3d type: %15s - Predicted in %8.5f milli-seconds.\n", identifier, i, get_layer_string(l.type), ((double)get_time_point() -time) / 1000);
-        execution = ((double)get_time_point() - execution)/1000;
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
         
-        transfer = get_time_point();
-        if(res_arr[i] == CPU){
-            if (res_arr[i+1] == CPU) state.input = l.output;
-            else{
-                cuda_push_array(l.output_gpu, l.output, l.batch * l.outputs);
-                //cudaMemcpy(l.output_gpu, l.output, l.batch* l.outputs * sizeof(float), cudaMemcpyHostToDevice);
-                state.input = l.output_gpu;
-            }
-        }
-        else{
-            if (res_arr[i+1] == GPU) state.input = l.output_gpu;
-            else{
-                cuda_pull_array(l.output_gpu, l.output, l.batch*l.outputs);
-                //cudaMemcpy(l.output, l.output_gpu, l.batch * l.outputs * sizeof(float) , cudaMemcpyDeviceToHost);
-                state.input = l.output;
-            }
-        }
-        printf("%d %8.5f %8.5f\n", i, execution, ((double)get_time_point() - transfer)/1000);
+       //
+       state.input = resource ? l.output_gpu : l.output; 
     }
-    printf("%8.5f\n",((double)get_time_point() - total)/1000);
 }
 
 

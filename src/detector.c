@@ -1571,8 +1571,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     period.tv_nsec = ms_period*1000000;
 
     shmem_pid[identifier] = getpid();
-    kill(getpid(),SIGSTOP);
-
+    
     // set timer 
     if(identifier == 0){
         struct timespec snooze;
