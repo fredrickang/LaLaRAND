@@ -28,7 +28,6 @@ QNode* newNode(int pid, int layer, int id){
     tmp -> id = id;
     tmp -> next = NULL;
 
-    puts("making new node");
     return tmp;
 
 }
@@ -45,16 +44,14 @@ Queue * createQueue(char *name){
 
 void enQueue(Queue *q, int pid, int layer, int id){
     QNode * tmp = newNode(pid, layer, id);
-    
-    if(q->rear = NULL){
+    q->count ++;    
+    if(q->rear == NULL){
         q->front = q->rear = tmp;
-        printf(" pid = %d\n layer = %d enqueued\n", pid, layer);
         return;
     }
 
     q->rear->next = tmp;
     q->rear = tmp;
-    q->count ++;
 }
 
 QNode* deQueue(Queue * q){
@@ -65,7 +62,7 @@ QNode* deQueue(Queue * q){
 
     q->front = q->front->next;
 
-    if(q->front = NULL)
+    if(q->front == NULL)
         q->rear = NULL;
     q->count --;
     return tmp;
@@ -184,7 +181,7 @@ int main(int argc, char **argv){
     char request[30];
     for(int i =0; i < dnns; i++){
         snprintf(request, 30, "lalarand_request_%d", dnn_list[i]->pid);
-        request_fd[i] = open_channel(request,O_RDONLY); 
+        request_fd[i] = open_channel(request, O_RDONLY); 
     }
     puts("\nrequest channel has been openned\n");
     
@@ -193,7 +190,7 @@ int main(int argc, char **argv){
     char decision[30];
     for(int i =0; i < dnns; i++){
         snprintf(decision, 30, "lalarand_decision_%d", dnn_list[i]->pid);
-        decision_fd[i] = open(decision,O_RDWR);
+        decision_fd[i] = open_channel(decision, O_RDWR);
     }
     puts("\ndecision channel has been openned\n"); 
     
@@ -213,7 +210,6 @@ int main(int argc, char **argv){
             FD_SET(request_fd[i], &readfds);
        
         state = select(request_fd[dnns-1] + 1, &readfds, NULL, NULL, 0);
-        printf("%d\n",state);        
         switch(state){
             case -1:
                 perror("select error : ");
@@ -226,9 +222,13 @@ int main(int argc, char **argv){
             default:
                 for(int i =0; i < dnns; i ++){
                     if (FD_ISSET(request_fd[i], &readfds)){
+                        FD_CLR(request_fd[i],&readfds);
                         if( read(request_fd[i], &request_layer, sizeof(int)) < 0)
                             perror("read error : ");
-                        enQueue(request_q, dnn_list[i]->pid, request_layer, i);
+                        else{
+                            printf("Frome %d pid, layer %d has been requested\n", dnn_list[i]->pid, request_layer);
+                            enQueue(request_q, dnn_list[i]->pid, request_layer, i);
+                        }
                     }
                 }
         }
@@ -236,11 +236,15 @@ int main(int argc, char **argv){
         if(Sync && request_q -> count < dnns){
         }
         else{
+            Sync = 0;
             target = deQueue(request_q);
-
+            
             if(target){
                 if(write(decision_fd[target->id], &resource, sizeof(int)) < 0)
                     perror("write error : ");
+                else{
+                    printf("Decision has been sent to %d as %d\n", target->pid, resource);
+                }
             } 
         }
 

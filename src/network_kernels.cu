@@ -81,22 +81,10 @@ void forward_network_gpu(network net, network_state state)
     snprintf(decision, 30, "./lalarand_decision_%d", getpid());
     
     // communication channel open
-    if( (request_fd = open(request,O_RDWR)) < 0){
-        printf("[ERROR]Fail to open channel for %s\n",request);
-        exit(-1);
-    }
-    
-    if( mkfifo(decision, 0666) == -1){
-        puts("[ERROR]Fail to make pipe");
-        exit(-1);
-    }
+    while( (request_fd = open(request,O_RDWR)) < 0);
+  
+    while( (decision_fd = open(decision, O_RDONLY)) < 0);
 
-    if( (decision_fd = open(decision, O_RDONLY)) < 0){
-        printf("[ERROR]Fail to open channel for %s\n", decision);
-        exit(-1);
-    }
-
-    int rev;
     for(i = 0; i < net.n; ++i){
         
 
@@ -104,11 +92,11 @@ void forward_network_gpu(network net, network_state state)
         layer l = net.layers[i];
         
         // send request
-        if( (rev = write(request_fd, &i, sizeof(int))) == -1 ){
+        if( write(request_fd, &i, sizeof(int)) == -1 ){
             printf("[ERROR]Fail to send request to %s\n",request);
             exit(-1);
         }
-        printf("%d\n", rev); 
+
         // wait for decision 
         if( read(decision_fd, &resource, sizeof(int)) == -1){
             printf("[ERROR]Fail to read decision from %s\n",decision);
@@ -132,7 +120,7 @@ void forward_network_gpu(network net, network_state state)
                 state.input = tmp.output;
             }
         }
-        
+        printf("[%d]Layer %d \n",getpid(), i);        
 
         // inference
         if (resource == CPU) l.forward(l,state);   
