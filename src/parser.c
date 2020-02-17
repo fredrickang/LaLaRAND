@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "activation_layer.h"
 #include "activations.h"
@@ -932,7 +933,8 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
         puts("[ERROR]Fail to register");
         exit(-1);
     }
-
+    
+    kill(getpid(),SIGSTOP);
     fprintf(stderr, "   layer   filters  size/strd(dil)      input                output\n");
     while(n){
         params.index = count;

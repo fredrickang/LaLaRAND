@@ -245,7 +245,7 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
 
         int calc_map_for_each = 4 * train_images_num / (net.batch * net.subdivisions);  // calculate mAP for each 4 Epochs
         calc_map_for_each = fmax(calc_map_for_each, 100);
-        int next_map_calc = iter_map + calc_map_for_each;
+       int next_map_calc = iter_map + calc_map_for_each;
         next_map_calc = fmax(next_map_calc, net.burn_in);
         next_map_calc = fmax(next_map_calc, 400);
         if (calc_map) {
@@ -1561,41 +1561,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     char **paths = (char **)list_to_array(plist);
 
     int m = plist->size;
-
     
-    struct timespec period, release_time;
-    int err;
-    
-    
-    period.tv_sec = 0;
-    period.tv_nsec = ms_period*1000000;
-
-    shmem_pid[identifier] = getpid();
-    
-    // set timer 
-    if(identifier == 0){
-        struct timespec snooze;
-        snooze.tv_sec = 0;
-        snooze.tv_nsec = 1000*1000000;
-        err = clock_gettime(CLOCK_MONOTONIC, shmem_timer);
-
-        timespec_add(shmem_timer,&snooze);
-        assert(err ==0);
-        printf("Timer has been set\n");
-    }
-    
-    sleep(0.1);
-    
-    err = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, shmem_timer, NULL);
-    assert(err == 0);
-    printf("\nidentifier: %d, Starting at %8.5f\n", identifier ,get_time_point()/1000);
-    printf("///////// Period : %f //////////\n", ms_period);
-    
-    err = clock_gettime(CLOCK_MONOTONIC, &release_time);
-    assert(err ==0);
-    //double t_period;
-    //double t_period_end;
-
     for (k =0; k< 10; k++){
         //t_period = get_time_point();
         ///// IMAGE PREPROCESSING /////
@@ -1686,8 +1652,6 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
                 time_predict_arr[k] = (time_predict_end-time_predict)/1000,
                 time_post_arr[k] = (time_post_end-time_post)/1000,
                 (time_post_end - time_pre)/1000);
-        timespec_add(&release_time, &period);
-        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
         //t_period_end = get_time_point();
         //printf("period == %8.5f\n",t_period_end - t_period);
 

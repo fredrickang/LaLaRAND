@@ -75,22 +75,28 @@ void forward_network_gpu(network net, network_state state)
     int request_fd;
     int decision_fd;
     int before = 0;
-    int resource;
+    int resource = -1;
 
     snprintf(request, 30, "./lalarand_request_%d", getpid());
     snprintf(decision, 30, "./lalarand_decision_%d", getpid());
     
     // communication channel open
-    if( (request_fd = open(request,O_WRONLY)) < 0){
+    if( (request_fd = open(request,O_RDWR)) < 0){
         printf("[ERROR]Fail to open channel for %s\n",request);
         exit(-1);
     }
     
-    if( (decision_fd = open(decision,O_RDONLY)) < 0){
-        printf("[ERROR]Fail to open channel for %s\n" ,decision);
+    if( mkfifo(decision, 0666) == -1){
+        puts("[ERROR]Fail to make pipe");
         exit(-1);
     }
 
+    if( (decision_fd = open(decision, O_RDONLY)) < 0){
+        printf("[ERROR]Fail to open channel for %s\n", decision);
+        exit(-1);
+    }
+
+    int rev;
     for(i = 0; i < net.n; ++i){
         
 
@@ -98,14 +104,14 @@ void forward_network_gpu(network net, network_state state)
         layer l = net.layers[i];
         
         // send request
-        if( write(request_fd, &i, sizeof(int))== -1){
-            printf("[ERROR]Fail to send request from %s\n",request);
+        if( (rev = write(request_fd, &i, sizeof(int))) == -1 ){
+            printf("[ERROR]Fail to send request to %s\n",request);
             exit(-1);
         }
-        
+        printf("%d\n", rev); 
         // wait for decision 
         if( read(decision_fd, &resource, sizeof(int)) == -1){
-            printf("[ERROR]Fail to read decision %s\n",decision);
+            printf("[ERROR]Fail to read decision from %s\n",decision);
             exit(-1);
         } 
          
@@ -130,11 +136,14 @@ void forward_network_gpu(network net, network_state state)
 
         // inference
         if (resource == CPU) l.forward(l,state);   
-        else{ 
+        else if(resource == GPU){
             l.forward_gpu(l, state);
             CHECK_CUDA(cudaDeviceSynchronize());
         }
-        
+        else{
+            printf("resource config wrong\n");
+            exit(-1);
+        }
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
         
