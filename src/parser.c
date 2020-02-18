@@ -867,10 +867,15 @@ network parse_network_cfg(char *filename)
     return parse_network_cfg_custom(filename, 0, 0);
 }
 
-typedef struct _Dnn_info{
+typedef enum {
+    YOLOt, EXTRACTION, RESNET, RECURRENT
+}DNN_TYPE;
+
+typedef struct _MSG_PACKET{
     int pid;
-    int layer_num;
-}dnn_info;
+    int layers;
+    DNN_TYPE type;
+}msg;
 
 network parse_network_cfg_custom(char *filename, int batch, int time_steps)
 {
@@ -921,20 +926,26 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     int register_fd;
 
     if( (register_fd = open("./lalarand_register",O_WRONLY)) < 0){
-        puts("[ERROR]Fail to open channel for register");
+        perror("Opening Registeration : ");
         exit(-1);
     }
     
-    dnn_info * info = (dnn_info *)malloc(sizeof(dnn_info));
-    info->pid = getpid();
-    info->layer_num = net.n;
+    msg * dummy = (msg *)malloc(sizeof(msg));
+    dummy->pid = getpid();
+    dummy->layers = net.n;
+
+    if(strstr(filename, "yolo") != NULL) dummy->type = YOLOt;
+    if(strstr(filename, "extraction") != NULL) dummy->type = EXTRACTION;
+    if(strstr(filename, "resnet") != NULL) dummy->type = RESNET;
+    if(strstr(filename, "rnn") != NULL) dummy->type = RECURRENT;
     
-    if(write(register_fd, info, sizeof(info)) == -1){
-        puts("[ERROR]Fail to register");
+    if(write(register_fd, dummy, sizeof(dummy)) == -1){
+        perror("Registerating :  ");
         exit(-1);
     }
     
     kill(getpid(),SIGSTOP);
+    
     fprintf(stderr, "   layer   filters  size/strd(dil)      input                output\n");
     while(n){
         params.index = count;
