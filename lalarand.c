@@ -9,9 +9,18 @@
 #include <string.h>
 #include <sched.h>
 #include <signal.h>
-
+#include <time.h>
 #define GPU 1
 #define CPU 0
+
+typedef enum{
+    IDLE, BUSY
+}STATE;
+
+typedef struct _RESOURCE{
+    STATE state;
+    int id;
+}resource;
 
 typedef struct _DNN_PROFILE{
     int * gpu_exec;
@@ -25,7 +34,7 @@ typedef enum {
 
 // Queue Definition
 typedef struct QNode{
-    int pid;
+    dnn_info *dnn;
     int layer;
     int id;
     struct QNode * next;
@@ -41,6 +50,8 @@ typedef struct _DNN_INFO{
     int layers;
     DNN_TYPE type; 
     dnn_profile *profile; 
+    int period;
+    clock_t deadline;
 }dnn_info;
 
 typedef struct _MSG_PACKET{
@@ -63,6 +74,7 @@ void    adding_profile(dnn_info** dnn_list, int dnns);
 int     open_channel(char * pipe_name,int mode);
 void    close_channel(char * pipe_name);
 
+void    update_deadliine(dnn_info * dnn, current_time);
 
 int main(int argc, char **argv){
     
@@ -112,14 +124,25 @@ int main(int argc, char **argv){
    
     Queue * gpu_request = createQueue("GPU_REQUEST");
     Queue * cpu_request = createQueue("CPU_REQEUST");
+    resource * gpu = (resource *)malloc(sizeof(resource));
+    resource * cpu = (resource *)malloc(sizeof(resource)); 
+    
+    gpu -> state = IDLE;
+    cpu -> state = IDLE;
+
+    gpu -> id = -1;
+    cpu -> id = -1;
     
     QNode * target;
     
     
     fd_set readfds, writefds;
     int state;
-
+    clock_t current_time = 0;
     while(1){
+        
+        current_time = clock();
+
         FD_ZERO(&readfds); 
         for(int i = 0 ; i < dnns; i++)
             FD_SET(request_fd[i], &readfds);
@@ -137,32 +160,46 @@ int main(int argc, char **argv){
             default:
                 for(int i =0; i < dnns; i ++){
                     if (FD_ISSET(request_fd[i], &readfds)){
+                        
                         FD_CLR(request_fd[i],&readfds);
+                        
                         if( read(request_fd[i], &request_layer, sizeof(int)) < 0){
                             perror("read error : ");    
                             exit(-1);
                         }
+                        
+                        if(request_layer == 0) update_deadline(dnn_list[i], current_time);
+                        
+                        if( gpu -> state == BUSY && gpu -> id == i){
+                            gpu -> state = IDLE;
+                            gpu -> id = -1;
+                        }
+                        
                         printf("Frome %d pid, layer %d has been requested\n", dnn_list[i]->pid, request_layer);
+                        
                         if(dnn_list[i]->profile->cfg[request_layer] == GPU) enQueue(gpu_request, dnn_list[i]->pid, request_layer, i);
                         else enQueue(cpu_request, dnn_list[i]->pid, request_layer, i); 
+                    
                     }
                 }
         }
         
-        if(Sync && (gpu_request->count + cpu_request->count) < dnns){
-        }
-        else{
-            Sync = 0;
+        if(!(Sync && (gpu_request->count + cpu_request->count) < dnns)){
+            target = NULL;
             
-            target = deQueue(gpu_request);
+            if(Sync) for(int i =0 ; i < dnns ; i++) update_deadline(dnn_list[i], current_time);
+            
+            if(gpu -> state == IDLE) target = deQueue(gpu_request, current_time, gpu);    
             
             if(target){
-                if(write(decision_fd[target->id], &resource, sizeof(int)) < 0)
+                if(write(decision_fd[target->id], &resource, sizeof(int)) < 0){
                     perror("write error : ");
-                else{
-                    printf("Decision has been sent to %d as %d\n", target->pid, resource);
+                    exit(-1);
                 }
+                printf("Decision has been sent to %d as %d\n", target->pid, resource);
             } 
+
+            Sync = 0;
         }
 
     }
@@ -176,9 +213,9 @@ int main(int argc, char **argv){
     }
 }
 
-QNode* newNode(int pid, int layer, int id){
+QNode* newNode(dnn_info *info, int layer, int id){
     QNode * tmp = (QNode *)malloc(sizeof(QNode));
-    tmp -> pid = pid;
+    tmp -> dnn = info;
     tmp -> layer = layer;
     tmp -> id = id;
     tmp -> next = NULL;
@@ -197,14 +234,14 @@ Queue * createQueue(char *name){
     
 }
 
-void enQueue(Queue *q, int pid, int layer, int id){
-    QNode * tmp = newNode(pid, layer, id);
+void enQueue(Queue *q, dnn_info * info, int layer, int id){
+    QNode * tmp = newNode(info, layer, id);
     q->count ++;    
     if(q->rear == NULL){
         q->front = q->rear = tmp;
         return;
     }
-
+    
     q->rear->next = tmp;
     q->rear = tmp;
 }
@@ -276,12 +313,13 @@ dnn_info ** network_register(int register_fd, int dnns){
        dnn_list[count]->pid = dummy->pid;
        dnn_list[count]->layers = dummy->layers;
        dnn_list[count]->type = dummy->type;
-
+       dnn_list[count]->period = 220;
        puts("======================");
        printf("%d/%d\n",count+1, dnns);
        printf("[DNN] : %s \n", get_dnn_name(dnn_list[count]->type));
        printf("[PID] : %d \n", dnn_list[count]->pid);
        printf("[Layer] : %d \n",dnn_list[count]->layers);
+       printf("[Period] : %d \n", dnn_list[count]->period);
        puts("\nregistered\n"); 
        count ++;
     }
@@ -364,7 +402,9 @@ void adding_profile(dnn_info** dnn_list, int dnns){
     
 }
 
-
+void update_deadline(dnn_info * dnn, current_time){
+    dnn -> deadline = current_time + dnn -> period;
+}
 
 char* get_dnn_name(DNN_TYPE type){
     if(type == 0) return "YOLO";

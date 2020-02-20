@@ -933,19 +933,20 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     msg * dummy = (msg *)malloc(sizeof(msg));
     dummy->pid = getpid();
     dummy->layers = net.n;
-
+   
     if(strstr(filename, "yolo") != NULL) dummy->type = YOLOt;
     if(strstr(filename, "extraction") != NULL) dummy->type = EXTRACTION;
     if(strstr(filename, "resnet") != NULL) dummy->type = RESNET;
     if(strstr(filename, "rnn") != NULL) dummy->type = RECURRENT;
-    
-    if(write(register_fd, dummy, sizeof(dummy)) == -1){
+
+    if(write(register_fd, dummy, sizeof(dummy)) < 0){
         perror("Registerating :  ");
         exit(-1);
     }
-    
+
+        
     kill(getpid(),SIGSTOP);
-    
+
     fprintf(stderr, "   layer   filters  size/strd(dil)      input                output\n");
     while(n){
         params.index = count;
@@ -1114,6 +1115,7 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
         printf("\n Warning: width=%d and height=%d in cfg-file must be divisible by 32 for default networks Yolo v1/v2/v3!!! \n\n",
             net.w, net.h);
     }
+
     return net;
 }
 
