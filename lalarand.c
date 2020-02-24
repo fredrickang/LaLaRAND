@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <time.h>
 #include <chrono>
+
 #define GPU 1
 #define CPU 0
 
@@ -37,14 +38,12 @@ typedef struct _DNN_INFO{
     int pid;
     int layers;
     DNN_TYPE type; 
-    dnn_profile *profile; 
     int period;
     double deadline;
 }dnn_info;
 
 // Queue Definition
 typedef struct QNode{
-    DNN_TYPE type;
     int layer;
     int id;
     struct QNode * next;
@@ -64,8 +63,8 @@ typedef struct _MSG_PACKET{
 
 QNode*  newNode(dnn_info *dnn, int layer, int id);
 Queue*  createQueue(char *name);
-void    enQueue(Queue *q, dnn_info *dnn, int layer, int id);
-QNode*  deQueue(Queue * q, double current_time, resource * res);
+void    enQueue(Queue *q, int layer, int id);
+QNode*  deQueue(Queue * q, dnn_info ** dnn_list, dnn_profile ** profile_list, double current_time, resource * res);
 
 void    del_arg(int argc, char **argv, int index);
 int     find_int_arg(int argc, char **argv, char *arg, int def);
@@ -73,12 +72,12 @@ char*   get_dnn_name(DNN_TYPE type);
 double  get_time_point();
 
 dnn_info** network_register(int register_fd, int dnns);
-void    adding_profile(dnn_info** dnn_list, int dnns);
+dnn_profile ** make_profile_list();
 int     open_channel(char * pipe_name,int mode);
 void    close_channel(char * pipe_name);
 void    close_channels(dnn_info ** dnn_list, int dnns);
 void    update_deadline(dnn_info * dnn, double current_time);
-double  workload_left(dnn_info * dnn, int current_layer);
+double  workload_left(dnn_profile * profile, int current_layer);
 
 int main(int argc, char **argv){
     //Input argument handling
@@ -99,7 +98,7 @@ int main(int argc, char **argv){
     dnn_list = network_register(register_fd, dnns);
     close_channel("./lalarand_register");
     //Adding additional information
-    adding_profile(dnn_list, dnns);
+    dnn_profile ** profile_list = make_profile_list();
     
     //Open Request channel
     int request_fd[dnns];
@@ -186,8 +185,8 @@ int main(int argc, char **argv){
                         
                         printf("Frome %d pid, layer %d has been requested\n", dnn_list[i]->pid, request_layer);
                         
-                        if(dnn_list[i]->profile->cfg[request_layer] == GPU) enQueue(gpu_request, dnn_list[i], request_layer, i);
-                        else enQueue(cpu_request, dnn_list[i], request_layer, i); 
+                        if(profile_list[dnn_list[i]->type]->cfg[request_layer] == GPU) enQueue(gpu_request, request_layer, i);
+                        else enQueue(cpu_request, request_layer, i); 
                     
                     }
                 }
@@ -201,8 +200,8 @@ int main(int argc, char **argv){
 
             if(Sync) for(int i =0 ; i < dnns ; i++) update_deadline(dnn_list[i], current_time);
             
-            if(gpu -> state == IDLE) gpu_target = deQueue(gpu_request, current_time, gpu);    
-            if(cpu -> state == IDLE) cpu_target = deQueue(cpu_request, current_time, cpu);
+            if(gpu -> state == IDLE) gpu_target = deQueue(gpu_request, dnn_list, profile_list ,current_time, gpu);    
+            if(cpu -> state == IDLE) cpu_target = deQueue(cpu_request, dnn_list, profile_list ,current_time, cpu);
             else{ /* preemption */
                 // need to be implemented 
             }
@@ -231,9 +230,8 @@ int main(int argc, char **argv){
 }
 
 
-QNode* newNode(dnn_info *info, int layer, int id){
+QNode* newNode (int layer, int id){
     QNode * tmp = (QNode *)malloc(sizeof(QNode));
-    tmp -> dnn = info;
     tmp -> layer = layer;
     tmp -> id = id;
     tmp -> next = NULL;
@@ -253,10 +251,10 @@ Queue * createQueue(char *name){
     
 }
 
-void enQueue(Queue *q, dnn_info * dnn, int layer, int id){
-    QNode * tmp = newNode(dnn, layer, id);
+void enQueue(Queue *q, int layer, int id){
+    QNode * tmp = newNode(layer, id);
     q->count ++;    
-    printf("Enqueue: [dnn] %s , [layer] %d \n", get_dnn_name(dnn->type), layer);
+    printf("Enqueue: [ID] %d , [layer] %d \n", id, layer);
     if(q->rear == NULL){
         q->front = q->rear = tmp;
         return;
@@ -268,55 +266,10 @@ void enQueue(Queue *q, dnn_info * dnn, int layer, int id){
     
 }
 
-QNode* deQueue(Queue * q, double current_time, resource * res){
-    if(q->front == NULL)
-        return NULL;
-    QNode * tmp = q -> front;
-    QNode * target;
-    double slack;
-    double smallest; 
-    while( tmp->next  !=  NULL){
-        // calc slack 
-        slack = ((double)tmp -> dnn -> deadline - current_time) - workload_left(tmp->dnn, tmp->layer);
-        if(tmp == q->front){
-            smallest = slack;
-            target = tmp;
-        }
-        else{
-            if (slack < smallest){
-                smallest = slack;
-                target = tmp;
-            }
-        }
-        tmp = tmp-> next;
-    }
-    
-    q-> count --;  
-    res-> state = BUSY;
-    res-> id = target->id;
-    printf("Dequeue : [dnn] %s",get_dnn_name(target->dnn->type));
-    
-    if( q->count == 0){
-        q-> front = q -> rear = NULL;
-        return target;
-    }
+QNode* deQueue(Queue * q, dnn_info ** dnn_list, dnn_profile ** profile_list, double current_time, resource * res){
+ 
 
-    if(target == q->front){
-        q->front = target->next;
-        q->front->prev = NULL;
-    }
-    else if( target == q->rear){
-        q->rear = target -> prev;
-        q->rear->next = NULL;
-    }
-    else{
-        target -> prev -> next = target -> next;
-        target -> next -> prev = target -> prev;
-    }
-    
-    return target;
 }
-
 // .Queue Definition
 
 
@@ -419,8 +372,15 @@ void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg){
     memcpy(tmp->cfg , cfg, sizeof(int) * layers);
 }
 
-void adding_profile(dnn_info** dnn_list, int dnns){
+dnn_profile ** make_profile_list(){
     
+    dnn_profile ** profile_list = (dnn_profile **)malloc(sizeof(dnn_profile *)*4);
+
+    for(int i =0; i < 4; i++)
+        profile_list[i] = (dnn_profile *)malloc(sizeof(dnn_profile));
+
+    
+
     int yolo_gpu[24]  = {1069 ,152 ,462 ,125 ,317 ,113 ,262 ,87 ,256 ,99 ,275 ,104 ,735 ,177 ,273 ,135 ,110 ,81 ,124 ,103 ,92 ,466 ,157 ,122 };
     int yolo_cpu[24] = {7240 ,1476 ,12392 ,608 ,15986 ,255 ,8566 ,121 ,8661 ,65 ,11764 ,414 ,46709 ,2596 ,11455 ,1387 ,94 ,20 ,375 ,180 ,126 ,27672 ,1844 ,302 };
     int yolo_cfg[24] = {1 ,1 ,1, 1 ,1 ,1 ,1 ,1 ,1 ,0 ,1 ,1 ,1 ,1 ,1 ,1 ,0 ,0 ,1 ,1 ,1 ,1 ,1 ,1 }; 
@@ -439,24 +399,12 @@ void adding_profile(dnn_info** dnn_list, int dnns){
     int rnn_cpu[6] = {279, 334, 336, 30, 7, 1};
     int rnn_cfg[6] = {1,1,1,0,0,0};
     
-    for(int i = 0 ; i < dnns ; i++){
-        dnn_list[i]->profile = (dnn_profile *)malloc(sizeof(dnn_profile));
-        switch(dnn_list[i]->type){
-            case YOLOt:
-                make_profile(dnn_list[i]->profile, 24, yolo_gpu, yolo_cpu, yolo_cfg);
-                break;
-            case EXTRACTION:
-                make_profile(dnn_list[i]->profile, 28, extraction_gpu, extraction_cpu, extraction_cfg);
-                break;
-            case RESNET:
-                make_profile(dnn_list[i]->profile, 29, resnet_gpu, resnet_cpu, resnet_cfg);
-                break;
-            case RECURRENT:
-                make_profile(dnn_list[i]->profile, 5, rnn_gpu, rnn_cpu, rnn_cfg);
-                break;
-        }
-    }
-    
+    make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg);
+    make_profile(profile_list[EXTRACTION], 28, extraction_gpu, extraction_cpu, extraction_cfg);
+    make_profile(profile_list[RESNET], 29, resnet_gpu, resnet_cpu, resnet_cfg);
+    make_profile(profile_list[RECURRENT], 5, rnn_gpu, rnn_cpu, rnn_cfg);
+
+    return profile_list;
 }
 
 void update_deadline(dnn_info * dnn, double current_time){
@@ -483,10 +431,13 @@ void close_channels(dnn_info ** dnn_list, int dnns){
         close_channel(decision_name);
     }
 }
-double workload_left(dnn_info * dnn, int current_layer){
+
+double workload_left(dnn_profile * profile, int current_layer){
     int workload = 0;
-    for(int i = current_layer; i < dnn->layers; i++)
-        workload += (dnn->profile->cfg[i] == 0) ? dnn->profile->cpu_exec[i] : dnn->profile->gpu_exec[i];
+    int layer_num = sizeof(profile->cfg)/sizeof(int);
+
+    for(int i = current_layer; i < layer_num; i++)
+        workload += (profile->cfg[i] == 0) ? profile->cpu_exec[i] : profile->gpu_exec[i];
     double micro_workload = workload * 10;
     
     return micro_workload;
