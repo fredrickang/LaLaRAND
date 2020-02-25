@@ -765,9 +765,9 @@ int main(int argc, char **argv)
     if(identifier == -1){ /* mother process */ 
        int status;
        
-       
-       while(wait(&status));
+       wait(NULL);
     }else{ /* child process */
+
 #ifndef GPU
         gpu_index = -1;
 #else

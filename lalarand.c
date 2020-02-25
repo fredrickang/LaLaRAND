@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <time.h>
 #include <chrono>
+#include <float.h>
 
 #define GPU 1
 #define CPU 0
@@ -64,7 +65,7 @@ typedef struct _MSG_PACKET{
 QNode*  newNode(dnn_info *dnn, int layer, int id);
 Queue*  createQueue(char *name);
 void    enQueue(Queue *q, int layer, int id);
-QNode*  deQueue(Queue * q, dnn_info ** dnn_list, dnn_profile ** profile_list, double current_time, resource * res);
+int     deQueue(Queue * q, dnn_info ** dnn_list, dnn_profile ** profile_list, double current_time, resource * res);
 
 void    del_arg(int argc, char **argv, int index);
 int     find_int_arg(int argc, char **argv, char *arg, int def);
@@ -78,6 +79,7 @@ void    close_channel(char * pipe_name);
 void    close_channels(dnn_info ** dnn_list, int dnns);
 void    update_deadline(dnn_info * dnn, double current_time);
 double  workload_left(dnn_profile * profile, int current_layer);
+void    print_queue(Queue * q);
 
 int main(int argc, char **argv){
     //Input argument handling
@@ -135,8 +137,8 @@ int main(int argc, char **argv){
     gpu -> id = -1;
     cpu -> id = -1;
     
-    QNode * gpu_target;
-    QNode * cpu_target;
+    int gpu_target_id;
+    int cpu_target_id;
     
     
     fd_set readfds, writefds;
@@ -183,7 +185,7 @@ int main(int argc, char **argv){
                             cpu -> id = -1;
                         }
                         
-                        printf("Frome %d pid, layer %d has been requested\n", dnn_list[i]->pid, request_layer);
+                        printf("Request : [ID] %d [layer]%d \n", i, request_layer);
                         
                         if(profile_list[dnn_list[i]->type]->cfg[request_layer] == GPU) enQueue(gpu_request, request_layer, i);
                         else enQueue(cpu_request, request_layer, i); 
@@ -193,29 +195,27 @@ int main(int argc, char **argv){
         }
         
         // Decision 
-
         if(!(Sync && (gpu_request->count + cpu_request->count) < dnns)){
-            cpu_target = NULL;
-            gpu_target = NULL;
+            cpu_target_id = -1;
+            gpu_target_id = -1;
 
             if(Sync) for(int i =0 ; i < dnns ; i++) update_deadline(dnn_list[i], current_time);
             
-            if(gpu -> state == IDLE) gpu_target = deQueue(gpu_request, dnn_list, profile_list ,current_time, gpu);    
-            if(cpu -> state == IDLE) cpu_target = deQueue(cpu_request, dnn_list, profile_list ,current_time, cpu);
+            if(gpu -> state == IDLE) gpu_target_id = deQueue(gpu_request, dnn_list, profile_list ,current_time, gpu);    
+            if(cpu -> state == IDLE) cpu_target_id = deQueue(cpu_request, dnn_list, profile_list ,current_time, cpu);
             else{ /* preemption */
                 // need to be implemented 
             }
 
-            
-            if(gpu_target){
-                if(write(decision_fd[gpu_target->id], &go_to_gpu, sizeof(int)) < 0){
+            if(gpu_target_id != -1){
+                if(write(decision_fd[gpu_target_id], &go_to_gpu, sizeof(int)) < 0){
                     perror("gpu decision : ");
                     exit(-1);
                 }
             } 
             
-            if(cpu_target){
-                if(write(decision_fd[cpu_target->id], &go_to_cpu, sizeof(int)) < 0){
+            if(cpu_target_id != -1){
+                if(write(decision_fd[cpu_target_id], &go_to_cpu, sizeof(int)) < 0){
                     perror("cpu decision :");
                     exit(-1);
                 }
@@ -254,24 +254,97 @@ Queue * createQueue(char *name){
 void enQueue(Queue *q, int layer, int id){
     QNode * tmp = newNode(layer, id);
     q->count ++;    
-    printf("Enqueue: [ID] %d , [layer] %d \n", id, layer);
-    if(q->rear == NULL){
+    
+    if(q->front == NULL){
         q->front = q->rear = tmp;
+        printf("Enqueue : [ID] %d , [layer] %d \n", id, layer);
         return;
     }    
     
-    tmp -> prev = q->rear;
-    q -> rear -> next =  tmp;
-    q -> rear = tmp;
+    tmp -> next = q -> front;
+    q-> front -> prev = tmp ;
+    q -> front = tmp ;
+}
+
+void deleteNode(Queue *q , QNode * del)
+{
+    if (q->front == NULL || del == NULL)
+        return;
+
+    if (q->front == del)
+        q->front = del->next;
+
+    if (del->next != NULL)
+        del->next->prev = del->prev;
+
+    if (del->prev != NULL)
+        del->prev->next = del->next;
     
+    free(del);
 }
 
-QNode* deQueue(Queue * q, dnn_info ** dnn_list, dnn_profile ** profile_list, double current_time, resource * res){
- 
+int deQueue(Queue * q, dnn_info ** dnn_list, dnn_profile ** profile_list, double current_time, resource * res){
+    // if there is nothing to de queue
+    if (q -> front == NULL){
+        return -1;
+    }
 
-}
+    // find smallest slack request id 
+    // delete from queue list
+    // return id
+    QNode * tmp = q -> front;
+    double deadline, slack;
+    double smallest = DBL_MAX;
+    int target_id = -1;
+    int target_layer = -1;
+    while(tmp != NULL){
+        deadline = dnn_list[tmp->id]->deadline;
+        slack = deadline - current_time - workload_left(profile_list[dnn_list[tmp->id]->type], tmp->layer);
+        
+        if(slack < smallest){
+            smallest = slack;
+            target_id = tmp -> id;
+            target_layer = tmp -> layer;
+        }
+        tmp = tmp -> next;
+    }
+    printf("Dequeue : [ID] %d [layer] %d\n", target_id, target_layer);
+    // find node && del
+
+    QNode* current = q -> front;
+    QNode* next; 
+    while (current != NULL) { 
+  
+        if (current->id == target_id){
+            next = current -> next; 
+            deleteNode(q, current);
+            current = next;
+        }
+        else current = current->next; 
+    }
+    
+    res -> state = BUSY;
+    res -> id  = target_id;  
+    
+    q -> count --;
+    return target_id;
+}  
+
+
 // .Queue Definition
 
+void print_queue(Queue * q){
+    QNode * head =  q -> front;
+    if (head == NULL) 
+        puts("Doubly Linked list empty"); 
+  
+    while (head != NULL) { 
+        printf("{[%d] %d} ", head -> id, head -> layer);
+        head = head->next; 
+    }
+    puts("");
+} 
+    
 
 // Argument handling
 void del_arg(int argc, char **argv, int index)

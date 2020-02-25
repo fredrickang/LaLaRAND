@@ -51,8 +51,8 @@
 float * get_network_output_gpu_layer(network net, int i);
 float * get_network_delta_gpu_layer(network net, int i);
 float * get_network_output_gpu(network net);
-void enqueue(int* q, int val);
-int dequeue(int* q);
+void    enqueue(int* q, int val);
+int     dequeue(int* q);
 
 extern int* test_extern_arr;
 extern int identifier;
@@ -74,14 +74,14 @@ void forward_network_gpu(network net, network_state state)
     char decision[30];
     int request_fd;
     int decision_fd;
-    int before = 0;
+    int before = 1;
     int resource = -1;
 
     snprintf(request, 30, "./lalarand_request_%d", getpid());
     snprintf(decision, 30, "./lalarand_decision_%d", getpid());
     
     // communication channel open
-    while( (request_fd = open(request,O_RDWR)) < 0);
+    while( (request_fd = open(request, O_RDWR)) < 0);
   
     while( (decision_fd = open(decision, O_RDONLY)) < 0);
 
@@ -107,7 +107,7 @@ void forward_network_gpu(network net, network_state state)
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
         }   
         
-
+        
         // migration data transfer
         if( i > 0 && before != resource ){
             layer tmp  = net.layers[i-1];
@@ -120,6 +120,7 @@ void forward_network_gpu(network net, network_state state)
                 state.input = tmp.output;
             }
         }
+        
         printf("[%d]Layer %d \n",getpid(), i);        
 
         // inference
@@ -137,6 +138,7 @@ void forward_network_gpu(network net, network_state state)
         
        //
        state.input = resource ? l.output_gpu : l.output; 
+       before = resource;
     }
 }
 
