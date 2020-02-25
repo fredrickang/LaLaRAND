@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <assert.h>
+#include <signal.h>
+#include <unistd.h>
 
 #include "network.h"
 #include "image.h"
@@ -1172,7 +1174,7 @@ void free_network(network net)
     free(net.scales);
     free(net.steps);
     free(net.seen);
-
+    
 #ifdef GPU
     if (gpu_index >= 0){
         cuda_free(net.workspace);

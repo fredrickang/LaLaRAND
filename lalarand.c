@@ -72,14 +72,14 @@ int     find_int_arg(int argc, char **argv, char *arg, int def);
 char*   get_dnn_name(DNN_TYPE type);
 double  get_time_point();
 
-dnn_info** network_register(int register_fd, int dnns);
-dnn_profile ** make_profile_list();
+dnn_info**      network_register(int register_fd, int dnns);
+dnn_profile **  make_profile_list();
 int     open_channel(char * pipe_name,int mode);
 void    close_channel(char * pipe_name);
 void    close_channels(dnn_info ** dnn_list, int dnns);
 void    update_deadline(dnn_info * dnn, double current_time);
-double  workload_left(dnn_profile * profile, int current_layer);
-void    print_queue(Queue * q);
+double  workload_left(dnn_profile * profile, int current_layer, int layer_num);
+void    print_queue(char * name, Queue * q);
 
 int main(int argc, char **argv){
     //Input argument handling
@@ -107,7 +107,7 @@ int main(int argc, char **argv){
     char request_name[30];
     for(int i =0; i < dnns; i++){
         snprintf(request_name, 30, "lalarand_request_%d", dnn_list[i]->pid);
-        request_fd[i] = open_channel(request_name, O_RDONLY); 
+        request_fd[i] = open_channel(request_name, O_RDONLY | O_NONBLOCK); 
     }
     puts("\nrequest channel has been openned\n");
     
@@ -116,11 +116,10 @@ int main(int argc, char **argv){
     char decision_name[30];
     for(int i =0; i < dnns; i++){
         snprintf(decision_name, 30, "lalarand_decision_%d", dnn_list[i]->pid);
-        decision_fd[i] = open_channel(decision_name, O_RDWR);
+        decision_fd[i] = open_channel(decision_name, O_WRONLY);
     }
     puts("\ndecision channel has been openned\n"); 
-    
-
+  
     int request_layer = -1;
     int go_to_gpu = 1;
     int go_to_cpu = 0;
@@ -144,6 +143,10 @@ int main(int argc, char **argv){
     fd_set readfds, writefds;
     int state;
     double current_time = 0;
+    struct timeval zero;
+    zero.tv_sec = 0;
+    zero.tv_usec = 0;
+
     while(1){
         
         current_time = get_time_point();
@@ -151,8 +154,9 @@ int main(int argc, char **argv){
         for(int i = 0 ; i < dnns; i++)
             FD_SET(request_fd[i], &readfds);
         
+
         // REQUEST handler 
-        state = select(request_fd[dnns-1] + 1, &readfds, NULL, NULL, 0);
+        state = select(request_fd[dnns-1] + 1, &readfds, NULL, NULL, &zero);
         switch(state){
             case -1:
                 perror("select error : ");
@@ -161,12 +165,9 @@ int main(int argc, char **argv){
             
             case 0:
                 break;
-            
             default:
                 for(int i =0; i < dnns; i ++){
                     if (FD_ISSET(request_fd[i], &readfds)){
-                        
-                        FD_CLR(request_fd[i],&readfds);
                         
                         if( read(request_fd[i], &request_layer, sizeof(int)) < 0){
                             perror("read error : ");    
@@ -185,15 +186,15 @@ int main(int argc, char **argv){
                             cpu -> id = -1;
                         }
                         
-                        printf("Request : [ID] %d [layer]%d \n", i, request_layer);
-                        
-                        if(profile_list[dnn_list[i]->type]->cfg[request_layer] == GPU) enQueue(gpu_request, request_layer, i);
-                        else enQueue(cpu_request, request_layer, i); 
-                    
+                        if(request_layer != dnn_list[i]->layers){
+                            printf("Request : [ID] %d [layer] %d \n", i, request_layer);
+                            if(profile_list[dnn_list[i]->type]->cfg[request_layer] == GPU) enQueue(gpu_request, request_layer, i);
+                            else enQueue(cpu_request, request_layer, i); 
+                        }
                     }
                 }
         }
-        
+                
         // Decision 
         if(!(Sync && (gpu_request->count + cpu_request->count) < dnns)){
             cpu_target_id = -1;
@@ -206,7 +207,12 @@ int main(int argc, char **argv){
             else{ /* preemption */
                 // need to be implemented 
             }
+           
+            //if( !(gpu_target_id == -1 && cpu_target_id == -1) || (gpu_target != -1 && cpu_target_id != -1) ){ /* migration condition 1 & 2 */
 
+            //}
+
+            
             if(gpu_target_id != -1){
                 if(write(decision_fd[gpu_target_id], &go_to_gpu, sizeof(int)) < 0){
                     perror("gpu decision : ");
@@ -223,12 +229,9 @@ int main(int argc, char **argv){
 
             Sync = 0;
         }
-
+        
     }
-    
-    close_channels(dnn_list, dnns);
 }
-
 
 QNode* newNode (int layer, int id){
     QNode * tmp = (QNode *)malloc(sizeof(QNode));
@@ -257,10 +260,10 @@ void enQueue(Queue *q, int layer, int id){
     
     if(q->front == NULL){
         q->front = q->rear = tmp;
-        printf("Enqueue : [ID] %d , [layer] %d \n", id, layer);
+        printf("Enqueue : [ID] %d [layer] %d \n", id, layer);
         return;
     }    
-    
+    printf("Enqueue : [ID] %d [layer] %d \n", id, layer);
     tmp -> next = q -> front;
     q-> front -> prev = tmp ;
     q -> front = tmp ;
@@ -299,8 +302,8 @@ int deQueue(Queue * q, dnn_info ** dnn_list, dnn_profile ** profile_list, double
     int target_layer = -1;
     while(tmp != NULL){
         deadline = dnn_list[tmp->id]->deadline;
-        slack = deadline - current_time - workload_left(profile_list[dnn_list[tmp->id]->type], tmp->layer);
-        
+        slack = deadline - current_time - workload_left(profile_list[dnn_list[tmp->id]->type], tmp->layer, dnn_list[tmp->id]->layers);
+        printf("Slack  : [ID] %d [slack] %f\n", tmp->id, slack);
         if(slack < smallest){
             smallest = slack;
             target_id = tmp -> id;
@@ -308,7 +311,7 @@ int deQueue(Queue * q, dnn_info ** dnn_list, dnn_profile ** profile_list, double
         }
         tmp = tmp -> next;
     }
-    printf("Dequeue : [ID] %d [layer] %d\n", target_id, target_layer);
+    printf("Dequeue : [ID] %d [layer] %d [slack] %f\n", target_id, target_layer, smallest);
     // find node && del
 
     QNode* current = q -> front;
@@ -333,10 +336,11 @@ int deQueue(Queue * q, dnn_info ** dnn_list, dnn_profile ** profile_list, double
 
 // .Queue Definition
 
-void print_queue(Queue * q){
+void print_queue(char * name, Queue * q){
     QNode * head =  q -> front;
+    printf("%s :",name);
     if (head == NULL) 
-        puts("Doubly Linked list empty"); 
+        printf("Doubly Linked list empty"); 
   
     while (head != NULL) { 
         printf("{[%d] %d} ", head -> id, head -> layer);
@@ -484,7 +488,7 @@ void update_deadline(dnn_info * dnn, double current_time){
     // milli period to micro period
     double micro_period = dnn->period * 1000;
     dnn-> deadline = current_time + micro_period;
-    printf("Deadline update : [dnn] %s ,[current] %8.5f, [deadline] %8.5f\n", get_dnn_name(dnn->type), current_time/1000, dnn -> deadline/1000);
+    printf("Deadline update : [dnn] %s ,[current] %f, [deadline] %f\n", get_dnn_name(dnn->type), current_time, dnn -> deadline);
 }
 
 char* get_dnn_name(DNN_TYPE type){
@@ -505,10 +509,9 @@ void close_channels(dnn_info ** dnn_list, int dnns){
     }
 }
 
-double workload_left(dnn_profile * profile, int current_layer){
+double workload_left(dnn_profile * profile, int current_layer, int layer_num){
     int workload = 0;
-    int layer_num = sizeof(profile->cfg)/sizeof(int);
-
+    
     for(int i = current_layer; i < layer_num; i++)
         workload += (profile->cfg[i] == 0) ? profile->cpu_exec[i] : profile->gpu_exec[i];
     double micro_workload = workload * 10;

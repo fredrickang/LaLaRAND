@@ -79,9 +79,9 @@ void forward_network_gpu(network net, network_state state)
 
     snprintf(request, 30, "./lalarand_request_%d", getpid());
     snprintf(decision, 30, "./lalarand_decision_%d", getpid());
-    
+    double start;
     // communication channel open
-    while( (request_fd = open(request, O_RDWR)) < 0);
+    while( (request_fd = open(request, O_WRONLY)) < 0);
   
     while( (decision_fd = open(decision, O_RDONLY)) < 0);
 
@@ -96,7 +96,7 @@ void forward_network_gpu(network net, network_state state)
             printf("[ERROR]Fail to send request to %s\n",request);
             exit(-1);
         }
-
+        
         // wait for decision 
         if( read(decision_fd, &resource, sizeof(int)) == -1){
             printf("[ERROR]Fail to read decision from %s\n",decision);
@@ -107,7 +107,7 @@ void forward_network_gpu(network net, network_state state)
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
         }   
         
-        
+        start = get_time_point();
         // migration data transfer
         if( i > 0 && before != resource ){
             layer tmp  = net.layers[i-1];
@@ -121,7 +121,6 @@ void forward_network_gpu(network net, network_state state)
             }
         }
         
-        printf("[%d]Layer %d \n",getpid(), i);        
 
         // inference
         if (resource == CPU) l.forward(l,state);   
@@ -133,13 +132,22 @@ void forward_network_gpu(network net, network_state state)
             printf("resource config wrong\n");
             exit(-1);
         }
+        
+        printf("[%d] Layer %d Execution %8.5f\n",getpid(), i, ((double)get_time_point() -  start)/1000);
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
         
        //
-       state.input = resource ? l.output_gpu : l.output; 
-       before = resource;
+        state.input = resource ? l.output_gpu : l.output; 
+        before = resource;
+                
     }
+    
+    if( write(request_fd,&net.n, sizeof(int)) == -1){
+        perror("Request :");
+        exit(-1);
+    }
+
 }
 
 

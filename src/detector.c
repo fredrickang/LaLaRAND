@@ -1562,7 +1562,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
 
     int m = plist->size;
     
-    for (k =0; k< 10; k++){
+    for (k =0; k< 1; k++){
         //t_period = get_time_point();
         ///// IMAGE PREPROCESSING /////
         printf("=====================JOB %d=====================\n",k);
