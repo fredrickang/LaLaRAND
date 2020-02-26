@@ -24,7 +24,7 @@ typedef struct _DNN_INFO{
     double deadline;
     int request_fd;
     int decision_fd;
-    dnn_info * next;
+    struct _DNN_INFO * next;
 }dnn_info;
 
 typedef struct _DNN_QUEUE{

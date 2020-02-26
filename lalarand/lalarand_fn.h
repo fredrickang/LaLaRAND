@@ -4,7 +4,7 @@
 
 ///// dnn queue ////
 dnn_queue * createDNNQueue();
-void enDNNQueue(dnn_queue * dnn_list, dnn_info * new);
+void enDNNQueue(dnn_queue * dnn_list, dnn_info* dnn);
 
 ///// resource /////
 resource * createResource();
@@ -28,7 +28,7 @@ void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg);
 dnn_profile ** make_profile_list();
 void check_registration(dnn_queue * dnn_list, int reg_fd);
 void regist(dnn_queue * dnn_list, reg_msg * msg);
-int check_request(dnn_queue * dnn_list);
+int check_request(dnn_queue * dnn_list, fd_set *readfds);
 void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profile * profile, double current_time);
 
 void decision_handler(int target_id, dnn_queue * dnn_list, int decision);

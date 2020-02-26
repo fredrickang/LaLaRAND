@@ -77,8 +77,8 @@ void forward_network_gpu(network net, network_state state)
     int before = 1;
     int resource = -1;
 
-    snprintf(request, 30, "./lalarand_request_%d", getpid());
-    snprintf(decision, 30, "./lalarand_decision_%d", getpid());
+    snprintf(request, 30, "/tmp/request_%d", getpid());
+    snprintf(decision, 30, "/tmp/decision_%d", getpid());
     double start;
     // communication channel open
     while( (request_fd = open(request, O_WRONLY)) < 0);

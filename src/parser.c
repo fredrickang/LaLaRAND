@@ -925,7 +925,7 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     // Register to LaLaRAND 
     int register_fd;
 
-    if( (register_fd = open("./lalarand_register",O_WRONLY)) < 0){
+    if( (register_fd = open("/tmp/lalarand_registration",O_WRONLY)) < 0){
         perror("Opening Registeration : ");
         exit(-1);
     }
@@ -945,7 +945,6 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     }
 
         
-    kill(getpid(),SIGSTOP);
 
     fprintf(stderr, "   layer   filters  size/strd(dil)      input                output\n");
     while(n){

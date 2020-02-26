@@ -1,11 +1,11 @@
-#include "lalarand_fn.h"
-#include "lalarand.h"
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
 #include <fcntl.h>
-#include <sys/types.h>
-#include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sched.h>
@@ -14,8 +14,9 @@
 #include <chrono>
 #include <float.h>
 
-
-
+#include "lalarand_fn.h"
+#define GPU 1
+#define CPU 0
 
 
 ///// dnn queue ////
@@ -28,15 +29,15 @@ dnn_queue * createDNNQueue(){
     return tmp;
 }
 
-void enDNNQueue(dnn_queue * dnn_list, dnn_info * new){
+void enDNNQueue(dnn_queue * dnn_list, dnn_info * dnn){
     if(dnn_list->head == NULL){
-        dnn_list ->head = new;
+        dnn_list ->head = dnn;
         dnn_list -> count ++;
         return;
     }    
 
-    new -> next = dnn_list -> head;
-    dnn_list -> head = new;
+    dnn -> next = dnn_list -> head;
+    dnn_list -> head = dnn;
     dnn_list -> count ++ ; 
 
 }
@@ -255,73 +256,82 @@ dnn_profile ** make_profile_list(){
 void check_registration(dnn_queue * dnn_list, int reg_fd){
     reg_msg * msg = (reg_msg *)malloc(sizeof(reg_msg));
     
-    while(read(reg_fd, msg, sizeof(msg)) != -1){
+    while( read(reg_fd, msg, sizeof(msg)) > 0){
         regist(dnn_list, msg);
+        puts("here?");
     }
 }
 
 void regist(dnn_queue * dnn_list, reg_msg * msg){
-    dnn_info * new = (dnn_info *)malloc(sizeof(dnn_info));
+    dnn_info * dnn = (dnn_info *)malloc(sizeof(dnn_info));
 
-    new -> id = dnn_list -> count;
+    dnn -> id = dnn_list -> count;
 
-    new -> pid = msg -> pid;
-    new -> layers = msg -> layers;
-    new -> type = msg -> type;
-    new -> period = 220;
-
+    dnn -> pid = msg -> pid;
+    dnn -> layers = msg -> layers;
+    dnn -> type = msg -> type;
+    dnn -> period = 220;
+    
+    printf("======== REGISTRATION ========\n");
+    printf("[ID]     %3d\n", dnn-> id);
+    printf("[PID]    %3d\n", dnn-> pid);
+    printf("[Layers] %3d\n", dnn-> layers);
+    printf("[Type]   %s\n", get_dnn_name(dnn->type));
+    printf("[Period] %3d\n", dnn->period);
     char req_fd_name[30];
     char dec_fd_name[30];
 
-    snprintf(req_fd_name, "/tmp/req_%d",new->pid);
-    snprintf(dec_fd_name, "/tmp/dec_%d",new->pid);
+    snprintf(req_fd_name, 30,"/tmp/request_%d",dnn->pid);
+    snprintf(dec_fd_name, 30,"/tmp/decision_%d",dnn->pid);
 
-    new -> request_fd = open_channel(req_fd_name, O_RDONLY);
-    new -> decision_fd = open_channel(dec_fd_name, O_WRONLY);
+    dnn -> request_fd = open_channel(req_fd_name, O_RDONLY);
+    dnn -> decision_fd = open_channel(dec_fd_name, O_WRONLY);
 
-    new -> next = NULL;
+    dnn -> next = NULL;
 
-    enDNNQueue(dnn_list, new);
+    enDNNQueue(dnn_list, dnn);
+    
 }
 
-int check_request(dnn_queue * dnn_list){
-    fd_set readfds;
-    int rev;
+int check_request(dnn_queue * dnn_list, fd_set* readfds){
+    int rev = 0;
     struct timeval zero = {0, 0};
-
-    FD_ZERO(&readfds);
+    if(dnn_list -> count > 0){
+        FD_ZERO(readfds);
     
-    dnn_info * node = dnn_list -> head;
-    while(node != NULL){
-        FD_SET(node -> request_fd, &readfds);
-        node = node -> next;
+        dnn_info * node = dnn_list -> head;
+        while(node != NULL){
+            FD_SET(node -> request_fd, readfds);
+            node = node -> next;
+        }
+
+        rev = select(dnn_list -> head -> request_fd +1, readfds, NULL, NULL, &zero);
     }
-
-    rev = select(dnn_list -> head -> request_fd +1, &readfds, NULL, NULL, &zero);
-
     return rev;
 }
 
 void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profile * profile, double current_time){
-    int requset_layer;
+    
+    int request_layer;
+    
     read(node -> request_fd, &request_layer, sizeof(int));
-
+                
     if(request_layer == 0) update_deadline(node, current_time);
 
     if( gpu -> state == BUSY && gpu -> id == node->id){
         gpu -> state = IDLE;
         gpu -> id = -1;
-    }
+      }
 
     if( cpu -> state == BUSY && cpu -> id == node->id){
         cpu -> state = IDLE;
         cpu -> id = -1;
-    }
+      }
 
-    if(request_layer != node -> layers){
-        if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting,reuqest_layer, node ->  id);
-        else enQueue(cpu->waiting, request_layer, node -> id);
-    }
+     if(request_layer != node -> layers){
+         if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting,request_layer, node ->  id);
+         else enQueue(cpu->waiting, request_layer, node -> id);
+      }
 }
 
 
@@ -363,6 +373,10 @@ double workload_left(dnn_profile * profile, int current_layer, int layer_num){
 
 int open_channel(char * pipe_name,int mode){
     int pipe_fd;
+    
+    if( access(pipe_name, F_OK) != -1)
+        remove(pipe_name);
+
     if( mkfifo(pipe_name, 0666) == -1){
         puts("[ERROR]Fail to make pipe");
         exit(-1);
