@@ -39,14 +39,16 @@ int main(int argc, char **argv){
     resource * gpu = createResource();
     resource * cpu = createResource();
 
-    // open channel for registration 
     int reg_fd = open_channel(REGISTRATION, O_RDONLY | O_NONBLOCK);
     
     double current_time;
     int request_layer, gpu_target, cpu_target;
     dnn_info * node;
     fd_set readfds; 
+    
     do{
+        gpu_target =  -1;
+        cpu_target =  -1;
         current_time = get_time_point();
     
         check_registration(dnn_list, reg_fd);
@@ -61,9 +63,10 @@ int main(int argc, char **argv){
             if(Sync) update_deadline_all(dnn_list, current_time);
 
             if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);
-            if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, gpu);
+            if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, cpu);
 
-            // add migration policy
+            if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, gpu);
+            if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, cpu);
 
             if(gpu_target != -1) decision_handler(gpu_target, dnn_list, GPU);
             if(cpu_target != -1) decision_handler(cpu_target, dnn_list, CPU);

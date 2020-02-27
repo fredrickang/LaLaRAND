@@ -1175,6 +1175,8 @@ void free_network(network net)
     free(net.steps);
     free(net.seen);
     
+
+    kill(getpid(), SIGSTOP);
 #ifdef GPU
     if (gpu_index >= 0){
         cuda_free(net.workspace);

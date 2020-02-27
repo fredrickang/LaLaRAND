@@ -63,6 +63,7 @@ extern int N;
 extern int *shmem_request;
 extern int *shmem_resource;
 
+extern int request_fd, decision_fd;
 
 void forward_network_gpu(network net, network_state state)
 {
@@ -70,36 +71,24 @@ void forward_network_gpu(network net, network_state state)
     state.workspace = net.workspace;
     state.workspace_cpu = net.workspace_cpu;
     int i;
-    char request[30];
-    char decision[30];
-    int request_fd;
-    int decision_fd;
     int before = 1;
-    int resource = -1;
-
-    snprintf(request, 30, "/tmp/request_%d", getpid());
-    snprintf(decision, 30, "/tmp/decision_%d", getpid());
+    int resource ;
     double start;
-    // communication channel open
-    while( (request_fd = open(request, O_WRONLY)) < 0);
-  
-    while( (decision_fd = open(decision, O_RDONLY)) < 0);
-
     for(i = 0; i < net.n; ++i){
-        
+        resource = -1;
 
         state.index = i;
         layer l = net.layers[i];
         
         // send request
         if( write(request_fd, &i, sizeof(int)) == -1 ){
-            printf("[ERROR]Fail to send request to %s\n",request);
+            perror("request send : ");
             exit(-1);
         }
         
         // wait for decision 
         if( read(decision_fd, &resource, sizeof(int)) == -1){
-            printf("[ERROR]Fail to read decision from %s\n",decision);
+            perror("decision recv : ");
             exit(-1);
         } 
          
@@ -133,7 +122,7 @@ void forward_network_gpu(network net, network_state state)
             exit(-1);
         }
         
-        printf("[%d] Layer %d Execution %8.5f\n",getpid(), i, ((double)get_time_point() -  start)/1000);
+        printf("[%d] Layer %d Resource %d  Execution %8.5f\n",getpid(), i, resource,((double)get_time_point() -  start)/1000);
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
         

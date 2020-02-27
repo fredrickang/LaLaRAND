@@ -258,7 +258,6 @@ void check_registration(dnn_queue * dnn_list, int reg_fd){
     
     while( read(reg_fd, msg, sizeof(msg)) > 0){
         regist(dnn_list, msg);
-        puts("here?");
     }
 }
 
@@ -304,8 +303,9 @@ int check_request(dnn_queue * dnn_list, fd_set* readfds){
             FD_SET(node -> request_fd, readfds);
             node = node -> next;
         }
-
+        
         rev = select(dnn_list -> head -> request_fd +1, readfds, NULL, NULL, &zero);
+        //if(rev) printf("[check_request] : %d\n",rev);
     }
     return rev;
 }
@@ -315,7 +315,9 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
     int request_layer;
     
     read(node -> request_fd, &request_layer, sizeof(int));
-                
+    
+    //printf("[request_handler] : [ID] %d [layer] %d \n", node -> id, request_layer);
+
     if(request_layer == 0) update_deadline(node, current_time);
 
     if( gpu -> state == BUSY && gpu -> id == node->id){
@@ -336,8 +338,11 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
 
 
 void decision_handler(int target_id, dnn_queue * dnn_list, int decision){
+    int rev;
     dnn_info * target = find_dnn_by_id(dnn_list, target_id);
-    write(target->decision_fd,&decision,sizeof(int));
+    if( write(target->decision_fd,&decision,sizeof(int)) < 0){
+        perror("decision_handler");  
+    }
 }
 
 void update_deadline(dnn_info * dnn, double current_time){
@@ -367,6 +372,51 @@ double workload_left(dnn_profile * profile, int current_layer, int layer_num){
     double micro_workload = workload * 10;
     
     return micro_workload;
+}
+
+int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res){
+    if(q->count == 0)
+        return -1;
+    double slack;
+    double updated_slack;
+    dnn_info * node;
+    int target_id = -1;
+    int target_layer = -1;
+    double smallest = DBL_MAX;
+    for(QNode * tmp = q->front; tmp != NULL; tmp = tmp -> next){
+        node = find_dnn_by_id(dnn_list, tmp -> id);
+        slack = node->deadline - current_time - workload_left(profile_list[node->type],tmp -> layer, node->layers);
+        if( slack > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer])) {
+            updated_slack = slack - abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer]);
+            if( updated_slack < smallest ){
+                target_id = tmp -> id;
+                target_layer = tmp -> layer;
+                smallest = updated_slack;
+            }
+        }
+    }
+    if(target_id != -1){
+        res -> state = BUSY;
+        res -> id = target_id;
+        
+        QNode* current = q -> front;
+        QNode* next; 
+        while (current != NULL) { 
+  
+            if (current->id == target_id){
+                next = current -> next; 
+                deleteNode(q, current);
+                current = next;
+            }
+            else current = current->next; 
+        }
+    
+        q -> count --;
+
+        printf("Migration : [ID] %d [Layer] %d \n",target_id, target_layer);
+    }
+
+    return target_id; 
 }
 
 ///// communication ////

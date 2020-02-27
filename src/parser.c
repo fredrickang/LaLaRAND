@@ -43,6 +43,9 @@
 #include "version.h"
 #include "yolo_layer.h"
 
+extern int request_fd = -1;
+extern int decision_fd = -1;
+
 typedef struct{
     char *type;
     list *options;
@@ -944,8 +947,15 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
         exit(-1);
     }
 
-        
+    char request[30];
+    char decision[30];
+    
+    snprintf(request, 30, "/tmp/request_%d",getpid());
+    snprintf(decision, 30, "/tmp/decision_%d",getpid());
 
+    while( (request_fd = open(request, O_WRONLY)) < 0);
+    while( (decision_fd = open(decision, O_RDONLY)) < 0);
+      
     fprintf(stderr, "   layer   filters  size/strd(dil)      input                output\n");
     while(n){
         params.index = count;
