@@ -29,6 +29,26 @@ dnn_queue * createDNNQueue(){
     return tmp;
 }
 
+void deleteDNN(dnn_queue * dnn_list, dnn_info * del){ 
+    dnn_info * tmp , *prev;
+    
+    if(dnn_list -> head == del){
+        dnn_list -> head = del -> next;
+        free(del);
+        dnn_list -> count --;
+        return;
+    }
+    tmp = dnn_list -> head;
+    while( tmp != del){
+        prev = tmp;
+        tmp = tmp -> next;
+    }
+    prev -> next  = del -> next;
+    free(del);
+    dnn_list -> count --;
+    return;
+} 
+
 void enDNNQueue(dnn_queue * dnn_list, dnn_info * dnn){
     if(dnn_list->head == NULL){
         dnn_list ->head = dnn;
@@ -164,6 +184,15 @@ dnn_info * find_dnn_by_id(dnn_queue * dnn_list, int id){
     return node;
 }
 
+dnn_info * find_dnn_by_pid(dnn_queue * dnn_list, int pid){
+    dnn_info * node = dnn_list -> head;
+    while(node -> pid != pid){
+        node = node -> next;
+    }
+    return node;
+}   
+
+
 void print_queue(char * name, Queue * q){
     QNode * head =  q -> front;
     printf("%s :",name);
@@ -256,8 +285,9 @@ dnn_profile ** make_profile_list(){
 void check_registration(dnn_queue * dnn_list, int reg_fd){
     reg_msg * msg = (reg_msg *)malloc(sizeof(reg_msg));
     
-    while( read(reg_fd, msg, sizeof(msg)) > 0){
-        regist(dnn_list, msg);
+    while( read(reg_fd, msg, 4*sizeof(int)) > 0){
+        if(msg -> regist == 1) regist(dnn_list, msg); 
+        else de_regist(dnn_list, msg);
     }
 }
 
@@ -289,6 +319,17 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
     dnn -> next = NULL;
 
     enDNNQueue(dnn_list, dnn);
+    
+}
+
+void de_regist(dnn_queue * dnn_list, reg_msg * msg){
+    // find dnn info by pid;
+    // delete dnn 
+    // send signal to go 
+    int pid;
+    dnn_info * target = find_dnn_by_pid(dnn_list, msg -> pid);
+    pid = target -> pid;
+    deleteDNN(dnn_list, target);
     
 }
 

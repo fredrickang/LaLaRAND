@@ -46,6 +46,7 @@ typedef struct Queue{
 }Queue;
 
 typedef struct _MSG_PACKET{
+    int regist;
     int pid;
     int layers;
     DNN_TYPE type;

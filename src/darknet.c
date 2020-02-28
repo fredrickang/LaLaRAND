@@ -51,8 +51,6 @@ extern void run_art(int argc, char **argv);
 extern void run_super(int argc, char **argv);
 
 //global variables for runtime switching.
-extern int test_extern = 1972;
-extern int *test_extern_arr = NULL;
 extern int * queue = NULL;
 extern pthread_mutex_t *gpu_lock = NULL;
 extern int N = 0;
@@ -788,7 +786,6 @@ int main(int argc, char **argv)
         
         //allocate resource configuration of each process.
 
-        test_extern_arr = shmem_rescfg[identifier];
         
         get_task_info(mytask, argv);
         ///// data cfg

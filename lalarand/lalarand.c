@@ -24,7 +24,7 @@
 #define REGISTRATION "/tmp/lalarand_registration"
 
 int main(int argc, char **argv){
-    int Sync = find_int_arg(argc, argv, "-sync", 0);
+    int Sync = find_int_arg(argc, argv, "-sync", 1);
     
     // cpu affininty setting 
     cpu_set_t mask;
@@ -42,7 +42,7 @@ int main(int argc, char **argv){
     int reg_fd = open_channel(REGISTRATION, O_RDONLY | O_NONBLOCK);
     
     double current_time;
-    int request_layer, gpu_target, cpu_target;
+    int gpu_target, cpu_target;
     dnn_info * node;
     fd_set readfds; 
     
@@ -74,5 +74,5 @@ int main(int argc, char **argv){
             Sync = 0;
         }
        
-    }while(1);
+    }while(!(Sync == 0 && dnn_list -> count == 0));
 }

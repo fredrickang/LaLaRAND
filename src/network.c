@@ -47,6 +47,8 @@
 
 #define R_MULT (32)    // 4 - 32
 
+extern int register_fd;
+
 int max_abs(int src, int max_val)
 {
     if (abs(src) > abs(max_val)) src = (src > 0) ? max_val : -max_val;
@@ -1162,6 +1164,12 @@ float network_accuracy_multi(network net, data d, int n)
     return acc;
 }
 
+typedef struct _MSG{
+    int regist;
+    int pid;
+}msg;
+
+
 void free_network(network net)
 {
     int i;
@@ -1175,8 +1183,11 @@ void free_network(network net)
     free(net.steps);
     free(net.seen);
     
+    msg * de_reg = (msg *)malloc(sizeof(msg));
+    de_reg -> regist = 0;
+    de_reg -> pid = getpid();
 
-    kill(getpid(), SIGSTOP);
+    write(register_fd, de_reg, sizeof(int) * 2);
 #ifdef GPU
     if (gpu_index >= 0){
         cuda_free(net.workspace);

@@ -45,6 +45,7 @@
 
 extern int request_fd = -1;
 extern int decision_fd = -1;
+extern int register_fd = -1;
 
 typedef struct{
     char *type;
@@ -875,6 +876,7 @@ typedef enum {
 }DNN_TYPE;
 
 typedef struct _MSG_PACKET{
+    int regist;
     int pid;
     int layers;
     DNN_TYPE type;
@@ -926,14 +928,13 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     
 
     // Register to LaLaRAND 
-    int register_fd;
-
     if( (register_fd = open("/tmp/lalarand_registration",O_WRONLY)) < 0){
         perror("Opening Registeration : ");
         exit(-1);
     }
     
     msg * dummy = (msg *)malloc(sizeof(msg));
+    dummy->regist = 1;
     dummy->pid = getpid();
     dummy->layers = net.n;
    
@@ -941,8 +942,9 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     if(strstr(filename, "extraction") != NULL) dummy->type = EXTRACTION;
     if(strstr(filename, "resnet") != NULL) dummy->type = RESNET;
     if(strstr(filename, "rnn") != NULL) dummy->type = RECURRENT;
-
-    if(write(register_fd, dummy, sizeof(dummy)) < 0){
+    
+    
+    if(write(register_fd, dummy, 4*sizeof(int)) < 0){
         perror("Registerating :  ");
         exit(-1);
     }
@@ -1058,6 +1060,7 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
         }else{
             fprintf(stderr, "Type not recognized: %s\n", s->type);
         }
+
         l.onlyforward = option_find_int_quiet(options, "onlyforward", 0);
         l.stopbackward = option_find_int_quiet(options, "stopbackward", 0);
         l.dontload = option_find_int_quiet(options, "dontload", 0);
@@ -1081,7 +1084,7 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     }
     free_list(sections);
     net.outputs = get_network_output_size(net);
-    net.output = get_network_output(net);
+    //net.output = get_network_output(net);
     fprintf(stderr, "Total BFLOPS %5.3f \n", bflops);
 #ifdef GPU
     get_cuda_stream();
@@ -1113,6 +1116,7 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
             net.workspace = (float*)calloc(1, workspace_size);
         }
     }
+    puts("2");
 #else
         if (workspace_size) {
             net.workspace = (float*)calloc(1, workspace_size);

@@ -3,7 +3,11 @@
 #include "blas.h"
 #include <stdio.h>
 
-extern int* test_extern_arr;
+#define GPU 1
+#define CPU 0
+
+extern int * history;
+
 
 route_layer make_route_layer(int batch, int n, int *input_layers, int *input_sizes)
 {
@@ -85,7 +89,7 @@ void forward_route_layer(const route_layer l, network_state state)
         float *input;
         int input_size = l.input_sizes[i];
 
-        if(test_extern_arr[index] == 0)
+        if(history[index] == CPU)
             input = state.net.layers[index].output;
         else{
             tmp = (float *)malloc(input_size * sizeof(float));
@@ -130,7 +134,7 @@ void forward_route_layer_gpu(const route_layer l, network_state state)
         float *input;
         int input_size = l.input_sizes[i];
 
-        if(test_extern_arr[index] == 0){
+        if(history[index] == CPU){
             cudaMalloc(&d_tmp, input_size* sizeof(float));
             cuda_push_array(d_tmp, state.net.layers[index].output, input_size);
             input = d_tmp;

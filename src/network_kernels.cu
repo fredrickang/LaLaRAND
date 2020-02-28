@@ -51,19 +51,9 @@
 float * get_network_output_gpu_layer(network net, int i);
 float * get_network_delta_gpu_layer(network net, int i);
 float * get_network_output_gpu(network net);
-void    enqueue(int* q, int val);
-int     dequeue(int* q);
-
-extern int* test_extern_arr;
-extern int identifier;
-extern int * queue;
-extern pthread_mutex_t *gpu_lock;
-extern pthread_mutex_t *request_lock;
-extern int N;
-extern int *shmem_request;
-extern int *shmem_resource;
 
 extern int request_fd, decision_fd;
+extern int * history = NULL;
 
 void forward_network_gpu(network net, network_state state)
 {
@@ -74,6 +64,12 @@ void forward_network_gpu(network net, network_state state)
     int before = 1;
     int resource ;
     double start;
+        
+    int size = get_network_input_size(net) * net.batch;
+
+    history = (int *)malloc(sizeof(int) * net.n);
+    memset(history, -1, sizeof(int) * net.n);
+
     for(i = 0; i < net.n; ++i){
         resource = -1;
 
@@ -91,13 +87,25 @@ void forward_network_gpu(network net, network_state state)
             perror("decision recv : ");
             exit(-1);
         } 
-         
+        
+        history[i] = resource; 
+
         if(l.delta_gpu && state.train){
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
         }   
         
         start = get_time_point();
-        // migration data transfer
+        
+        if( i == 0 ){
+            if(resource == GPU){
+                state.input = net.input_state_gpu;
+                cuda_push_array(state.input, net.input_pinned_cpu, size);
+            }
+            else{
+                state.input = net.input_pinned_cpu;
+            }
+        }
+
         if( i > 0 && before != resource ){
             layer tmp  = net.layers[i-1];
             if( resource == GPU ){
@@ -518,15 +526,11 @@ float *get_network_output_layer_gpu(network net, int i)
     double _time = get_time_point();
     layer l = net.layers[i];
     if(l.type != REGION){
-        //printf("l.type is %s\n",get_layer_string(l.type));
-        //printf("test_extern_arr : %d\n",test_extern_arr[i]);
-        if(test_extern_arr[i] == 1){//from gpu
-            //printf("pulled from gpu.\n");
+        if(history[i] == GPU){//from gpu
             cuda_pull_array(l.output_gpu, l.output, l.outputs*l.batch);
         }
     }
 
-    //printf("end of get_net_output, time is %8.5f millisec\n",((double)get_time_point() - _time)/1000);
     return l.output;
 }
 
@@ -534,15 +538,11 @@ float *get_network_output_gpu(network net)
 {
     int i;
     for(i = net.n-1; i > 0; --i) if(net.layers[i].type != COST) break;
-    //printf("target layer i is %d.\n",i);
     return get_network_output_layer_gpu(net, i);
 }
 
 float *network_predict_gpu(network net, float *input)
 {
-    int* res_arr;           // change the scope of memory according to resource allocation.
-    float* temp_ptr[net.n]; // temporary pointers for cudaMalloc or malloc memories.
-    double _time_cp;        // gpu_memcpy_timer.
     int i;
 
     double _time = get_time_point();
@@ -554,40 +554,12 @@ float *network_predict_gpu(network net, float *input)
     state.net = net;
     //state.input = cuda_make_array(input, size);   // memory will be allocated in the parse_network_cfg_custom() 
     
-    res_arr = test_extern_arr;
+    memcpy(net.input_pinned_cpu, input, size * sizeof(float));
 
-    if (res_arr[0] == CPU){//first network runs on cpu.
-        memcpy(net.input_pinned_cpu, input, size*sizeof(float));
-        state.input = net.input_pinned_cpu;
-    //      printf("this is input%d\n",*state.input);
-    }
-    else{//first network runs on gpu.
-        state.input = net.input_state_gpu;
-        _time_cp = get_time_point();//init timer.
-        memcpy(net.input_pinned_cpu, input, size * sizeof(float));
-        cuda_push_array(state.input, net.input_pinned_cpu, size);
-    }
     state.truth = 0;
     state.train = 0;
     state.delta = 0;
 
-    // //allocate unified cuda memories.
-    // //printf("start of unified memory reallocation\n");
-    // for(i = 0; i < net.n; ++i){
-    //     if((res_arr[i] != res_arr[i+1]) || (i==8) || (i==13) || (i==19)){//computation resource change || route layer target.
-    //         layer *lptr = &(net.layers[i]);
-    //         if(res_arr[i] == 0){//if prev resource was CPU
-    //             temp_ptr[i] = lptr->output;
-    //             lptr->output = cuda_make_array_global(lptr->output,lptr->batch * lptr->outputs);
-    //         }
-    //         else{//if prev resource was GPU
-    //             temp_ptr[i] = lptr->output_gpu;
-    //             lptr->output_gpu = cuda_make_array_global(lptr->output,lptr->batch * lptr->outputs);
-    //         }
-    //     }
-    // }
-    // //printf("end of unified memory reallocation\n");
-    // //!allocated.
 
     forward_network_gpu(net, state);
     float *out = get_network_output_gpu(net);
@@ -612,47 +584,4 @@ float *network_predict_gpu(network net, float *input)
 
     //cuda_free(state.input);   // will be freed in the free_network()
     return out;
-}
-
-
-////////////// GPU ACCESSING MANIGNING //////////////
-void swap(int *xp, int *yp)
-{
-    int temp = *xp;
-    *xp = *yp;
-    *yp = temp;
-}
-
-void bubbleSort(int arr[], int n)
-{
-   int i, j;
-   for (i = 0; i < n-1; i++)      
- 
-       // Last i elements are already in place   
-       for (j = 0; j < n-i-1; j++) 
-           if (arr[j] < arr[j+1])
-              swap(&arr[j], &arr[j+1]);
-}
-
-void enqueue(int* q, int val)
-{
-  for (int i=0; i<N; i++){
-	if (q[i] == 0){
-	q[i] = val;
-	break;
-	}
-  }  
-}
-
-int dequeue(int* q)
-{
-	/* sort */
-	bubbleSort(q, N);	
-
-	int tmp =  q[0];
-	for (int i=0; q[i]>0; i++){		
-	q[i] = q[i+1];
-	}
-
-	return tmp;
 }

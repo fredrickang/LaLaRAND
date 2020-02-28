@@ -23,9 +23,6 @@ typedef __compar_fn_t comparison_fn_t;
 int check_mistakes = 0;
 
 static int coco_ids[] = { 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,27,28,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,67,70,72,73,74,75,76,77,78,79,80,81,82,84,85,86,87,88,89,90 };
-extern int *test_extern_arr;
-extern int identifier;
-extern int * shmem_pid;
 extern struct timespec *shmem_timer;
 
 void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int dont_show, int calc_map, int mjpeg_port, int show_imgs)
@@ -1494,17 +1491,6 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     float hier_thresh, int dont_show, int ext_output, int save_labels, char *outfile, int letter_box, int quantized, float ms_period)
 {
 
-    int iter;
-    double time; 
-    double time_pre;
-    double time_pre_end;
-    double time_predict;
-    double time_predict_end;
-    double time_post;
-    double time_post_end;
-    double time_pre_arr[100];
-    double time_predict_arr[100];
-    double time_post_arr[100];
 
     list *options = read_data_cfg(datacfg);
     char *name_list = option_find_str(options, "names", "data/names.list");
@@ -1534,13 +1520,6 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     }
     
     srand(2222222);
-    
-    if (quantized) {
-        time = get_time_point();
-        printf("\n\n Quantinization! \n\n");
-        quantinization_and_get_multipliers(net);
-        printf(" Quantization: %8.5f\n\n", ((double)get_time_point() - time)/ 1000);
-    }
 
     char buff[256];
     char *input = buff;
@@ -1566,7 +1545,6 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         //t_period = get_time_point();
         ///// IMAGE PREPROCESSING /////
         printf("=====================JOB %d=====================\n",k);
-        time_pre = get_time_point();
         input = paths[k];
         image im = load_image(input, 0, 0, net.c);
         image sized;
@@ -1575,16 +1553,12 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         layer l = net.layers[net.n - 1];
 
         float *X = sized.data;
-        time_pre_end = get_time_point();
         ///// IMAGE PREPROCESSING /////
 
-        time_predict = get_time_point();
         network_predict(net, X);
-        time_predict_end = get_time_point();
 
 
         ///// IMAGE POSTPROCESSING /////
-        time_post = get_time_point();
         /*
         int nboxes = 0;
         detection *dets = get_network_boxes(&net, im.w, im.h, thresh, hier_thresh, 0, 1, &nboxes, letter_box);
@@ -1645,8 +1619,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
             destroy_all_windows_cv();
         }
         */
-        time_post_end = get_time_point();
-        printf("PRE : %8.5f, PREDICT :%8.5f, POST :%8.5f, TOTAL :%8.5f\n",
+        /*printf("PRE : %8.5f, PREDICT :%8.5f, POST :%8.5f, TOTAL :%8.5f\n",
                 k,
                 time_pre_arr[k] = (time_pre_end-time_pre)/1000,
                 time_predict_arr[k] = (time_predict_end-time_predict)/1000,
@@ -1654,7 +1627,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
                 (time_post_end - time_pre)/1000);
         //t_period_end = get_time_point();
         //printf("period == %8.5f\n",t_period_end - t_period);
-
+        */
     }
 
 
