@@ -52,7 +52,7 @@ float * get_network_output_gpu_layer(network net, int i);
 float * get_network_delta_gpu_layer(network net, int i);
 float * get_network_output_gpu(network net);
 
-extern int request_fd, decision_fd;
+extern int request_fd, decision_fd, lalarand_pid;
 extern int * history = NULL;
 
 void forward_network_gpu(network net, network_state state)
@@ -82,6 +82,8 @@ void forward_network_gpu(network net, network_state state)
             exit(-1);
         }
         
+        kill(lalarand_pid, SIGCONT);
+       
         // wait for decision 
         if( read(decision_fd, &resource, sizeof(int)) == -1){
             perror("decision recv : ");
@@ -144,6 +146,7 @@ void forward_network_gpu(network net, network_state state)
         perror("Request :");
         exit(-1);
     }
+    kill(lalarand_pid, SIGCONT);
 
 }
 

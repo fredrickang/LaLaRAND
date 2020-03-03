@@ -146,7 +146,7 @@ int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double
         node = find_dnn_by_id(dnn_list, tmp-> id);
         deadline = node->deadline;
         slack = deadline - current_time - workload_left(profile_list[node->type], tmp->layer, node->layers);
-        printf("Slack  : [ID] %d [slack] %f\n", tmp->id, slack);
+        printf("Slack   : [ID] %d [slack] %f\n", tmp->id, slack);
         if(slack < smallest){
             smallest = slack;
             target_id = tmp -> id;
@@ -284,7 +284,7 @@ dnn_profile ** make_profile_list(){
 
 void check_registration(dnn_queue * dnn_list, int reg_fd){
     reg_msg * msg = (reg_msg *)malloc(sizeof(reg_msg));
-    
+        
     while( read(reg_fd, msg, 4*sizeof(int)) > 0){
         if(msg -> regist == 1) regist(dnn_list, msg); 
         else de_regist(dnn_list, msg);
@@ -315,7 +315,10 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
 
     dnn -> request_fd = open_channel(req_fd_name, O_RDONLY);
     dnn -> decision_fd = open_channel(dec_fd_name, O_WRONLY);
+    
+    int pid = getpid();
 
+    write(dnn -> decision_fd, &pid, sizeof(int));
     dnn -> next = NULL;
 
     enDNNQueue(dnn_list, dnn);
@@ -331,9 +334,10 @@ void de_regist(dnn_queue * dnn_list, reg_msg * msg){
     pid = target -> pid;
     deleteDNN(dnn_list, target);
     
+    printf("%d\n", dnn_list -> count);
 }
 
-int check_request(dnn_queue * dnn_list, fd_set* readfds){
+int check_request(dnn_queue * dnn_list, fd_set* readfds, int sync){
     int rev = 0;
     struct timeval zero = {0, 0};
     if(dnn_list -> count > 0){
@@ -344,9 +348,8 @@ int check_request(dnn_queue * dnn_list, fd_set* readfds){
             FD_SET(node -> request_fd, readfds);
             node = node -> next;
         }
-        
         rev = select(dnn_list -> head -> request_fd +1, readfds, NULL, NULL, &zero);
-        //if(rev) printf("[check_request] : %d\n",rev);
+        if( rev == 0 ) kill(getpid(),SIGSTOP);
     }
     return rev;
 }

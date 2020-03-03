@@ -14,6 +14,7 @@
 #include <time.h>
 #include <chrono>
 #include <float.h>
+#include <signal.h>
 
 #include "lalarand.h"
 #include "lalarand_fn.h"
@@ -29,7 +30,7 @@ int main(int argc, char **argv){
     // cpu affininty setting 
     cpu_set_t mask;
     CPU_ZERO(&mask);
-    CPU_SET(1, &mask);
+    CPU_SET(0, &mask);
     sched_setaffinity(0, sizeof(mask), &mask);
     
     dnn_profile ** profile_list = make_profile_list();
@@ -53,7 +54,7 @@ int main(int argc, char **argv){
     
         check_registration(dnn_list, reg_fd);
         
-        if(check_request(dnn_list, &readfds))
+        if(check_request(dnn_list, &readfds, Sync))
             for(node = dnn_list -> head; node != NULL; node = node -> next)
                 if(FD_ISSET(node -> request_fd, &readfds))
                     request_handler(node, gpu, cpu, profile_list[node->type], current_time);       
@@ -72,7 +73,8 @@ int main(int argc, char **argv){
             if(cpu_target != -1) decision_handler(cpu_target, dnn_list, CPU);
             
             Sync = 0;
+            
+           
         }
-       
     }while(!(Sync == 0 && dnn_list -> count == 0));
 }
