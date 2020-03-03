@@ -334,13 +334,14 @@ void de_regist(dnn_queue * dnn_list, reg_msg * msg){
     pid = target -> pid;
     deleteDNN(dnn_list, target);
     
-    printf("%d\n", dnn_list -> count);
 }
 
 int check_request(dnn_queue * dnn_list, fd_set* readfds, int sync){
     int rev = 0;
     struct timeval zero = {0, 0};
-    if(dnn_list -> count > 0){
+    sigset_t set;
+    int signum;
+    if(dnn_list -> count >= sync && dnn_list -> count != 0){
         FD_ZERO(readfds);
     
         dnn_info * node = dnn_list -> head;
@@ -348,8 +349,12 @@ int check_request(dnn_queue * dnn_list, fd_set* readfds, int sync){
             FD_SET(node -> request_fd, readfds);
             node = node -> next;
         }
+
         rev = select(dnn_list -> head -> request_fd +1, readfds, NULL, NULL, &zero);
-        if( rev == 0 ) kill(getpid(),SIGSTOP);
+        sigemptyset(&set);
+        sigaddset(&set, SIGCONT);
+        sigprocmask(SIG_SETMASK, &set, NULL);
+        if( rev == 0 ) sigwait(&set, &signum);
     }
     return rev;
 }

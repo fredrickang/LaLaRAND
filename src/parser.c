@@ -950,7 +950,7 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
         perror("Registerating :  ");
         exit(-1);
     }
-
+    
     char request[30];
     char decision[30];
     
