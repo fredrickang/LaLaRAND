@@ -34,7 +34,7 @@ int main(int argc, char **argv){
     sched_setaffinity(0, sizeof(mask), &mask);
     
     dnn_profile ** profile_list = make_profile_list();
-
+    //profile_list[0]-> cfg[0] = 0;
     dnn_queue * dnn_list = createDNNQueue();
 
     resource * gpu = createResource();
