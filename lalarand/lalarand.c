@@ -40,7 +40,7 @@ int main(int argc, char **argv){
     resource * gpu = createResource();
     resource * cpu = createResource();
 
-    int reg_fd = open_channel(REGISTRATION, O_RDONLY);
+    int reg_fd = open_channel(REGISTRATION, O_RDONLY | O_NONBLOCK);
     
     double current_time;
     int gpu_target, cpu_target;
@@ -49,10 +49,11 @@ int main(int argc, char **argv){
     dnn_info *node;
     
     do{
-        current_time = get_time_point();
-
+        gpu_target = -1;
+        cpu_target = -1;
         fd_head = make_fdset(&readfds, reg_fd, dnn_list);
-        if(select(fd_head +1, readfds, NULL, NULL, NULL)){
+        if(select(fd_head +1, &readfds, NULL, NULL, NULL)){
+            current_time = get_time_point();
             // 1st registration check
             if(FD_ISSET(reg_fd, &readfds)) check_registration(dnn_list, reg_fd);
             
@@ -75,10 +76,7 @@ int main(int argc, char **argv){
                 if(cpu_target != -1) decision_handler(cpu_target, dnn_list, CPU);
             
                 Sync = 0;
-            
-           
             }
         }
-    }while(!(Sync == 0 && dnn_list -> count == 0)) 
-
-   
+    }while(!(Sync == 0 && dnn_list -> count == 0)); 
+}   

@@ -1189,7 +1189,6 @@ void free_network(network net)
     de_reg -> pid = getpid();
 
     write(register_fd, de_reg, sizeof(int) * 2);
-    kill(lalarand_pid, SIGCONT);
 #ifdef GPU
     if (gpu_index >= 0){
         cuda_free(net.workspace);

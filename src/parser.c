@@ -960,8 +960,6 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     while( (request_fd = open(request, O_WRONLY)) < 0);
     while( (decision_fd = open(decision, O_RDONLY)) < 0);
     
-    read(decision_fd, &lalarand_pid, sizeof(int));
-
     fprintf(stderr, "   layer   filters  size/strd(dil)      input                output\n");
     while(n){
         params.index = count;

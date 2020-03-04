@@ -82,8 +82,6 @@ void forward_network_gpu(network net, network_state state)
             exit(-1);
         }
         
-        kill(lalarand_pid, SIGCONT);
-       
         // wait for decision 
         if( read(decision_fd, &resource, sizeof(int)) == -1){
             perror("decision recv : ");

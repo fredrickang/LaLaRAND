@@ -316,9 +316,6 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
     dnn -> request_fd = open_channel(req_fd_name, O_RDONLY);
     dnn -> decision_fd = open_channel(dec_fd_name, O_WRONLY);
     
-    int pid = getpid();
-
-    write(dnn -> decision_fd, &pid, sizeof(int));
     dnn -> next = NULL;
 
     enDNNQueue(dnn_list, dnn);
