@@ -507,6 +507,25 @@ void close_channels(dnn_info ** dnn_list, int dnns){
     }
 }
 
+int make_fdset(fd_set *readfds,int reg_fd, dnn_queue * dnn_list){
+    // initialize fd_set;
+    FD_ZERO(readfds);
+
+    // set register_fd
+    FD_SET(reg_fd, readfds);
+        
+    // if there exist registered dnn, set
+    if(dnn_list -> count > 0){
+        dnn_info * node = dnn_list -> head;
+        while(node != NULL){
+            FD_SET(node -> request_fd, readfds);
+            node = node -> next;
+        }
+        return dnn_list -> head ->request_fd;
+    }
+    return reg_fd;
+}
+
 
 
 

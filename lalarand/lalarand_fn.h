@@ -38,6 +38,7 @@ void update_deadline(dnn_info * dnn, double current_time);
 void update_deadline_all(dnn_queue * dnn_list, double current_time);
 char* get_dnn_name(DNN_TYPE type);
 double workload_left(dnn_profile * profile, int current_layer, int layer_num);
+int make_fdset(fd_set *readfds,int reg_fd, dnn_queue * dnn_list);
 
 int open_channel(char * pipe_name,int mode);
 void close_channel(char * pipe_name);

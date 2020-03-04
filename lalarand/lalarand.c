@@ -40,41 +40,45 @@ int main(int argc, char **argv){
     resource * gpu = createResource();
     resource * cpu = createResource();
 
-    int reg_fd = open_channel(REGISTRATION, O_RDONLY | O_NONBLOCK);
+    int reg_fd = open_channel(REGISTRATION, O_RDONLY);
     
     double current_time;
     int gpu_target, cpu_target;
-    dnn_info * node;
-    fd_set readfds; 
+    int fd_head;
+    fd_set readfds;
+    dnn_info *node;
     
     do{
-        gpu_target =  -1;
-        cpu_target =  -1;
         current_time = get_time_point();
-    
-        check_registration(dnn_list, reg_fd);
-        
-        if(check_request(dnn_list, &readfds, Sync))
-            for(node = dnn_list -> head; node != NULL; node = node -> next)
-                if(FD_ISSET(node -> request_fd, &readfds))
-                    request_handler(node, gpu, cpu, profile_list[node->type], current_time);       
-        
-        if(!(gpu->waiting->count + cpu->waiting->count < Sync)){
+
+        fd_head = make_fdset(&readfds, reg_fd, dnn_list);
+        if(select(fd_head +1, readfds, NULL, NULL, NULL)){
+            // 1st registration check
+            if(FD_ISSET(reg_fd, &readfds)) check_registration(dnn_list, reg_fd);
             
-            if(Sync) update_deadline_all(dnn_list, current_time);
+            // 2nd request check 
+            for(node = dnn_list ->head; node !=NULL; node = node -> next) 
+                if(FD_ISSET(node->request_fd, &readfds))
+                    request_handler(node, gpu, cpu, profile_list[node->type], current_time);
 
-            if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);
-            if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, cpu);
-
-            if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, gpu);
-            if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, cpu);
-
-            if(gpu_target != -1) decision_handler(gpu_target, dnn_list, GPU);
-            if(cpu_target != -1) decision_handler(cpu_target, dnn_list, CPU);
+            if(!(gpu->waiting->count + cpu->waiting->count < Sync)){
             
-            Sync = 0;
+                if(Sync) update_deadline_all(dnn_list, current_time);
+
+                if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);
+                if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, cpu);
+
+                if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, gpu);
+                if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, cpu);
+
+                if(gpu_target != -1) decision_handler(gpu_target, dnn_list, GPU);
+                if(cpu_target != -1) decision_handler(cpu_target, dnn_list, CPU);
+            
+                Sync = 0;
             
            
+            }
         }
-    }while(!(Sync == 0 && dnn_list -> count == 0));
-}
+    }while(!(Sync == 0 && dnn_list -> count == 0)) 
+
+   
