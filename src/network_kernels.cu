@@ -71,6 +71,8 @@ void forward_network_gpu(network net, network_state state)
     memset(history, -1, sizeof(int) * net.n);
 
     for(i = 0; i < net.n; ++i){
+        setpriority(PRIO_PROCESS, getpid(), -20);
+        
         resource = -1;
 
         state.index = i;
@@ -88,6 +90,8 @@ void forward_network_gpu(network net, network_state state)
             exit(-1);
         } 
         
+        if(resource == CPU) setpriority(PRIO_PROCESS, getpid(), -10);
+
         history[i] = resource; 
 
         if(l.delta_gpu && state.train){
@@ -122,6 +126,7 @@ void forward_network_gpu(network net, network_state state)
         // inference
         if (resource == CPU) l.forward(l,state);   
         else if(resource == GPU){
+
             l.forward_gpu(l, state);
             CHECK_CUDA(cudaDeviceSynchronize());
         }
@@ -130,10 +135,10 @@ void forward_network_gpu(network net, network_state state)
             exit(-1);
         }
         
-        printf("[%d] Layer %d Resource %d  Execution %8.5f\n",getpid(), i, resource,((double)get_time_point() -  start)/1000);
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
-        
+         printf("[%d] Layer %d Resource %d  Execution %8.5f\n",getpid(), i, resource,((double)get_time_point() -  start)/1000);
+       
        //
         state.input = resource ? l.output_gpu : l.output; 
         before = resource;

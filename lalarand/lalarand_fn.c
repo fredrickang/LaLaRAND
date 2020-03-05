@@ -299,7 +299,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
     dnn -> pid = msg -> pid;
     dnn -> layers = msg -> layers;
     dnn -> type = msg -> type;
-    dnn -> period = 220;
+    dnn -> period = 500;
     
     printf("======== REGISTRATION ========\n");
     printf("[ID]     %3d\n", dnn-> id);

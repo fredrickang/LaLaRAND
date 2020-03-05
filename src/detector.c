@@ -1541,7 +1541,28 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
 
     int m = plist->size;
     
-    for (k =0; k< 1; k++){
+    puts("Initialize");
+    for(k = 0; k< 10; k++){
+        input = paths[k];
+        image im =load_image(input, 0, 0, net.c);
+        image sized;
+        if(letter_box) sized = letterbox_image(im, net.w, net.h);
+        else sized = resize_image(im, net.w, net.h);
+
+        layer l = net.layers[net.n -1];
+
+        float *X = sized.data;
+        network_predict_cpu(net, X);
+    }
+
+
+    struct timespec period, release_time;
+    int err;
+    
+    period.tv_sec = 0;
+    period.tv_nsec = ms_period*1000000;
+    clock_gettime(CLOCK_MONOTONIC, &release_time);
+    for (k =0; k< 10; k++){
         //t_period = get_time_point();
         ///// IMAGE PREPROCESSING /////
         printf("=====================JOB %d=====================\n",k);
@@ -1553,8 +1574,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         layer l = net.layers[net.n - 1];
 
         float *X = sized.data;
-        ///// IMAGE PREPROCESSING /////
-
+        ///// IMAGE PREPROCESSING ////
         network_predict(net, X);
 
 
@@ -1628,6 +1648,8 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         //t_period_end = get_time_point();
         //printf("period == %8.5f\n",t_period_end - t_period);
         */
+        timespec_add(&release_time, &period);
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
 
 

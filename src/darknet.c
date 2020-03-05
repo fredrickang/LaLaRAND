@@ -781,7 +781,6 @@ int main(int argc, char **argv)
         sched_setaffinity(0,sizeof(mask), &mask);
 
         //set CPU execution priority.
-        setpriority(PRIO_PROCESS, getpid(), -10-identifier);
         char * mytask = tpaths[identifier];
         
         //allocate resource configuration of each process.

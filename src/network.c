@@ -49,7 +49,7 @@
 
 extern int register_fd;
 extern int lalarand_pid;
-
+extern int * history;
 int max_abs(int src, int max_val)
 {
     if (abs(src) > abs(max_val)) src = (src > 0) ? max_val : -max_val;
@@ -424,6 +424,8 @@ void forward_network(network net, network_state state)
     state.workspace = net.workspace;
     state.workspace_cpu = net.workspace_cpu;
     int i;
+    history = (int *)malloc(sizeof(int) * net.n);
+    memset(history, 0, sizeof(int) *net.n);
     for(i = 0; i < net.n; ++i){
         state.index = i;
         layer l = net.layers[i];
@@ -855,6 +857,17 @@ float *network_predict(network net, float *input)
     forward_network(net, state);
     float *out = get_network_output(net);
     return out;
+}
+
+void network_predict_cpu(network net, float *input){
+    network_state state;
+    state.net = net;
+    state.index = 0 ;
+    state.input = input;
+    state.truth = 0;
+    state.train = 0;
+    state.delta = 0;
+    forward_network(net,state);
 }
 
 int num_detections(network *net, float thresh)

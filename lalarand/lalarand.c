@@ -15,6 +15,8 @@
 #include <chrono>
 #include <float.h>
 #include <signal.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #include "lalarand.h"
 #include "lalarand_fn.h"
@@ -27,6 +29,7 @@
 int main(int argc, char **argv){
     int Sync = find_int_arg(argc, argv, "-sync", 1);
     
+    setpriority(PRIO_PROCESS, getpid(), -20);
     // cpu affininty setting 
     cpu_set_t mask;
     CPU_ZERO(&mask);
