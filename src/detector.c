@@ -1562,7 +1562,8 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     period.tv_sec = 0;
     period.tv_nsec = ms_period*1000000;
     clock_gettime(CLOCK_MONOTONIC, &release_time);
-    for (k =0; k< 10; k++){
+    
+    for (k =0; k< 5; k++){
         //t_period = get_time_point();
         ///// IMAGE PREPROCESSING /////
         printf("=====================JOB %d=====================\n",k);

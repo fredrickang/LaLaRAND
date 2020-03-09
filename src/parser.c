@@ -43,6 +43,7 @@
 #include "version.h"
 #include "yolo_layer.h"
 
+extern int period;
 extern int request_fd = -1;
 extern int decision_fd = -1;
 extern int register_fd = -1;
@@ -882,6 +883,7 @@ typedef struct _MSG_PACKET{
     int pid;
     int layers;
     DNN_TYPE type;
+    int period;
 }msg;
 
 network parse_network_cfg_custom(char *filename, int batch, int time_steps)
@@ -939,14 +941,15 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     dummy->regist = 1;
     dummy->pid = getpid();
     dummy->layers = net.n;
-   
+    dummy->period = period;
+
     if(strstr(filename, "yolo") != NULL) dummy->type = YOLOt;
     if(strstr(filename, "extraction") != NULL) dummy->type = EXTRACTION;
     if(strstr(filename, "resnet") != NULL) dummy->type = RESNET;
     if(strstr(filename, "rnn") != NULL) dummy->type = RECURRENT;
     
     
-    if(write(register_fd, dummy, 4*sizeof(int)) < 0){
+    if(write(register_fd, dummy, 5*sizeof(int)) < 0){
         perror("Registerating :  ");
         exit(-1);
     }
@@ -1118,7 +1121,6 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
             net.workspace = (float*)calloc(1, workspace_size);
         }
     }
-    puts("2");
 #else
         if (workspace_size) {
             net.workspace = (float*)calloc(1, workspace_size);

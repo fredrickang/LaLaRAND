@@ -50,6 +50,7 @@ typedef struct _MSG_PACKET{
     int pid;
     int layers;
     DNN_TYPE type;
+    int period;
 }reg_msg;
 
 typedef struct _RESOURCE{

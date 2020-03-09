@@ -65,6 +65,7 @@ extern struct timespec *shmem_timer = NULL;
 extern int *shmem_request = NULL;
 extern int *shmem_resource = NULL;
 
+extern int period = -1;
 //DetectorParameter structure for multi-threading.
 DetectorParams *_g_detector_params;
 //!end of DetectorParameter structure init.
@@ -794,7 +795,7 @@ int main(int argc, char **argv)
         ///// weight cfg
         printf("[%d], weight path %s\n",identifier, argv[5]);
         //redirect stdout & stderr to certain file.
-        
+        period =atoi(argv[6]);
         int log = find_arg(argc, argv, "-log");
 
         if (log){

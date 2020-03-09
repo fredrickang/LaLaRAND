@@ -285,7 +285,7 @@ dnn_profile ** make_profile_list(){
 void check_registration(dnn_queue * dnn_list, int reg_fd){
     reg_msg * msg = (reg_msg *)malloc(sizeof(reg_msg));
         
-    while( read(reg_fd, msg, 4*sizeof(int)) > 0){
+    while( read(reg_fd, msg, 5*sizeof(int)) > 0){
         if(msg -> regist == 1) regist(dnn_list, msg); 
         else de_regist(dnn_list, msg);
     }
@@ -299,7 +299,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
     dnn -> pid = msg -> pid;
     dnn -> layers = msg -> layers;
     dnn -> type = msg -> type;
-    dnn -> period = 500;
+    dnn -> period = msg -> period;
     
     printf("======== REGISTRATION ========\n");
     printf("[ID]     %3d\n", dnn-> id);

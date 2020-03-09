@@ -69,10 +69,11 @@ void forward_network_gpu(network net, network_state state)
 
     history = (int *)malloc(sizeof(int) * net.n);
     memset(history, -1, sizeof(int) * net.n);
-
+    
+    int rev;
     for(i = 0; i < net.n; ++i){
-        setpriority(PRIO_PROCESS, getpid(), -20);
-        
+        rev = setpriority(PRIO_PROCESS, 0, -19);
+        sched_yield();
         resource = -1;
 
         state.index = i;
@@ -90,10 +91,17 @@ void forward_network_gpu(network net, network_state state)
             exit(-1);
         } 
         
-        if(resource == CPU) setpriority(PRIO_PROCESS, getpid(), -10);
-
+        if(resource == CPU) {
+            setpriority(PRIO_PROCESS, 0, -10);
+            sched_yield();
+        }
         history[i] = resource; 
+        
+        struct timespec tim, tim2;
+        tim.tv_sec = 0;
+        tim.tv_nsec = 500000;
 
+        //nanosleep(&tim, &tim2);
         if(l.delta_gpu && state.train){
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
         }   
@@ -101,14 +109,12 @@ void forward_network_gpu(network net, network_state state)
         start = get_time_point();
         
         if( i == 0 ){
-            if(resource == GPU){
-                state.input = net.input_state_gpu;
-                cuda_push_array(state.input, net.input_pinned_cpu, size);
-            }
-            else{
-                state.input = net.input_pinned_cpu;
-            }
+            if(resource == GPU) state.input = net.input_state_gpu;
+            else state.input = net.input_pinned_cpu;
         }
+
+        tim.tv_nsec = 100000;
+        //nanosleep(&tim, &tim2);
 
         if( i > 0 && before != resource ){
             layer tmp  = net.layers[i-1];
@@ -149,7 +155,6 @@ void forward_network_gpu(network net, network_state state)
         perror("Request :");
         exit(-1);
     }
-    kill(lalarand_pid, SIGCONT);
 
 }
 
@@ -167,6 +172,7 @@ void backward_network_gpu(network net, network_state state)
         if(i == 0){
             state.input = original_input;
             state.delta = original_delta;
+
         }else{
             layer prev = net.layers[i-1];
             state.input = prev.output_gpu;
@@ -310,6 +316,7 @@ void pull_updates(layer l)
         cuda_pull_array(l.bias_updates_gpu, l.bias_updates, l.outputs);
         cuda_pull_array(l.weight_updates_gpu, l.weight_updates, l.outputs*l.inputs);
     }
+
 }
 
 void push_updates(layer l)
@@ -371,6 +378,7 @@ void pull_weights(layer l)
         if(l.scales) cuda_pull_array(l.scales_gpu, l.scales, l.n);
     } else if(l.type == CONNECTED){
         cuda_pull_array(l.biases_gpu, l.biases, l.outputs);
+
         cuda_pull_array(l.weights_gpu, l.weights, l.outputs*l.inputs);
     }
 }
@@ -382,6 +390,7 @@ void push_weights(layer l)
         cuda_push_array(l.weights_gpu, l.weights, l.nweights);
         if(l.scales) cuda_push_array(l.scales_gpu, l.scales, l.n);
     } else if(l.type == CONNECTED){
+
         cuda_push_array(l.biases_gpu, l.biases, l.outputs);
         cuda_push_array(l.weights_gpu, l.weights, l.outputs*l.inputs);
     }
@@ -561,7 +570,8 @@ float *network_predict_gpu(network net, float *input)
     //state.input = cuda_make_array(input, size);   // memory will be allocated in the parse_network_cfg_custom() 
     
     memcpy(net.input_pinned_cpu, input, size * sizeof(float));
-
+    cuda_push_array(net.input_state_gpu, net.input_pinned_cpu, size );
+    
     state.truth = 0;
     state.train = 0;
     state.delta = 0;
@@ -590,4 +600,6 @@ float *network_predict_gpu(network net, float *input)
 
     //cuda_free(state.input);   // will be freed in the free_network()
     return out;
+
+
 }

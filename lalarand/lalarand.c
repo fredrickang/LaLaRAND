@@ -29,7 +29,7 @@
 int main(int argc, char **argv){
     int Sync = find_int_arg(argc, argv, "-sync", 1);
     
-    setpriority(PRIO_PROCESS, getpid(), -20);
+    setpriority(PRIO_PROCESS, 0, -20);
     // cpu affininty setting 
     cpu_set_t mask;
     CPU_ZERO(&mask);
@@ -37,7 +37,7 @@ int main(int argc, char **argv){
     sched_setaffinity(0, sizeof(mask), &mask);
     
     dnn_profile ** profile_list = make_profile_list();
-    //profile_list[0]-> cfg[0] = 0;
+//    for(int i= 0; i< 24; i++) profile_list[0]-> cfg[i] = 0;
     dnn_queue * dnn_list = createDNNQueue();
 
     resource * gpu = createResource();
