@@ -8,7 +8,7 @@ void enDNNQueue(dnn_queue * dnn_list, dnn_info* dnn);
 void deleteDNN(dnn_queue * dnn_list, dnn_info* dnn);
 
 ///// resource /////
-resource * createResource();
+resource * createResource(int res_id);
 
 //// waiting queue ////
 QNode* newNode (int layer, int id);
@@ -26,7 +26,7 @@ double get_time_point();
 
 //// LaLaRAND ////
 void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg);
-dnn_profile ** make_profile_list();
+dnn_profile ** make_profile_list(int mode);
 void check_registration(dnn_queue * dnn_list, int reg_fd);
 void regist(dnn_queue * dnn_list, reg_msg * msg);
 void de_regist(dnn_queue * dnn_list, reg_msg *msg);
@@ -39,6 +39,7 @@ void update_deadline_all(dnn_queue * dnn_list, double current_time);
 char* get_dnn_name(DNN_TYPE type);
 double workload_left(dnn_profile * profile, int current_layer, int layer_num);
 int make_fdset(fd_set *readfds,int reg_fd, dnn_queue * dnn_list);
+double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res, int target_id);
 
 int open_channel(char * pipe_name,int mode);
 void close_channel(char * pipe_name);

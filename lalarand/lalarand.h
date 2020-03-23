@@ -54,9 +54,12 @@ typedef struct _MSG_PACKET{
 }reg_msg;
 
 typedef struct _RESOURCE{
+    int res_id;
     STATE state;
     Queue * waiting;
     int id;
+    int layer;
+    double scheduled;
 }resource;
 
 #endif

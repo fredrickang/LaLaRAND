@@ -28,6 +28,11 @@
 
 int main(int argc, char **argv){
     int Sync = find_int_arg(argc, argv, "-sync", 1);
+    int mode = find_int_arg(argc, argv, "-mode", 4); // mode 1: ALL GPU // mode 2: preferable // mode 3: Static //mode 4: LaLaRAND
+
+
+
+
     struct sched_param high;
     memset( &high, 0, sizeof(high));
     high.sched_priority = 20;
@@ -38,12 +43,13 @@ int main(int argc, char **argv){
     CPU_SET(0, &mask);
     sched_setaffinity(0, sizeof(mask), &mask);
     
-    dnn_profile ** profile_list = make_profile_list();
+    dnn_profile ** profile_list = make_profile_list(mode);
+
 //    for(int i= 0; i< 24; i++) profile_list[0]-> cfg[i] = 0;
     dnn_queue * dnn_list = createDNNQueue();
 
-    resource * gpu = createResource();
-    resource * cpu = createResource();
+    resource * gpu = createResource(GPU);
+    resource * cpu = createResource(CPU);
 
     int reg_fd = open_channel(REGISTRATION, O_RDONLY | O_NONBLOCK);
     
@@ -73,9 +79,11 @@ int main(int argc, char **argv){
 
                 if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);
                 if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, cpu);
-
-                if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, gpu);
-                if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, cpu);
+                
+                if (mode == 4){ /* only in LaLaRAND */
+                    if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, gpu);
+                    if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, cpu);
+                }
                 
                 if(gpu_target != -1) decision_handler(gpu_target, dnn_list, GPU);
                 printf("gpu: %8.5f\n",get_time_point());

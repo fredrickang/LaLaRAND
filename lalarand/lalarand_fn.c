@@ -64,10 +64,13 @@ void enDNNQueue(dnn_queue * dnn_list, dnn_info * dnn){
 
 ///// resource /////
 
-resource * createResource(){
+resource * createResource(int res_id){
     resource * tmp = (resource *)malloc(sizeof(resource));
     tmp -> state = IDLE;
     tmp -> id = -1;
+    tmp -> res_id = res_id;
+    tmp -> layer = -1;
+    tmp -> scheduled = -1;
     tmp -> waiting = createQueue();
     return tmp;
 }
@@ -171,6 +174,8 @@ int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double
     
     res -> state = BUSY;
     res -> id  = target_id;  
+    res -> layer = target_layer;
+    res -> scheduled = current_time;
     
     q -> count --;
     return target_id;
@@ -247,8 +252,9 @@ void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg){
     memcpy(tmp->cfg , cfg, sizeof(int) * layers);
 }
 
-dnn_profile ** make_profile_list(){
-    
+dnn_profile ** make_profile_list(int mode){
+    // mode 1: ALL GPU // mode 2: preferable // mode 3: Static //mode 4: LaLaRAND
+
     dnn_profile ** profile_list = (dnn_profile **)malloc(sizeof(dnn_profile *)*4);
 
     for(int i =0; i < 4; i++)
@@ -273,6 +279,25 @@ dnn_profile ** make_profile_list(){
     int rnn_gpu[6] = {208, 223, 216, 53, 51, 2};
     int rnn_cpu[6] = {279, 334, 336, 30, 7, 1};
     int rnn_cfg[6] = {1,1,1,0,0,0};
+
+    if (mode == 1){
+        memset(yolo_cfg,1,sizeof(int)*24)
+        memset(extraction_cfg,1, sizeof(int)*28)
+        memset(resnet_cfg,1, sizeof(int)*29)
+        memset(rnn_cfg,1, sizeof(int)*6)
+    }
+    if (mode == 3){
+        memset(yolo_cfg, 0, sizeof(int)*24)
+        memset(extraction_cfg, 0, sizeof(int)*28)
+        memset(resnet_cfg, 0, sizeof(int)*29)
+        memset(rnn_cfg, 0, sizeof(int)*6)
+
+        memset(yolo_cfg, 1, sizeof(int)*12)
+        memset(extraction_cfg, 1, sizeof(int)*14)
+        memset(resnet_cfg, 1, sizeof(int)*14)
+        memset(rnn_cfg, 1, sizeof(int)*3)
+    }
+
     
     make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg);
     make_profile(profile_list[EXTRACTION], 28, extraction_gpu, extraction_cpu, extraction_cfg);
@@ -369,11 +394,15 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
     if( gpu -> state == BUSY && gpu -> id == node->id){
         gpu -> state = IDLE;
         gpu -> id = -1;
+        gpu -> layer = -1;
+        gpu -> scheduled = -1;
       }
 
     if( cpu -> state == BUSY && cpu -> id == node->id){
         cpu -> state = IDLE;
         cpu -> id = -1;
+        cpu -> layer  = -1;
+        cpu -> scheduled = -1;
       }
 
      if(request_layer != node -> layers){
@@ -420,30 +449,34 @@ double workload_left(dnn_profile * profile, int current_layer, int layer_num){
     return micro_workload;
 }
 
-int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res){
+int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * From, resource * To){
     if(q->count == 0)
         return -1;
-    double slack;
-    double updated_slack;
+    double slack, future_wait;
     dnn_info * node;
     int target_id = -1;
     int target_layer = -1;
     double smallest = DBL_MAX;
+
     for(QNode * tmp = q->front; tmp != NULL; tmp = tmp -> next){
         node = find_dnn_by_id(dnn_list, tmp -> id);
         slack = node->deadline - current_time - workload_left(profile_list[node->type],tmp -> layer, node->layers);
-        if( slack > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer])) {
-            updated_slack = slack - abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer]);
-            if( updated_slack < smallest ){
-                target_id = tmp -> id;
-                target_layer = tmp -> layer;
-                smallest = updated_slack;
-            }
+        if( slack > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer])) { /* first condidtion */
+            future_wait = waiting(q, dnn_list, profile_list, current_time, From, tmp->id);
+            if ( future_wait > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer]))
+                if( slack < smallest ){
+                    target_id = tmp -> id;
+                    target_layer = tmp -> layer;
+                    smallest = slack;
+                }
         }
     }
+
     if(target_id != -1){
-        res -> state = BUSY;
-        res -> id = target_id;
+        To -> state = BUSY;
+        To -> id = target_id;
+        To -> layer = target_layer;
+        To -> scheduled = current_time;
         
         QNode* current = q -> front;
         QNode* next; 
@@ -464,6 +497,78 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
 
     return target_id; 
 }
+
+double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res, int target_id){
+    int total_dnn = dnn_list -> count + 1;
+    double * slack = (double *)malloc(sizeof(double)* total_dnn);
+    memset(slack, -1, sizeof(double)* total_dnn);
+
+
+    int * layer_pointer = (int *)malloc(sizeof(int)* total_dnn);
+    memset(layer_pointer, -1, sizeof(int)*total_dnn);
+
+    // handling waiting queue
+    dnn_info * dnn;
+    for(QNode * tmp = q->front; tmp != NULL; tmp = tmp -> next){
+        dnn = find_dnn_by_id(dnn_list, tmp -> id);
+        slack[tmp -> id] = dnn->deadline - current_time - workload_left(profile_list[dnn->type],tmp -> layer, dnn->layers);
+        layer_pointer[tmp->id] = tmp->layer;
+    }
+
+    // handling curretly executing
+
+    dnn = find_dnn_by_id(dnn_list, res->id);
+    slack[res->id] = dnn->deadline - current_time - workload_left(profile_list[dnn->type], res->layer, dnn->layers) + (current_time - res->scheduled);
+    layer_pointer[res->id] = res->layer + 1;
+
+
+    double waited = 0;
+    double executed = 0;
+    double compenstate = 0;
+    executed = (res -> res_id == GPU ) ? profile_list[dnn->type]->gpu_exec[res->layer] - (current_time - res->scheduled) : profile_list[dnn_type]->cpu_exec[res->layer] - (current_time - res->scheduled);
+    waited += executed;
+
+    for(int i = 0; i < total_dnn; i++)
+        if (slack[i] != -1 && i != res->id) slack[i] -= executed; 
+    
+    while(1){
+        int prefer_highest = -1;
+        int non_prefer_highest = -1;
+
+        for(int i = 0 ; i < total_dnn; i++){
+            dnn = find_dnn_by_id(dnn_list, i);
+            if (layer_pointer[i] != dnn->layers && layer_pointer[i] != -1){
+                if(profile_list[dnn->type]->cfg[layer_pointer[i]] == res->res_id){
+                    if (prefer_highest == -1) prefer_highest = i;
+                    else if(slack[prefer_highest] > slack[i]) prefer_highest = i;
+                }else{
+                    if (non_prefer_highest == -1) non_prefer_highest = i;
+                    else if(slack[non_prefer_highest] > slack[i]) non_prefer_highest = i;
+                }
+            }
+        }
+
+        if(prefer_highest == target_id) return waited;
+
+        dnn = find_dnn_by_id(dnn_list, prefer_highest);
+        executed = (res->res_id == GPU) ? profile_list[dnn->type]->gpu_exec[layer_pointer[prefer_highest]] : profile_list[dnn->type]->cpu_exec[layer_pointer[prefer_highest]];
+
+        if (non_prefer_highest != -1)
+            compenstate = (res -> res_id == GPU ) ? profile_list[dnn->type]->cpu_exec[layer_pointer[prefer_highest]] : profile_list[dnn->type]->gpu_exec[layer_pointer[prefer_highest]];
+        
+
+        waited += executed;
+
+        for(int i = 0; i < total_dnn; i++){
+            if(slack[i] != -1){
+                if(i != prefer_highest) slack[i] -= executed;
+                if(i == non_prefer_highest) slack[i] += compenstate;
+            }
+        }
+    }
+
+}
+
 
 ///// communication ////
 
