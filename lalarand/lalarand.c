@@ -28,8 +28,10 @@
 
 int main(int argc, char **argv){
     int Sync = find_int_arg(argc, argv, "-sync", 1);
-    
-    setpriority(PRIO_PROCESS, 0, -20);
+    struct sched_param high;
+    memset( &high, 0, sizeof(high));
+    high.sched_priority = 20;
+    if(sched_setscheduler(getpid(), SCHED_FIFO, &high) == -1) perror("SCHED_FIFO :");
     // cpu affininty setting 
     cpu_set_t mask;
     CPU_ZERO(&mask);
@@ -74,10 +76,11 @@ int main(int argc, char **argv){
 
                 if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, gpu);
                 if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, cpu);
-
+                
                 if(gpu_target != -1) decision_handler(gpu_target, dnn_list, GPU);
+                printf("gpu: %8.5f\n",get_time_point());
                 if(cpu_target != -1) decision_handler(cpu_target, dnn_list, CPU);
-            
+                printf("cpu: %8.5f\n",get_time_point()); 
                 Sync = 0;
             }
         }

@@ -54,6 +54,7 @@ float * get_network_output_gpu(network net);
 
 extern int request_fd, decision_fd, lalarand_pid;
 extern int * history = NULL;
+extern struct timespec release_time;
 
 void forward_network_gpu(network net, network_state state)
 {
@@ -63,58 +64,58 @@ void forward_network_gpu(network net, network_state state)
     int i;
     int before = 1;
     int resource ;
-    double start;
-        
-    int size = get_network_input_size(net) * net.batch;
 
+    int size = get_network_input_size(net) * net.batch;
+    
     history = (int *)malloc(sizeof(int) * net.n);
     memset(history, -1, sizeof(int) * net.n);
     
     int rev;
+    
+    struct sched_param high, low;
+    memset(&high ,0, sizeof(high));
+    memset(&low, 0, sizeof(low));
+    high.sched_priority = 20;
+    low.sched_priority = 19;
+    
+    double start, total_time;
+    
     for(i = 0; i < net.n; ++i){
-        rev = setpriority(PRIO_PROCESS, 0, -19);
+        if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO high : ");
         sched_yield();
         resource = -1;
 
         state.index = i;
         layer l = net.layers[i];
         
+
         // send request
         if( write(request_fd, &i, sizeof(int)) == -1 ){
             perror("request send : ");
             exit(-1);
         }
-        
         // wait for decision 
         if( read(decision_fd, &resource, sizeof(int)) == -1){
             perror("decision recv : ");
             exit(-1);
         } 
         
-        if(resource == CPU) {
-            setpriority(PRIO_PROCESS, 0, -10);
-            sched_yield();
+        if( i == 0){
+            clock_gettime(CLOCK_MONOTONIC, &release_time);
+            total_time = get_time_point();
         }
+        start = get_time_point();
         history[i] = resource; 
         
-        struct timespec tim, tim2;
-        tim.tv_sec = 0;
-        tim.tv_nsec = 500000;
-
-        //nanosleep(&tim, &tim2);
         if(l.delta_gpu && state.train){
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
         }   
         
-        start = get_time_point();
         
         if( i == 0 ){
             if(resource == GPU) state.input = net.input_state_gpu;
             else state.input = net.input_pinned_cpu;
         }
-
-        tim.tv_nsec = 100000;
-        //nanosleep(&tim, &tim2);
 
         if( i > 0 && before != resource ){
             layer tmp  = net.layers[i-1];
@@ -128,11 +129,14 @@ void forward_network_gpu(network net, network_state state)
             }
         }
         
-
         // inference
-        if (resource == CPU) l.forward(l,state);   
-        else if(resource == GPU){
-
+        if (resource == CPU) {
+            if(sched_setscheduler(0, SCHED_FIFO, &low) == -1) perror("SCHED_FIFO low : ");
+            sched_yield();
+            l.forward(l,state);
+            if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO high : ");
+            sched_yield();
+        }else if(resource == GPU){
             l.forward_gpu(l, state);
             CHECK_CUDA(cudaDeviceSynchronize());
         }
@@ -155,7 +159,7 @@ void forward_network_gpu(network net, network_state state)
         perror("Request :");
         exit(-1);
     }
-
+    printf("Total Time cost : %8.5f\n", ((double)get_time_point() - total_time)/1000);
 }
 
 
