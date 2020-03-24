@@ -25,10 +25,8 @@
 #include <sys/time.h>
 #endif
 
-extern int *test_extern_arr;
-extern int identifier;
-extern int * shmem_pid;
-extern struct timespec *shmem_timer;
+extern struct timespec release_time = {0, 0};
+extern int period = -1;
 
 float validate_classifier_single(char *datacfg, char *filename, char *weightfile, network *existing_net, int topk_custom);
 
@@ -1287,37 +1285,11 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     
     int m = plist->size;
 
-    struct timespec period, release_time;
+    struct timespec period_time;
     int err;
 
-    period.tv_sec = 0;
-    period.tv_nsec = ms_period*1000000;
-
-    shmem_pid[identifier] = getpid();
-    kill(getpid(),SIGSTOP);
-
-
-    // set timer 
-    if(identifier == 0){
-        struct timespec snooze;
-        snooze.tv_sec = 0;
-        snooze.tv_nsec = 1000*1000000;
-        err = clock_gettime(CLOCK_MONOTONIC, shmem_timer);
-
-        timespec_add(shmem_timer,&snooze);
-        assert(err ==0);
-        printf("Timer has been set\n");
-    }
-    
-    sleep(0.1);
-    
-    err = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, shmem_timer, NULL);
-    assert(err == 0);
-    printf("\nidentifier: %d, Starting at %8.5f\n", identifier ,get_time_point()/1000);
-    printf("///////// Period : %f //////////\n", ms_period);
-    
-    err = clock_gettime(CLOCK_MONOTONIC, &release_time);
-    assert(err ==0);
+    period_time.tv_sec = 0;
+    period_time.tv_nsec = ms_period*1000000;
 
     char buff[256];
     char *input = buff;
@@ -1349,7 +1321,7 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
         if(r.data != im.data) free_image(r);
         free_image(im);
         
-        timespec_add(&release_time, &period);
+        timespec_add(&release_time, &period_time);
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
 
