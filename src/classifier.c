@@ -25,8 +25,8 @@
 #include <sys/time.h>
 #endif
 
-extern struct timespec release_time = {0, 0};
-extern int period = -1;
+extern struct timespec release_time;
+extern int period;
 
 float validate_classifier_single(char *datacfg, char *filename, char *weightfile, network *existing_net, int topk_custom);
 
@@ -1246,11 +1246,8 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
 {
     network net;
     double time;
-    if (quantized){
-        net = parse_network_cfg_custom(cfgfile,11, 0);
-    }else{
-        net = parse_network_cfg_custom(cfgfile, 1, 0);
-    }
+
+    net = parse_network_cfg_custom(cfgfile, 1, 0);
 
     if(weightfile){
         load_weights(&net, weightfile);
@@ -1367,8 +1364,7 @@ void run_classifier(int argc, char **argv)
     char *data = argv[3];
     char *cfg = argv[4];
     char *weights = argv[5];
-    float period = atoi(argv[6]);
-    char *filename = argv[7];
+    char *filename = argv[6];
     int quantized = 0;
     // not sure layer_s exist for, need to look up
     char *layer_s = (argc > 8) ? argv[8]: 0;

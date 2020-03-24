@@ -1,7 +1,6 @@
 classifier
 periodic
-cfg/imagenet1k.data
-cfg/resnet18.cfg
-weights/resnet18.weights
-220
+./cfg/imagenet1k.data
+./cfg/resnet18.cfg
+./weights/resnet18.weights
 ./coco/100.part

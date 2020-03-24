@@ -893,7 +893,6 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
         quantized = 1;
         batch = 1;
     }
-
     list *sections = read_cfg(filename);
     node *n = sections->front;
     if(!n) error("Config file has no sections");
