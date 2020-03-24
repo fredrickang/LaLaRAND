@@ -26,7 +26,7 @@
 #endif
 
 extern struct timespec release_time;
-extern int period;
+extern int period, numofjob;
 
 float validate_classifier_single(char *datacfg, char *filename, char *weightfile, network *existing_net, int topk_custom);
 
@@ -1292,7 +1292,7 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     char *input = buff;
     //int size = net.w;
 
-    for (int k =0; k < 5; k++){
+    for (int k =0; k < numofjob; k++){
 
         printf("=====================JOB %d=====================\n",k);
 

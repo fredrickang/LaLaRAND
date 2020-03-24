@@ -4,7 +4,7 @@
 #include "blas.h"
 #include "parser.h"
 
-extern int period;
+extern int period, numofjob;
 extern struct timespec release_time;
 
 typedef struct {
@@ -472,7 +472,7 @@ void vec_char_rnn(char *cfgfile, char *weightfile, char *seed)
     }
 }
 
-void perioodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float temp, int rseed, char *token_file, float ms_period)
+void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float temp, int rseed, char *token_file, float ms_period)
 {
     char **tokens = 0;
     if(token_file){
@@ -519,7 +519,7 @@ void perioodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float t
     period_time.tv_sec = 0;
     period_time.tv_nsec = ms_period*1000000;
 
-    for(i = 0; i < num; ++i){
+    for(i = 0; i < numofjob; ++i){
         input[c] = 1;
         float *out = network_predict(net, input);
         input[c] = 0;
