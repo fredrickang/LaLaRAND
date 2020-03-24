@@ -149,6 +149,10 @@ int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double
         node = find_dnn_by_id(dnn_list, tmp-> id);
         deadline = node->deadline;
         slack = deadline - current_time - workload_left(profile_list[node->type], tmp->layer, node->layers);
+        if( slack < 0 ){
+            printf("Deadline Miss ID :%d\n",tmp->id);
+            exit(-1);
+        }
         printf("Slack   : [ID] %d [slack] %f\n", tmp->id, slack);
         if(slack < smallest){
             smallest = slack;

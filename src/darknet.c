@@ -50,21 +50,6 @@ extern void run_go(int argc, char **argv);
 extern void run_art(int argc, char **argv);
 extern void run_super(int argc, char **argv);
 
-//global variables for runtime switching.
-extern int * queue = NULL;
-extern pthread_mutex_t *gpu_lock = NULL;
-extern int N = 0;
-extern pthread_mutex_t *request_lock =  NULL;
-
-// processes identifier & shared memory
-extern int identifier = -1;
-extern int **shmem_rescfg = NULL;
-extern char **shmem_mlist = NULL;
-extern int *shmem_pid = NULL;
-extern struct timespec *shmem_timer = NULL;
-extern int *shmem_request = NULL;
-extern int *shmem_resource = NULL;
-
 extern int period = -1;
 //DetectorParameter structure for multi-threading.
 DetectorParams *_g_detector_params;
@@ -470,113 +455,13 @@ void visualize(char *cfgfile, char *weightfile)
 #endif
 }
 
-void* create_shared_memory(size_t size) {
-  // Our memory buffer will be readable and writable:
-  int protection = PROT_READ | PROT_WRITE;
-
-  // The buffer will be shared (meaning other processes can access it), but
-  // anonymous (meaning third-party processes cannot obtain an address for it),
-  // so only this process and its children will be able to use it:
-  int visibility = MAP_SHARED | MAP_ANONYMOUS;
-
-  // The remaining parameters to `mmap()` are not important for this use case,
-  // but the manpage for `mmap` explains their purpose.
-  return mmap(NULL, size, protection, visibility, -1, 0);
-}
-
-// store resource configuration
-// resource configuration shape 
-// # of layers, 0 or 1, 0 or 1, ..... (0: cpu, 1: gpu)
-int ** store_res_cfg(int res_cfg_num, char ** rpaths){
-
-    char *buffer = NULL;
-    char *tmp;
-    int size;
-    int layer_num;
-    FILE *fp = NULL;
-    int ** cfg_list = (int **)malloc(sizeof(int *)*res_cfg_num);
-    for(int i =0; i < res_cfg_num; i ++){
-        fp = fopen(rpaths[i], "r");
-
-        //read size of file
-        fseek(fp, 0, SEEK_END);
-        size = ftell(fp);
-
-        buffer = (char *)realloc(buffer,size + 1);
-
-        fseek(fp, 0, SEEK_SET);
-        fread(buffer, size, 1, fp);
-        fclose(fp);
-       
-        tmp = strtok(buffer, ",");
-        layer_num = atoi(tmp);
-        cfg_list[i]  = (int *)malloc(sizeof(int)*layer_num);
-        for(int j= 0; j < layer_num; j++){
-            cfg_list[i][j]=atoi(strtok(NULL,","));
-        }
-        // set last layer on CPU 
-    }
-    return cfg_list;
-}
-
-//////////////// GPU ACESSING MANAGEING ////////////////
-typedef struct QNode{
-    int pid;
-    int id;
-    int layer;
-    struct QNode * next;
-}QNode;
-
-typedef struct Queue{
-    QNode *front, *rear;
-}Queue;
-
-QNode * newNode(int pid, int id, int layer){
-    QNode * tmp = (QNode *)malloc(sizeof(QNode));
-    tmp->pid = pid;
-    tmp->id = id;
-    tmp->layer =layer;
-    tmp->next = NULL;
-    return tmp;
-}
-
-Queue * createQueue(){
-    Queue * q = (Queue *) malloc(sizeof(Queue));
-    q->front = q-> rear = NULL;
-    return q;
-}
-
-void enQueue(Queue * q,  int pid, int id, int layer){
-    QNode * tmp = newNode(pid, id, layer);
-    if(q->rear == NULL){
-        q->front = q->rear = tmp;
-        return;
-    }
-
-    q->rear->next = tmp;
-    q->rear = tmp;
-}
-
-QNode * deQueue(Queue *q){
-    if(q->front == NULL)
-        return;
-   QNode *tmp = q->front;
-
-   q->front = q->front->next;
-
-   if(q->front == NULL)
-       q->rear = NULL;
-   
-   return tmp;
-}
-
 void get_task_info(char * mytask, char ** argv){
     list * info_list = get_paths(mytask);
     char ** info = (char **)list_to_array(info_list);
     int info_num = info_list->size;
     if (0 == strcmp(info[0],"rnn")){
-        if (info_num != 5){
-            printf("[%d task] Something wrong with task info\n",identifier);
+        if (info_num != 4){
+            printf("Something wrong with RNN task info\n");
             exit(-1);
         }
 
@@ -584,11 +469,10 @@ void get_task_info(char * mytask, char ** argv){
         argv[2] = info[1];
         argv[3] = info[2];
         argv[4] = info[3];
-        argv[5] = info[4];
     }
     else{
-        if (info_num != 7){
-            printf("[%d task] Something wrong with task info\n",identifier);
+        if (info_num != 6){
+            printf("Something wrong with task info\n");
             exit(-1);
         }
         // task type (e.g classification, dection, nlp...)
@@ -601,10 +485,8 @@ void get_task_info(char * mytask, char ** argv){
         argv[4] = info[3];
         // weight 
         argv[5] = info[4];
-        // period
-        argv[6] = info[5];
         // input image
-        argv[7] = info[6];
+        argv[6] = info[5];
     }
 }
 
@@ -628,147 +510,25 @@ int main(int argc, char **argv)
         fprintf(stderr, "usage: %s <function>\n", argv[0]);
         return 0;
     }
+
     gpu_index = find_int_arg(argc, argv, "-i", 0);
+    
     if(find_arg(argc, argv, "-nogpu")) {
         gpu_index = -1;
         printf("\n Currently Darknet doesn't support -nogpu flag. If you want to use CPU - please compile Darknet with GPU=0 in the Makefile, or compile darknet_no_gpu.sln on Windows.\n");
         exit(-1);
     }
 
-    //////// GET PROCESS NUMBER /////////
-    int process_num = find_int_arg(argc, argv, "-process_num", 1);
-    int pid;    
-    N = process_num;
-
-    char * taskset = find_char_arg(argc, argv, "-taskset", 0);
-    if (taskset == 0){
-        puts("No information about taskset");
+    char * task = find_char_arg(argc, argv, "-task", 0);
+    if (task == 0){
+        puts("No information about task");
         exit(-1);
     }
 
-    list *tlist = get_paths(taskset);
-    char **tpaths = (char **)list_to_array(tlist);
-    int task_num = tlist->size;
-
-    if( process_num != task_num){
-        puts("Task number and process number doesn't mach!\n");
-        exit(-1);
-    }
-
-    ///////// GET RESOURCE CONFIGURATIONS /////////
-    char * res_cfg = find_char_arg(argc,argv,"-resource",0);
-    if(res_cfg == 0){
-        printf("No information about resource configuration\n");
-        exit(-1);
-    }
-    
-    list *rlist = get_paths(res_cfg);
-    char **rpaths = (char **)list_to_array(rlist);
-    int res_cfg_num = rlist->size;
-
-    if(process_num != res_cfg_num){
-        printf("Resource configuration number and process number doesn't mach!\n");
-        exit(-1);
-    }
-
-    /////// DEFINE SHARED MEMORY ////////
-    shmem_rescfg = (int **)create_shared_memory(sizeof(int **));
-    shmem_pid = (int *)create_shared_memory(sizeof(int)*process_num);
-    shmem_timer = (struct timespec *)create_shared_memory(sizeof(struct timespec));
-    shmem_request = (int *)create_shared_memory(sizeof(int) * process_num);
-    shmem_resource = (int *)create_shared_memory(sizeof(int) * process_num);
-
-    // init shared memory
-    shmem_rescfg = store_res_cfg(res_cfg_num,rpaths);
-    memset(shmem_pid,0, sizeof(int)*process_num);
-    memset(shmem_request, -1, sizeof(int) * process_num);
-    memset(shmem_resource, -1, sizeof(int) * process_num);
-
-    int queue_id, mutex_id, mutex;
-    int mode = S_IRWXU | S_IRWXG;
-    
-    mutex_id = shm_open(MYMUTEX, O_CREAT | O_RDWR | O_TRUNC, mode);
-    if (mutex_id < 0) {
-        perror("shm_open failed with " MYMUTEX);
-        return -1;
-    }
-    if (ftruncate(mutex_id, sizeof(pthread_mutex_t)) == -1) {
-        perror("ftruncate failed with " MYMUTEX);
-        return -1;
-    }
-    gpu_lock = (pthread_mutex_t *)mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED, mutex_id, 0);
-    if (gpu_lock == MAP_FAILED) {
-        perror("mmap failed with " MYMUTEX);
-        return -1;
-    }
-    
-    mutex = shm_open(MYMUTEX, O_CREAT | O_RDWR | O_TRUNC, mode);
-    if (mutex < 0) {
-        perror("shm_open failed with " MYMUTEX);
-        return -1;
-    }
-    if (ftruncate(mutex, sizeof(pthread_mutex_t)) == -1) {
-        perror("ftruncate failed with " MYMUTEX);
-        return -1;
-    }
-    request_lock = (pthread_mutex_t *)mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED, mutex, 0);
-    if (request_lock == MAP_FAILED) {
-        perror("mmap failed with " MYMUTEX);
-        return -1;
-    }
- 
-    /* cond */
-    queue_id = shm_open(MYQUEUE, O_CREAT | O_RDWR | O_TRUNC, mode);
-    if (queue_id < 0) {
-        perror("shm_open failed with " MYQUEUE);
-        return -1;
-    }
-    if (ftruncate(queue_id, sizeof(int)) == -1) {
-        perror("ftruncate failed with " MYQUEUE);
-        return -1;
-    }
-    queue = (int *)mmap(NULL, N*sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, queue_id, 0);
-    if (queue == MAP_FAILED) {
-        perror("ftruncate failed with " MYQUEUE);
-        return -1;
-    }
-
-    
-
-    // gpu_lock = (pthread_mutex_t *)create_shared_memory(sizeof(pthread_mutex_t));
-    // queue = (int *)create_shared_memory(sizeof(int)*process_num);
-    /* set mutex shared between processes */
-    pthread_mutexattr_t mattr;
-    pthread_mutexattr_init(&mattr);
-    pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(gpu_lock, &mattr);
-    pthread_mutexattr_destroy(&mattr);
-
-    pthread_mutexattr_init(&mattr);
-    pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(request_lock, &mattr);
-    pthread_mutexattr_destroy(&mattr);
-    
-    if(process_num){
-        pid = fork();
-        if(!pid) { /*if child*/ identifier = 0; }
-        for(int i = 0; i < process_num-1 ; i++){
-            if(pid) { /* if mother */
-                pid = fork();
-                if(!pid) { identifier = i+1;}
-            }
-        }
-        printf("my pid: %d, my_identifier: %d\n",getpid(),identifier);
-    }
-
-    if(identifier == -1){ /* mother process */ 
-       int status;
-       
-       wait(NULL);
-    }else{ /* child process */
+    period = find_int_arg(argc, argv, "-period", 300);
 
 #ifndef GPU
-        gpu_index = -1;
+    gpu_index = -1;
 #else
         if(gpu_index >= 0){
             cuda_set_device(gpu_index);
@@ -776,133 +536,102 @@ int main(int argc, char **argv)
         }
 #endif
         // CPU Affinity setting //
-        cpu_set_t mask;
-        CPU_ZERO(&mask);
-        CPU_SET(0, &mask);
-        sched_setaffinity(0,sizeof(mask), &mask);
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    CPU_SET(0, &mask);
+    sched_setaffinity(0,sizeof(mask), &mask);
 
-        //set CPU execution priority.
-        char * mytask = tpaths[identifier];
-        
-        //allocate resource configuration of each process.
-
-        
-        get_task_info(mytask, argv);
+    get_task_info(task, argv);
         ///// data cfg
-        printf("[%d], data path %s\n",identifier, argv[3]);
+    printf("data path %s\n",argv[3]);
         ///// model cfg
-        printf("[%d], model path %s\n",identifier, argv[4]);
+    printf("model path %s\n",argv[4]);
         ///// weight cfg
-        printf("[%d], weight path %s\n",identifier, argv[5]);
+    printf("weight path %s\n",argv[5]);
         //redirect stdout & stderr to certain file.
-        period =atoi(argv[6]);
-        int log = find_arg(argc, argv, "-log");
-
-        if (log){
-            int fd;                 //fd
-            char output_idx[4];     //idx of output file
-            char output_name[100];   //name of output file
-            char file_extension[20];
-            
-            sprintf(file_extension,"%s",".txt");
-            sprintf(output_idx,"%d",identifier);
-            strcpy(output_name,"multi_process_");
-            strcat(output_name,output_idx);
-            strcat(output_name,file_extension);
-            if((fd = open(output_name, O_RDWR | O_CREAT,0666))==-1){
-                perror("open");
-                return 1;
-            }
-            dup2(fd,STDOUT_FILENO);
-            dup2(fd,STDERR_FILENO);
-            close(fd);
-        }
-
-        
-        //!stdout redirection.
-        printf("My pid: %d, my_identifier: %d\n",getpid(),identifier);
-        //original darknet main process.
-        if (0 == strcmp(argv[1], "average")){
-            average(argc, argv);
-        } else if (0 == strcmp(argv[1], "yolo")){
-            run_yolo(argc, argv);
-        } else if (0 == strcmp(argv[1], "voxel")){
-            run_voxel(argc, argv);
-        } else if (0 == strcmp(argv[1], "super")){
-            run_super(argc, argv);
-        } else if (0 == strcmp(argv[1], "detector")){
-            run_detector(argc, argv);
-        } else if (0 == strcmp(argv[1], "detect")){
-            float thresh = find_float_arg(argc, argv, "-thresh", .24);
-            int ext_output = find_arg(argc, argv, "-ext_output");
-            char *filename = (argc > 4) ? argv[4]: 0;
-            test_detector("cfg/coco.data", argv[2], argv[3], filename, thresh, 0.5, 0, ext_output, 0, NULL, 0, 0);
-        } else if (0 == strcmp(argv[1], "cifar")){
-            run_cifar(argc, argv);
-        } else if (0 == strcmp(argv[1], "go")){
-            run_go(argc, argv);
-        } else if (0 == strcmp(argv[1], "rnn")){
-            run_char_rnn(argc, argv);
-        } else if (0 == strcmp(argv[1], "vid")){
-            run_vid_rnn(argc, argv);
-        } else if (0 == strcmp(argv[1], "coco")){
-            run_coco(argc, argv);
-        } else if (0 == strcmp(argv[1], "classify")){
-            predict_classifier("cfg/imagenet1k.data", argv[2], argv[3], argv[4], 5);
-        } else if (0 == strcmp(argv[1], "classifier")){
-            run_classifier(argc, argv);
-        } else if (0 == strcmp(argv[1], "art")){
-            run_art(argc, argv);
-        } else if (0 == strcmp(argv[1], "tag")){
-            run_tag(argc, argv);
-        } else if (0 == strcmp(argv[1], "compare")){
-            run_compare(argc, argv);
-        } else if (0 == strcmp(argv[1], "dice")){
-            run_dice(argc, argv);
-        } else if (0 == strcmp(argv[1], "writing")){
-            run_writing(argc, argv);
-        } else if (0 == strcmp(argv[1], "3d")){
-            composite_3d(argv[2], argv[3], argv[4], (argc > 5) ? atof(argv[5]) : 0);
-        } else if (0 == strcmp(argv[1], "test")){
-            test_resize(argv[2]);
-        } else if (0 == strcmp(argv[1], "captcha")){
-            run_captcha(argc, argv);
-        } else if (0 == strcmp(argv[1], "nightmare")){
-            run_nightmare(argc, argv);
-        } else if (0 == strcmp(argv[1], "rgbgr")){
-            rgbgr_net(argv[2], argv[3], argv[4]);
-        } else if (0 == strcmp(argv[1], "reset")){
-            reset_normalize_net(argv[2], argv[3], argv[4]);
-        } else if (0 == strcmp(argv[1], "denormalize")){
-            denormalize_net(argv[2], argv[3], argv[4]);
-        } else if (0 == strcmp(argv[1], "statistics")){
-            statistics_net(argv[2], argv[3]);
-        } else if (0 == strcmp(argv[1], "normalize")){
-            normalize_net(argv[2], argv[3], argv[4]);
-        } else if (0 == strcmp(argv[1], "rescale")){
-            rescale_net(argv[2], argv[3], argv[4]);
-        } else if (0 == strcmp(argv[1], "ops")){
-            operations(argv[2]);
-        } else if (0 == strcmp(argv[1], "speed")){
-            speed(argv[2], (argc > 3 && argv[3]) ? atoi(argv[3]) : 0);
-        } else if (0 == strcmp(argv[1], "oneoff")){
-            oneoff(argv[2], argv[3], argv[4]);
-        } else if (0 == strcmp(argv[1], "partial")){
-            partial(argv[2], argv[3], argv[4], atoi(argv[5]));
-        } else if (0 == strcmp(argv[1], "average")){
-            average(argc, argv);
-        } else if (0 == strcmp(argv[1], "visualize")){
-            visualize(argv[2], (argc > 3) ? argv[3] : 0);
-        } else if (0 == strcmp(argv[1], "imtest")){
-            test_resize(argv[2]);
-        } else if (0 == strcmp(argv[1], "thread")){
-            multi_thread(argc,argv);
-        } else if (0 == strcmp(argv[1], "deepdive")){
-            deep_dive(argc,argv);
-        } else {
-            fprintf(stderr, "Not an option: %s\n", argv[1]);
-        }
-        free(_g_detector_params);
-        return 0;
+                
+    //original darknet main process.
+    if (0 == strcmp(argv[1], "average")){
+        average(argc, argv);
+    } else if (0 == strcmp(argv[1], "yolo")){
+        run_yolo(argc, argv);
+    } else if (0 == strcmp(argv[1], "voxel")){
+        run_voxel(argc, argv);
+    } else if (0 == strcmp(argv[1], "super")){
+        run_super(argc, argv);
+    } else if (0 == strcmp(argv[1], "detector")){
+        run_detector(argc, argv);
+    } else if (0 == strcmp(argv[1], "detect")){
+        float thresh = find_float_arg(argc, argv, "-thresh", .24);
+        int ext_output = find_arg(argc, argv, "-ext_output");
+        char *filename = (argc > 4) ? argv[4]: 0;
+        test_detector("cfg/coco.data", argv[2], argv[3], filename, thresh, 0.5, 0, ext_output, 0, NULL, 0, 0);
+    } else if (0 == strcmp(argv[1], "cifar")){
+        run_cifar(argc, argv);
+    } else if (0 == strcmp(argv[1], "go")){
+        run_go(argc, argv);
+    } else if (0 == strcmp(argv[1], "rnn")){
+        run_char_rnn(argc, argv);
+    } else if (0 == strcmp(argv[1], "vid")){
+        run_vid_rnn(argc, argv);
+    } else if (0 == strcmp(argv[1], "coco")){
+        run_coco(argc, argv);
+    } else if (0 == strcmp(argv[1], "classify")){
+        predict_classifier("cfg/imagenet1k.data", argv[2], argv[3], argv[4], 5);
+    } else if (0 == strcmp(argv[1], "classifier")){
+        run_classifier(argc, argv);
+    } else if (0 == strcmp(argv[1], "art")){
+        run_art(argc, argv);
+    } else if (0 == strcmp(argv[1], "tag")){
+        run_tag(argc, argv);
+    } else if (0 == strcmp(argv[1], "compare")){
+        run_compare(argc, argv);
+    } else if (0 == strcmp(argv[1], "dice")){
+        run_dice(argc, argv);
+    } else if (0 == strcmp(argv[1], "writing")){
+        run_writing(argc, argv);
+    } else if (0 == strcmp(argv[1], "3d")){
+        composite_3d(argv[2], argv[3], argv[4], (argc > 5) ? atof(argv[5]) : 0);
+    } else if (0 == strcmp(argv[1], "test")){
+        test_resize(argv[2]);
+    } else if (0 == strcmp(argv[1], "captcha")){
+        run_captcha(argc, argv);
+    } else if (0 == strcmp(argv[1], "nightmare")){
+        run_nightmare(argc, argv);
+    } else if (0 == strcmp(argv[1], "rgbgr")){
+        rgbgr_net(argv[2], argv[3], argv[4]);
+    } else if (0 == strcmp(argv[1], "reset")){
+        reset_normalize_net(argv[2], argv[3], argv[4]);
+    } else if (0 == strcmp(argv[1], "denormalize")){
+        denormalize_net(argv[2], argv[3], argv[4]);
+    } else if (0 == strcmp(argv[1], "statistics")){
+        statistics_net(argv[2], argv[3]);
+    } else if (0 == strcmp(argv[1], "normalize")){
+        normalize_net(argv[2], argv[3], argv[4]);
+    } else if (0 == strcmp(argv[1], "rescale")){
+        rescale_net(argv[2], argv[3], argv[4]);
+    } else if (0 == strcmp(argv[1], "ops")){
+        operations(argv[2]);
+    } else if (0 == strcmp(argv[1], "speed")){
+        speed(argv[2], (argc > 3 && argv[3]) ? atoi(argv[3]) : 0);
+    } else if (0 == strcmp(argv[1], "oneoff")){
+        oneoff(argv[2], argv[3], argv[4]);
+    } else if (0 == strcmp(argv[1], "partial")){
+        partial(argv[2], argv[3], argv[4], atoi(argv[5]));
+    } else if (0 == strcmp(argv[1], "average")){
+        average(argc, argv);
+    } else if (0 == strcmp(argv[1], "visualize")){
+        visualize(argv[2], (argc > 3) ? argv[3] : 0);
+    } else if (0 == strcmp(argv[1], "imtest")){
+        test_resize(argv[2]);
+    } else if (0 == strcmp(argv[1], "thread")){
+        multi_thread(argc,argv);
+    } else if (0 == strcmp(argv[1], "deepdive")){
+        deep_dive(argc,argv);
+    } else {
+        fprintf(stderr, "Not an option: %s\n", argv[1]);
     }
+    free(_g_detector_params);
+    return 0;
 }
+

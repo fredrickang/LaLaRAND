@@ -45,7 +45,6 @@ int main(int argc, char **argv){
     
     dnn_profile ** profile_list = make_profile_list(mode);
 
-//    for(int i= 0; i< 24; i++) profile_list[0]-> cfg[i] = 0;
     dnn_queue * dnn_list = createDNNQueue();
 
     resource * gpu = createResource(GPU);
@@ -93,4 +92,5 @@ int main(int argc, char **argv){
             }
         }
     }while(!(Sync == 0 && dnn_list -> count == 0)); 
+    return 1;
 }   

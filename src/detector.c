@@ -24,6 +24,7 @@ int check_mistakes = 0;
 
 static int coco_ids[] = { 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,27,28,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,67,70,72,73,74,75,76,77,78,79,80,81,82,84,85,86,87,88,89,90 };
 extern struct timespec release_time = {0,0};
+extern int period = -1;
 
 void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int dont_show, int calc_map, int mjpeg_port, int show_imgs)
 {
@@ -1555,11 +1556,11 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         network_predict_cpu(net, X);
     }
 
-    struct timespec period;
+    struct timespec period_time;
     int err;
     
-    period.tv_sec = 0;
-    period.tv_nsec = ms_period*1000000;
+    period_time.tv_sec = 0;
+    period_time.tv_nsec = ms_period*1000000;
     
     for (k =0; k< 5; k++){
         //t_period = get_time_point();
@@ -1647,7 +1648,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         //t_period_end = get_time_point();
         //printf("period == %8.5f\n",t_period_end - t_period);
         */
-        timespec_add(&release_time, &period);
+        timespec_add(&release_time, &period_time);
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
 
@@ -1739,8 +1740,7 @@ void run_detector(int argc, char **argv)
     char *datacfg = argv[3];
     char *cfg = argv[4];
     char *weights = argv[5];
-    float period = atoi(argv[6]);
-    char *filename = argv[7];
+    char *filename = argv[6];
     if (weights)
         if (strlen(weights) > 0)
             if (weights[strlen(weights) - 1] == 0x0d) weights[strlen(weights) - 1] = 0;
