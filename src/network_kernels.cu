@@ -78,9 +78,9 @@ void forward_network_gpu(network net, network_state state)
     high.sched_priority = 20;
     low.sched_priority = 19;
     
-    double start, total_time;
-    
+    double request, decision, data_handle, inference, total_time; 
     for(i = 0; i < net.n; ++i){
+        request = get_time_point();
         if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO high : ");
         sched_yield();
         resource = -1;
@@ -88,23 +88,32 @@ void forward_network_gpu(network net, network_state state)
         state.index = i;
         layer l = net.layers[i];
         
-
+        
         // send request
         if( write(request_fd, &i, sizeof(int)) == -1 ){
             perror("request send : ");
             exit(-1);
         }
+        printf("%d Send Request: %8.5f\n", i ,((double)get_time_point() - request)/1000);
+        decision = get_time_point();
         // wait for decision 
         if( read(decision_fd, &resource, sizeof(int)) == -1){
             perror("decision recv : ");
             exit(-1);
         } 
+        printf("%d Revice Decision : %8.5f\n", i , ((double)get_time_point() - decision)/1000);
+
+        data_handle = get_time_point();
         
+        struct timespec nano = {0, 1000000};
+        struct timespec nano2;
+        nanosleep(&nano, &nano2);
+
         if( i == 0){
             clock_gettime(CLOCK_MONOTONIC, &release_time);
             total_time = get_time_point();
         }
-        start = get_time_point();
+        
         history[i] = resource; 
         
         if(l.delta_gpu && state.train){
@@ -128,7 +137,8 @@ void forward_network_gpu(network net, network_state state)
                 state.input = tmp.output;
             }
         }
-        
+        printf("%d Data Handling : %8.5f\n", i,((double)get_time_point() - data_handle)/1000);
+        inference = get_time_point();
         // inference
         if (resource == CPU) {
             if(sched_setscheduler(0, SCHED_FIFO, &low) == -1) perror("SCHED_FIFO low : ");
@@ -147,8 +157,7 @@ void forward_network_gpu(network net, network_state state)
         
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
-         printf("[%d] Layer %d Resource %d  Execution %8.5f\n",getpid(), i, resource,((double)get_time_point() -  start)/1000);
-       
+        printf("%d Inference %d : %8.5f\n", i, resource, ((double)get_time_point() - inference)/1000);
        //
         state.input = resource ? l.output_gpu : l.output; 
         before = resource;

@@ -81,8 +81,8 @@ int main(int argc, char **argv){
                 if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, cpu);
                 
                 if (mode == 4){ /* only in LaLaRAND */
-                    if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, gpu);
-                    if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, cpu);
+                    if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, cpu, gpu);
+                    if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, gpu, cpu);
                 }
                 
                 if(gpu_target != -1) decision_handler(gpu_target, dnn_list, GPU);
