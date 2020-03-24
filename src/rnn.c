@@ -4,6 +4,9 @@
 #include "blas.h"
 #include "parser.h"
 
+extern int period;
+extern struct timespec release_time;
+
 typedef struct {
     float *x;
     float *y;
@@ -469,6 +472,75 @@ void vec_char_rnn(char *cfgfile, char *weightfile, char *seed)
     }
 }
 
+void perioodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float temp, int rseed, char *token_file, float ms_period)
+{
+    char **tokens = 0;
+    if(token_file){
+        size_t n;
+        tokens = read_tokens(token_file, &n);
+    }
+
+    srand(rseed);
+    char *base = basecfg(cfgfile);
+    fprintf(stderr, "%s\n", base);
+
+    network net = parse_network_cfg_custom(cfgfile, 1, 1);  // batch=1, time_steps=1
+    if(weightfile){
+        load_weights(&net, weightfile);
+    }
+    int inputs = get_network_input_size(net);
+
+    int i, j;
+    for(i = 0; i < net.n; ++i) net.layers[i].temperature = temp;
+    int c = 0;
+    int len = strlen(seed);
+    float* input = (float*)calloc(inputs, sizeof(float));
+
+    /*
+       fill_cpu(inputs, 0, input, 1);
+       for(i = 0; i < 10; ++i){
+       network_predict(net, input);
+       }
+       fill_cpu(inputs, 0, input, 1);
+     */
+
+    for(i = 0; i < len-1; ++i){
+        c = seed[i];
+        input[c] = 1;
+        network_predict(net, input);
+        input[c] = 0;
+        print_symbol(c, tokens);
+    }
+    if(len) c = seed[len-1];
+    print_symbol(c, tokens);
+    
+    struct timespec period_time;
+
+    period_time.tv_sec = 0;
+    period_time.tv_nsec = ms_period*1000000;
+
+    for(i = 0; i < num; ++i){
+        input[c] = 1;
+        float *out = network_predict(net, input);
+        input[c] = 0;
+        for(j = 32; j < 127; ++j){
+            //printf("%d %c %f\n",j, j, out[j]);
+        }
+        for(j = 0; j < inputs; ++j){
+            if (out[j] < .0001) out[j] = 0;
+        }
+        c = sample_array(out, inputs);
+        //c = sample_array_custom(out, inputs);
+        //c = max_index(out, inputs);
+        //c = top_max_index(out, inputs, 2);
+        print_symbol(c, tokens);
+
+        timespec_add(&release_time, &period_time);
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
+    }
+    printf("\n");
+}
+
 void run_char_rnn(int argc, char **argv)
 {
     if(argc < 4){
@@ -492,4 +564,5 @@ void run_char_rnn(int argc, char **argv)
     else if(0==strcmp(argv[2], "vec")) vec_char_rnn(cfg, weights, seed);
     else if(0==strcmp(argv[2], "generate")) test_char_rnn(cfg, weights, len, seed, temp, rseed, tokens);
     else if(0==strcmp(argv[2], "generatetactic")) test_tactic_rnn(cfg, weights, len, temp, rseed, tokens);
+    else if(0==strcmp(argv[2], "periodic")) periodic_rnn(cfg, weights, len, seed, temp, rseed, tokens, period);
 }

@@ -54,7 +54,7 @@ float * get_network_output_gpu(network net);
 
 extern int request_fd, decision_fd, lalarand_pid;
 extern int * history = NULL;
-extern struct timespec release_time;
+extern struct timespec release_time = {0, 0};
 
 void forward_network_gpu(network net, network_state state)
 {

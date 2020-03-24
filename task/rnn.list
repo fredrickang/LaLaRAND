@@ -2,4 +2,3 @@ rnn
 generate
 cfg/rnn.cfg
 weights/grrm.weights
-220
