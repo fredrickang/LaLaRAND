@@ -1,7 +1,6 @@
 9
-Yolo 450 280
-Yolo 500 252
-Yolo 500 252
-Yolo 400 315
-Yolo 500 252
+RNN 450 10
+Yolo 500 10
+Extraction 500 10
+Resnet 400 10
 9

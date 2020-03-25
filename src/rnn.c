@@ -503,16 +503,19 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
        }
        fill_cpu(inputs, 0, input, 1);
      */
-
+    
+    /*
     for(i = 0; i < len-1; ++i){
         c = seed[i];
         input[c] = 1;
         network_predict(net, input);
         input[c] = 0;
-        print_symbol(c, tokens);
+        //print_symbol(c, tokens);
     }
+    */
+
     if(len) c = seed[len-1];
-    print_symbol(c, tokens);
+    //print_symbol(c, tokens);
     
     struct timespec period_time;
 
@@ -523,22 +526,16 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
         input[c] = 1;
         float *out = network_predict(net, input);
         input[c] = 0;
-        for(j = 32; j < 127; ++j){
-            //printf("%d %c %f\n",j, j, out[j]);
-        }
         for(j = 0; j < inputs; ++j){
             if (out[j] < .0001) out[j] = 0;
         }
         c = sample_array(out, inputs);
-        //c = sample_array_custom(out, inputs);
-        //c = max_index(out, inputs);
-        //c = top_max_index(out, inputs, 2);
-        print_symbol(c, tokens);
+        //print_symbol(c, tokens);
 
         timespec_add(&release_time, &period_time);
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
-    printf("\n");
+    //printf("\n");
 }
 
 void run_char_rnn(int argc, char **argv)

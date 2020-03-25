@@ -1292,11 +1292,26 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     char *input = buff;
     //int size = net.w;
 
+    puts("===== Initialize ====");
+    for (int k = 0; k < 3; k++){
+        input = paths[k];
+        image im = load_image_color(input, 0, 0);
+        image resized = resize_min(im, net.w);
+        image r = crop_image(resized, (resized.w - net.w)/2, (resized.h -net.h)/2, net.w, net.h);
+
+        float * X = r.data;
+
+        float *predictions = network_predict_cpu(net, X);
+    }
+    
+    
+    
+    
     for (int k =0; k < numofjob; k++){
 
         printf("=====================JOB %d=====================\n",k);
 
-        input = paths[k];
+        input = paths[k%m];
         image im = load_image_color(input, 0, 0);
         image resized = resize_min(im, net.w);
         image r = crop_image(resized, (resized.w - net.w)/2, (resized.h - net.h)/2, net.w, net.h);

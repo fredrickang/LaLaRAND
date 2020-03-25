@@ -1,4 +1,4 @@
 rnn
-generate
+periodic
 cfg/rnn.cfg
 weights/grrm.weights

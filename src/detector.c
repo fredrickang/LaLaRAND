@@ -1543,7 +1543,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     int m = plist->size;
     
     puts("Initialize");
-    for(k = 0; k< 10; k++){
+    for(k = 0; k< 3; k++){
         input = paths[k];
         image im =load_image(input, 0, 0, net.c);
         image sized;
@@ -1566,7 +1566,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         //t_period = get_time_point();
         ///// IMAGE PREPROCESSING /////
         printf("=====================JOB %d=====================\n",k);
-        input = paths[k];
+        input = paths[k%m];
         image im = load_image(input, 0, 0, net.c);
         image sized;
         if(letter_box) sized = letterbox_image(im, net.w, net.h);
