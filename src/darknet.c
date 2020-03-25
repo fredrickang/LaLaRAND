@@ -553,7 +553,9 @@ int main(int argc, char **argv)
         ///// weight cfg
     printf("weight path %s\n",argv[5]);
         //redirect stdout & stderr to certain file.
-                
+
+    freopen("/tmp/dummy.txt","w",stderr);
+
     //original darknet main process.
     if (0 == strcmp(argv[1], "average")){
         average(argc, argv);

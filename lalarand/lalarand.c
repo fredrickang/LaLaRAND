@@ -30,8 +30,9 @@ int main(int argc, char **argv){
     int Sync = find_int_arg(argc, argv, "-sync", 1);
     int mode = find_int_arg(argc, argv, "-mode", 4); // mode 1: ALL GPU // mode 2: preferable // mode 3: Static //mode 4: LaLaRAND
 
-
-
+    printf("Sync : %d Mode :%d \n", Sync, mode);
+    
+    freopen("/tmp/dummy.txt", "w", stderr);
 
     struct sched_param high;
     memset( &high, 0, sizeof(high));
@@ -85,12 +86,9 @@ int main(int argc, char **argv){
                 }
                 
                 if(gpu_target != -1) decision_handler(gpu_target, dnn_list, GPU);
-                printf("gpu: %8.5f\n",get_time_point());
                 if(cpu_target != -1) decision_handler(cpu_target, dnn_list, CPU);
-                printf("cpu: %8.5f\n",get_time_point()); 
                 Sync = 0;
             }
         }
     }while(!(Sync == 0 && dnn_list -> count == 0)); 
-    return 1;
 }   

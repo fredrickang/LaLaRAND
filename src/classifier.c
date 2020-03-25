@@ -1302,7 +1302,6 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
         image r = crop_image(resized, (resized.w - net.w)/2, (resized.h - net.h)/2, net.w, net.h);
         //image r = resize_min(im, size);
         //resize_network(&net, r.w, r.h);
-        printf("image size w: %d h: %d\n", r.w, r.h);
 
         float *X = r.data;
 //        time=clock();
@@ -1310,11 +1309,11 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
         if(net.hierarchy) hierarchy_predictions(predictions, net.outputs, net.hierarchy, 0);
         top_k(predictions, net.outputs, top, indexes);
 //        printf("%s: Predicted in %f seconds.\n", input, sec(clock()-time));
-        for(i = 0; i < top; ++i){
-            int index = indexes[i];
-            if(net.hierarchy) printf("%d, %s: %f, parent: %s \n",index, names[index], predictions[index], (net.hierarchy->parent[index] >= 0) ? names[net.hierarchy->parent[index]] : "Root");
-            else printf("%s: %f\n",names[index], predictions[index]);
-        }
+        //for(i = 0; i < top; ++i){
+        //    int index = indexes[i];
+        //   if(net.hierarchy) printf("%d, %s: %f, parent: %s \n",index, names[index], predictions[index], (net.hierarchy->parent[index] >= 0) ? names[net.hierarchy->parent[index]] : "Root");
+        //    else printf("%s: %f\n",names[index], predictions[index]);
+        //}
         if(r.data != im.data) free_image(r);
         free_image(im);
         

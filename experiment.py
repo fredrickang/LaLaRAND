@@ -1,0 +1,104 @@
+import math
+from functools import reduce
+from math import gcd
+import argparse
+from threading import Thread
+from subprocess import call
+
+def LCM(a, b):
+    return int(a * b / gcd(a, b))
+
+def LCMS(taskset):
+    periods = []
+    for task in taskset:
+        periods.append(task.period)
+    periods = tuple(periods)
+    return reduce(LCM, periods)
+
+def darknet(task_info, result):
+    task_name= task_info[0]
+    task_period = int(task_info[1])
+    task_num = int(task_info[2])
+    
+    if task_name == "Yolo":
+        task_name = "./task/yolotiny.list"
+    if task_name == "RNN":
+        task_name = "./task/rnn.list"
+    if task_name == "Resnet":
+        task_name = "./task/resnet18.list"
+    if task_name == "Extraction":
+        task_name = "./task/extraction.list"
+    command_line = ["./darknet"]
+    command_line.append("-task")
+    command_line.append(task_name)
+    command_line.append("-period")
+    command_line.append(str(task_period))
+    command_line.append("-num")
+    command_line.append(str(task_num))
+    
+    rev = call(command_line)
+    result.append(rev)
+    
+def lalarand(task_num, mode):
+    command_line = ["./lalarand/lalarand"]
+    command_line.append("-sync")
+    command_line.append(str(task_num))
+    command_line.append("-mode")
+    command_line.append(str(mode))
+   
+    call(command_line)
+   
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--mode", type = int , default = 4, help = "1: ALL GPU 2: Preferable 3: Static 4: LaLaRAND")
+
+    opt = parser.parse_args()
+
+    fp = open("taskset_list.txt","r")
+    lines = fp.readlines()
+    fp.close() 
+
+    list_of_taskset_list = []
+    taskset_list = []
+    for line in lines[1:]:
+        token = line.split()
+        if len(token) == 1:
+            list_of_taskset_list.append(taskset_list)
+            taskset_list = []
+        else:
+            taskset_list.append(token)
+    
+    sched = []
+    unsched = []
+    for taskset_list in list_of_taskset_list:
+        task_num = len(taskset_list)
+        task_thread = []
+        result = []
+        
+        lalarand_thread = Thread(target = lalarand, args= (task_num ,opt.mode))
+       
+        for task in taskset_list:
+            task_thread.append(Thread(target = darknet, args= (task, result)))
+    
+    
+        lalarand_thread.start()
+    
+        for thread in task_thread:
+            thread.start()
+        
+    
+        for thread in task_thread:
+            thread.join()
+        
+        lalarand_thread.join()
+    
+
+        if(sum(result) != task_num):
+            unsched.append(taskset_list)
+        else:
+            sched.append(taskset_list)
+    
+
+    print("[sched] :", len(sched))
+    print("[unsched] :", len(unsched))

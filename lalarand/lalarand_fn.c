@@ -104,10 +104,10 @@ void enQueue(Queue *q, int layer, int id){
     
     if(q->front == NULL){
         q->front = q->rear = tmp;
-        printf("Enqueue : [ID] %d [layer] %d \n", id, layer);
+        fprintf(stderr,"Enqueue : [ID] %d [layer] %d \n", id, layer);
         return;
     }    
-    printf("Enqueue : [ID] %d [layer] %d \n", id, layer);
+    fprintf(stderr,"Enqueue : [ID] %d [layer] %d \n", id, layer);
     tmp -> next = q -> front;
     q-> front -> prev = tmp ;
     q -> front = tmp ;
@@ -149,11 +149,7 @@ int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double
         node = find_dnn_by_id(dnn_list, tmp-> id);
         deadline = node->deadline;
         slack = deadline - current_time - workload_left(profile_list[node->type], tmp->layer, node->layers);
-        if( slack < 0 ){
-            printf("Deadline Miss ID :%d\n",tmp->id);
-            exit(-1);
-        }
-        printf("Slack   : [ID] %d [slack] %f\n", tmp->id, slack);
+        fprintf(stderr,"Slack   : [ID] %d [slack] %f\n", tmp->id, slack);
         if(slack < smallest){
             smallest = slack;
             target_id = tmp -> id;
@@ -161,7 +157,7 @@ int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double
         }
         tmp = tmp -> next;
     }
-    printf("Dequeue : [ID] %d [layer] %d [slack] %f\n", target_id, target_layer, smallest);
+    fprintf(stderr,"Dequeue : [ID] %d [layer] %d [slack] %f\n", target_id, target_layer, smallest);
     // find node && del
 
     QNode* current = q -> front;
@@ -204,12 +200,12 @@ dnn_info * find_dnn_by_pid(dnn_queue * dnn_list, int pid){
 
 void print_queue(char * name, Queue * q){
     QNode * head =  q -> front;
-    printf("%s :",name);
+    fprintf(stderr,"%s :",name);
     if (head == NULL) 
-        printf("Doubly Linked list empty"); 
+        fprintf(stderr,"Doubly Linked list empty"); 
   
     while (head != NULL) { 
-        printf("{[%d] %d} ", head -> id, head -> layer);
+        fprintf(stderr,"{[%d] %d} ", head -> id, head -> layer);
         head = head->next; 
     }
     puts("");
@@ -391,7 +387,7 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
     
     read(node -> request_fd, &request_layer, sizeof(int));
     
-    //printf("[request_handler] : [ID] %d [layer] %d \n", node -> id, request_layer);
+    //fprintf(stderr,"[request_handler] : [ID] %d [layer] %d \n", node -> id, request_layer);
 
     if(request_layer == 0) update_deadline(node, current_time);
 
@@ -428,7 +424,7 @@ void update_deadline(dnn_info * dnn, double current_time){
     // milli period to micro period
     double micro_period = dnn->period * 1000;
     dnn-> deadline = current_time + micro_period;
-    printf("Deadline update : [dnn] %s ,[current] %f, [deadline] %f\n", get_dnn_name(dnn->type), current_time, dnn -> deadline);
+    fprintf(stderr,"Deadline update : [dnn] %s ,[current] %f, [deadline] %f\n", get_dnn_name(dnn->type), current_time, dnn -> deadline);
 }
 
 void update_deadline_all(dnn_queue * dnn_list, double current_time){
@@ -496,7 +492,7 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
     
         q -> count --;
 
-        printf("Migration : [ID] %d [Layer] %d \n",target_id, target_layer);
+        fprintf(stderr,"Migration : [ID] %d [Layer] %d \n",target_id, target_layer);
     }
 
     return target_id; 
@@ -542,7 +538,7 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
         for(int i = 0 ; i < total_dnn; i++){
             if(layer_pointer[i] != -1) {
                 dnn = find_dnn_by_id(dnn_list, i);
-                if (layer_pointer[i] != dnn->layers){
+                if (layer_pointer[i] < dnn->layers){
                     if(profile_list[dnn->type]->cfg[layer_pointer[i]] == res->res_id){
                         if (prefer_highest == -1) prefer_highest = i;
                         else if(slack[prefer_highest] > slack[i]) prefer_highest = i;
@@ -557,10 +553,12 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
 
         dnn = find_dnn_by_id(dnn_list, prefer_highest);
         executed = (res->res_id == GPU) ? profile_list[dnn->type]->gpu_exec[layer_pointer[prefer_highest]] : profile_list[dnn->type]->cpu_exec[layer_pointer[prefer_highest]];
+        layer_pointer[prefer_highest]++;
 
-        if (non_prefer_highest != -1)
+        if (non_prefer_highest != -1){
             compenstate = (res -> res_id == GPU ) ? profile_list[dnn->type]->cpu_exec[layer_pointer[prefer_highest]] : profile_list[dnn->type]->gpu_exec[layer_pointer[prefer_highest]];
-        
+            layer_pointer[non_prefer_highest]++;
+        }    
 
         waited += executed;
 

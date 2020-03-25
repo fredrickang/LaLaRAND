@@ -907,9 +907,9 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     list *options = s->options;
     if(!is_network(s)) error("First section must be [net] or [network]");
     parse_net_options(options, &net);
-    printf("Network h : %d\n", net.h);
-    printf("Network w : %d\n", net.w);
-    printf("Network c : %d\n", net.c);
+    //printf("Network h : %d\n", net.h);
+    //printf("Network w : %d\n", net.w);
+    //printf("Network c : %d\n", net.c);
     params.h = net.h;
     params.w = net.w;
     params.c = net.c;
