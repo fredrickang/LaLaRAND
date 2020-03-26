@@ -1556,7 +1556,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         network_predict_cpu(net, X);
     }
 
-    struct timespec period_time;
+    struct timespec period_time, current_time;
     int err;
     
     period_time.tv_sec = 0;
@@ -1648,7 +1648,14 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         //t_period_end = get_time_point();
         //printf("period == %8.5f\n",t_period_end - t_period);
         */
+        
+        
+
         timespec_add(&release_time, &period_time);
+        clock_gettime(CLOCK_MONOTONIC, &current_time);
+        
+        check_deadline_miss
+
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
 
