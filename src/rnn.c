@@ -517,7 +517,7 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
     if(len) c = seed[len-1];
     //print_symbol(c, tokens);
     
-    struct timespec period_time;
+    struct timespec period_time, current_time;
 
     period_time.tv_sec = 0;
     period_time.tv_nsec = ms_period*1000000;
@@ -532,7 +532,14 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
         c = sample_array(out, inputs);
         //print_symbol(c, tokens);
 
+        int miss;
         timespec_add(&release_time, &period_time);
+        
+        clock_gettime(CLOCK_MONOTONIC, &current_time);
+
+        miss = deadline_miss_check(&release_time,&current_time);
+        if(miss) exit(-1);
+
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
     //printf("\n");

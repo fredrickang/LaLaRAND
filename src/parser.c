@@ -1603,3 +1603,15 @@ network *load_network(char *cfg, char *weights, int clear)
     if (clear) (*net->seen) = 0;
     return net;
 }
+
+
+// miss : 1 unmiss : 0
+int deadline_miss_check(struct timespec *deadline, struct timespec *current){
+    // sec scale
+    if(deadline->tv_sec < current->tv_sec) return 1;
+    else if (deadline->tv_sec == current->tv_sec){
+        if(deadline->tv_nsec < current->tv_nsec) return 1;
+        else return 0;
+    }
+    return 0;
+}

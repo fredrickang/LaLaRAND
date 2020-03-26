@@ -1282,7 +1282,7 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     
     int m = plist->size;
 
-    struct timespec period_time;
+    struct timespec period_time, current_time;
     int err;
 
     period_time.tv_sec = 0;
@@ -1332,7 +1332,12 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
         if(r.data != im.data) free_image(r);
         free_image(im);
         
+        int miss;
         timespec_add(&release_time, &period_time);
+        clock_gettime(CLOCK_MONOTONIC, &current_time);
+
+        miss = deadline_miss_check(&release_time,&current_time);
+        if(miss) exit(-1);
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
 

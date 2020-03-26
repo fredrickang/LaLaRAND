@@ -1650,12 +1650,12 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         */
         
         
-
+        int miss;
         timespec_add(&release_time, &period_time);
         clock_gettime(CLOCK_MONOTONIC, &current_time);
-        
-        check_deadline_miss
 
+        miss = deadline_miss_check(&release_time, &current_time);
+        if(miss) exit(-1);
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
 
