@@ -521,8 +521,10 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
 
     period_time.tv_sec = 0;
     period_time.tv_nsec = ms_period*1000000;
-
+    
+    int pid = getpid();
     for(i = 0; i < numofjob; ++i){
+        printf("=====================%d JOB %d====================\n",pid,i);
         input[c] = 1;
         float *out = network_predict(net, input);
         input[c] = 0;
@@ -543,6 +545,7 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
     //printf("\n");
+    free_network(net);
 }
 
 void run_char_rnn(int argc, char **argv)

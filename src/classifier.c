@@ -1306,10 +1306,10 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     
     
     
-    
+    int pid = getpid();
     for (int k =0; k < numofjob; k++){
 
-        printf("=====================JOB %d=====================\n",k);
+        printf("=====================%d JOB %d=====================\n", pid, k);
 
         input = paths[k%m];
         image im = load_image_color(input, 0, 0);

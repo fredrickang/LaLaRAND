@@ -6,17 +6,6 @@ from threading import Thread
 import subprocess 
 import os, signal
 
-
-def LCM(a, b):
-    return int(a * b / gcd(a, b))
-
-def LCMS(taskset):
-    periods = []
-    for task in taskset:
-        periods.append(task.period)
-    periods = tuple(periods)
-    return reduce(LCM, periods)
-
 def darknet(task_info, pids, result):
     task_name= task_info[0]
     task_period = int(task_info[1])
@@ -43,10 +32,15 @@ def darknet(task_info, pids, result):
     pid = sub.pid
     pids.append(pid)
     
-    rev = sub.wait()
-    if rev == -1:
+    sub.wait()
+    if sub.returncode != 0:
         for pid in pids:
-            os.kill(pid)
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                pass
+            else:
+                os.kill(pid,signal.SIGKILL)
         result.append(-1)
     else:
         result.append(1) 
@@ -106,13 +100,12 @@ if __name__ == "__main__":
     
         for thread in task_thread:
             thread.join()
-        
         if(sum(result) != task_num):
             unsched.append(taskset_list)
         else:
             sched.append(taskset_list)
 
-        os.kill(lalarand_pid[0])
+        os.kill(lalarand_pid[0],signal.SIGKILL)
 
         lalarand_thread.join()
 

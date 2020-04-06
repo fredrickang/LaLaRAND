@@ -32,8 +32,6 @@ int main(int argc, char **argv){
 
     printf("Sync : %d Mode :%d \n", Sync, mode);
     
-    freopen("/tmp/dummy.txt", "w", stderr);
-
     struct sched_param high;
     memset( &high, 0, sizeof(high));
     high.sched_priority = 20;
@@ -59,6 +57,7 @@ int main(int argc, char **argv){
     fd_set readfds;
     dnn_info *node;
     
+//    freopen("/tmp/dummpy.txt","w",stderr);
     do{
         gpu_target = -1;
         cpu_target = -1;

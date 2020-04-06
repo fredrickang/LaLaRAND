@@ -1561,11 +1561,11 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     
     period_time.tv_sec = 0;
     period_time.tv_nsec = ms_period*1000000;
-    
+    int pid = getpid();
     for (k =0; k< numofjob; k++){
         //t_period = get_time_point();
         ///// IMAGE PREPROCESSING /////
-        printf("=====================JOB %d=====================\n",k);
+        printf("=====================%d JOB %d=====================\n",pid, k);
         input = paths[k%m];
         image im = load_image(input, 0, 0, net.c);
         image sized;

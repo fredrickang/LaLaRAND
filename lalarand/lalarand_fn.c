@@ -29,6 +29,7 @@ dnn_queue * createDNNQueue(){
     return tmp;
 }
 
+
 void deleteDNN(dnn_queue * dnn_list, dnn_info * del){ 
     dnn_info * tmp , *prev;
     
@@ -279,6 +280,24 @@ dnn_profile ** make_profile_list(int mode){
     int rnn_gpu[6] = {208, 223, 216, 53, 51, 2};
     int rnn_cpu[6] = {279, 334, 336, 30, 7, 1};
     int rnn_cfg[6] = {1,1,1,0,0,0};
+    
+    for(int i = 0; i < 24; i++){
+        yolo_gpu[i] = yolo_gpu[i]*10;
+        yolo_cpu[i] = yolo_cpu[i]*10;
+    }
+    for(int i =0; i < 28; i++){
+        extraction_gpu[i] = extraction_gpu[i]* 10;
+        extraction_cpu[i] = extraction_cpu[i]* 10;
+    }
+    for(int i =0; i < 29; i++){
+        resnet_gpu[i] = resnet_gpu[i] * 10;
+        resnet_cpu[i] = resnet_cpu[i] * 10;
+    }
+    for(int i =0; i < 6; i++){
+        rnn_gpu[i] = rnn_gpu[i] * 10;
+        rnn_cpu[i] = rnn_cpu[i] * 10;
+    }
+
 
     if (mode == 1){
         memset(yolo_cfg,1,sizeof(int)*24);
@@ -355,7 +374,7 @@ void de_regist(dnn_queue * dnn_list, reg_msg * msg){
     dnn_info * target = find_dnn_by_pid(dnn_list, msg -> pid);
     pid = target -> pid;
     deleteDNN(dnn_list, target);
-    
+    printf("%d DNN has been de registered\n", pid); 
 }
 
 int check_request(dnn_queue * dnn_list, fd_set* readfds, int sync){
@@ -444,9 +463,8 @@ double workload_left(dnn_profile * profile, int current_layer, int layer_num){
     
     for(int i = current_layer; i < layer_num; i++)
         workload += (profile->cfg[i] == 0) ? profile->cpu_exec[i] : profile->gpu_exec[i];
-    double micro_workload = workload * 10;
     
-    return micro_workload;
+    return workload;
 }
 
 int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * From, resource * To){
@@ -463,6 +481,8 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
         slack = node->deadline - current_time - workload_left(profile_list[node->type],tmp -> layer, node->layers);
         if( slack > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer])) { /* first condidtion */
             future_wait = waiting(q, dnn_list, profile_list, current_time, From, tmp->id);
+            printf("waiting time : %f\n", future_wait);
+            printf("execution difference : %d\n", abs((profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer])));
             if ( future_wait > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer]))
                 if( slack < smallest ){
                     target_id = tmp -> id;
@@ -526,12 +546,14 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
     double executed = 0;
     double compenstate = 0;
     executed = (res -> res_id == GPU ) ? profile_list[dnn->type]->gpu_exec[res->layer] - (current_time - res->scheduled) : profile_list[dnn->type]->cpu_exec[res->layer] - (current_time - res->scheduled);
+    if (executed < 0) executed = 0;
     waited += executed;
 
     for(int i = 0; i < total_dnn; i++)
         if (slack[i] != -1 && i != res->id) slack[i] -= executed; 
     
     while(1){
+        printf("waited : %f\n",waited);
         int prefer_highest = -1;
         int non_prefer_highest = -1;
 
