@@ -11,10 +11,9 @@ void deleteDNN(dnn_queue * dnn_list, dnn_info* dnn);
 resource * createResource(int res_id);
 
 //// waiting queue ////
-QNode* newNode (int layer, int id);
+QNode* newNode (int layer, int id, int period);
 Queue * createQueue();
-void enQueue(Queue *q, int layer, int id);
-void deleteNode(Queue *q , QNode * del);
+void enQueue(Queue *q, int layer, int id, int period);
 int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res);
 dnn_info * find_dnn_by_id(dnn_queue * dnn_list, int id);
 void print_queue(char * name, Queue * q);

@@ -36,13 +36,13 @@ typedef struct _DNN_QUEUE{
 typedef struct QNode{
     int layer;
     int id;
+    int period;
     struct QNode * next;
-    struct QNode * prev;
 }QNode;
 
 typedef struct Queue{
     int count;
-    QNode * front, *rear;
+    QNode * front;
 }Queue;
 
 typedef struct _MSG_PACKET{
