@@ -60,11 +60,20 @@ if __name__ == "__main__":
 
     parser.add_argument("--mode", type = int , default = 4, help = "1: ALL GPU 2: Preferable 3: Static 4: LaLaRAND")
     parser.add_argument("--n", type = int, default = -1, help = " -1 : ALL , other is other number")
+    parser.add_argument("--output", type = str, default = "_")
+
     opt = parser.parse_args()
 
     fp = open("taskset_list.txt","r")
     lines = fp.readlines()
     fp.close() 
+
+    if opt.output == "_":
+        print("Need Output file name")
+        exit(-1)
+    
+    f_sched = open(opt.output+"_sched.txt","w")
+    f_unsched = open(opt.output+"_unsched.txt","w")
 
     list_of_taskset_list = []
     taskset_list = []
@@ -105,8 +114,14 @@ if __name__ == "__main__":
             thread.join()
         if(sum(result) != task_num):
             unsched.append(taskset_list)
+            for task in taskset_list:
+                f_unsched.write(task+"\n")
+            f_unsched.write("1\n")
         else:
             sched.append(taskset_list)
+            for task in taskset_list:
+                f_sched.write(task+"\n")
+            f_sched.write("1\n")
 
         os.kill(lalarand_pid[0],signal.SIGKILL)
 
