@@ -54,12 +54,36 @@ void enDNNQueue(dnn_queue * dnn_list, dnn_info * dnn){
     if(dnn_list->head == NULL){
         dnn_list -> head = dnn;
         dnn_list -> count ++;
+        setDNNpriority(dnn_list);
         return;
     }    
 
     dnn -> next = dnn_list -> head;
     dnn_list -> head = dnn;
     dnn_list -> count ++ ; 
+
+    setDNNpriority(dnn_list);
+}
+
+void setDNNpriority(dnn_queue * dnn_list){
+    int len = dnn_list -> count;
+
+    int priority, smallest;
+    for(int i =1; i < len + 1; i++){
+        priority = i;
+
+        dnn_info * target = NULL;
+        smallest = 1000;
+        for(dnn_info * tmp = dnn_list->head; tmp!=NULL; tmp = tmp->next){
+            if(tmp->priority == -1){
+                if(tmp->period < smallest) {
+                    target = tmp;   
+                    smallest = tmp->period;
+                }            
+            }
+        }
+        target->priority = priority;
+    }
 
 }
 
@@ -79,12 +103,12 @@ resource * createResource(int res_id){
 
 //// waiting queue ////
 
-QNode* newNode (int layer, int id, int period){
+QNode* newNode (int layer, int id, int priority){
     QNode * tmp = (QNode *)malloc(sizeof(QNode));
     tmp -> layer = layer;
     tmp -> id = id;
     tmp -> next = NULL;
-    tmp -> period = period;
+    tmp -> priority = priority;
 
     return tmp;
 
@@ -99,8 +123,8 @@ Queue * createQueue(){
     
 }
 
-void enQueue(Queue *q, int layer, int id, int period){
-    QNode * tmp = newNode(layer, id, period);
+void enQueue(Queue *q, int layer, int id, int priority){
+    QNode * tmp = newNode(layer, id, priority);
     q->count ++;    
     
     if(q->front == NULL){
@@ -111,14 +135,14 @@ void enQueue(Queue *q, int layer, int id, int period){
 
     fprintf(stderr,"Enqueue : [ID] %d [layer] %d \n", id, layer);
     
-    if(q->front -> period > tmp-> period ){
+    if(q->front -> priority > tmp-> priority ){
         tmp->next = q->front;
         q->front = tmp;
     }
 
     else{
         QNode * start = q->front;
-        while(start->next != NULL && start->next->period < tmp->period){
+        while(start->next != NULL && start->next->priority < tmp->priority){
             start = start->next;
         }
 
@@ -302,7 +326,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
     dnn -> layers = msg -> layers;
     dnn -> type = msg -> type;
     dnn -> period = msg -> period;
-    
+    dnn -> priority = -1;
     fprintf(stderr,"======== REGISTRATION ========\n");
     fprintf(stderr,"[ID]     %3d\n", dnn-> id);
     fprintf(stderr,"[PID]    %3d\n", dnn-> pid);
@@ -323,6 +347,74 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
     enDNNQueue(dnn_list, dnn);
     
 }
+
+void bubbleSort(QNode * start) 
+{ 
+    int swapped, i; 
+    QNode *ptr1; 
+    QNode *lptr = NULL; 
+  
+    /* Checking for empty list */
+    if (start == NULL) 
+        return; 
+  
+    do
+    { 
+        swapped = 0; 
+        ptr1 = start; 
+  
+        while (ptr1->next != lptr) 
+        { 
+            if (ptr1->priority > ptr1->next->priority) 
+            {  
+                swap(ptr1, ptr1->next); 
+                swapped = 1; 
+            } 
+            ptr1 = ptr1->next; 
+        } 
+        lptr = ptr1; 
+    } 
+    while (swapped); 
+} 
+  
+/* function to swap data of two nodes a and b*/
+void swap(QNode *a, QNode *b) 
+{ 
+    int tmp_layer = a->layer;
+    int tmp_id = a->id;
+    int tmp_priority = a->priority;
+
+    a->layer = b->layer;
+    a->id = b->id;
+    a->priority = b->priority;
+
+    b->layer = tmp_layer;
+    b->id = tmp_id;
+    b->priority = tmp_priority;
+} 
+
+void re_assign_priority(dnn_queue * dnn_list, resource * gpu , resource * cpu){
+    if(gpu->waiting->front != NULL){
+        Queue * waiting  = gpu->waiting;
+        for(QNode * tmp = waiting->front; tmp != NULL; tmp= tmp->next){
+            dnn_info * target = find_dnn_by_id(tmp->id);
+            tmp->priority = target->priority;
+        }
+
+
+        bubbleSort(gpu->waiting->front); 
+    }
+    if(cpu->waiting->front != NULL){
+        Queue * waiting = cpu->waiting;
+        for(QNode * tmp = waiting->front; tmp != NULL; tmp = tmp->next){
+            dnn_info * target = find_dnn_by_id(tmp->id);
+            tmp->priority = target->priority;
+        }
+
+        bubbleSort(cpu->waiting->front);
+    }
+}
+
 
 void de_regist(dnn_queue * dnn_list, reg_msg * msg){
     // find dnn info by pid;
@@ -384,8 +476,8 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
       }
 
      if(request_layer != node -> layers){
-         if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> period);
-         else enQueue(cpu->waiting, request_layer, node -> id, node -> period );
+         if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
+         else enQueue(cpu->waiting, request_layer, node -> id, node -> priority );
       }
 }
 
@@ -496,14 +588,14 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
 
     waited += current_wait;
 
-    if(target->period > current->period){
+    if(target->priority > current->priority){
         for(int i = From->layer+1 ; i < current->layers ; i++){
             if (profile_list[current->type]->cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];
             else break;
         }
     }
     
-    for(QNode *tmp = q->front; tmp->period < target->period; tmp = tmp->next){
+    for(QNode *tmp = q->front; tmp->priority < target->priority; tmp = tmp->next){
         dnn_info * dnn = find_dnn_by_id(dnn_list,tmp->id);
         for(int i = tmp->layer; i < dnn->layers ; i ++){
             if(profile_list[dnn->type]->cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];

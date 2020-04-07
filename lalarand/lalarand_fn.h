@@ -17,6 +17,7 @@ void enQueue(Queue *q, int layer, int id, int period);
 int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res);
 dnn_info * find_dnn_by_id(dnn_queue * dnn_list, int id);
 void print_queue(char * name, Queue * q);
+void re_assign_priority(dnn_queue * dnn_list, resource * gpu, resource * cpu);
 
 ///// Utils ////
 void del_arg(int argc, char **argv, int index);

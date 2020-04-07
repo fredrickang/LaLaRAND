@@ -24,6 +24,7 @@ typedef struct _DNN_INFO{
     double deadline;
     int request_fd;
     int decision_fd;
+    int priority;
     struct _DNN_INFO * next;
 }dnn_info;
 
@@ -36,7 +37,7 @@ typedef struct _DNN_QUEUE{
 typedef struct QNode{
     int layer;
     int id;
-    int period;
+    int priority;
     struct QNode * next;
 }QNode;
 

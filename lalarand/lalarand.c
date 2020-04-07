@@ -67,8 +67,10 @@ int main(int argc, char **argv){
         if(select(fd_head +1, &readfds, NULL, NULL, NULL)){
             current_time = get_time_point();
             // 1st registration check
-            if(FD_ISSET(reg_fd, &readfds)) check_registration(dnn_list, reg_fd);
-            
+            if(FD_ISSET(reg_fd, &readfds)) {
+                check_registration(dnn_list, reg_fd);
+                re_assign_priority(dnn_list, gpu, cpu);
+            }
             // 2nd request check 
             for(node = dnn_list ->head; node !=NULL; node = node -> next) 
                 if(FD_ISSET(node->request_fd, &readfds))
