@@ -17,7 +17,6 @@
 #include "lalarand_fn.h"
 #define GPU 1
 #define CPU 0
-#define GPU_MAX 1069
 
 
 ///// dnn queue ////
@@ -442,7 +441,8 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
         slack = node->deadline - current_time - workload_left(profile_list[node->type],tmp -> layer, node->layers);
         if( slack > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer])) { /* first condidtion */
             future_wait = waiting(q, dnn_list, profile_list, current_time, From, tmp->id);
-            if ( future_wait - GPU_MAX > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer]))
+            blocked = blocking(dnn_list, profile_list, From, tmp->id);
+            if ( future_wait - blocked > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer]))
                 if( slack < smallest ){
                     target_id = tmp -> id;
                     target_layer = tmp -> layer;
@@ -506,6 +506,25 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
     }
 
     return waited;
+}
+
+double blocking(dnn_queue * dnn_list, dnn_profile ** proflie_list, resource * From, int target_id){
+    dnn_info * target = find_dnn_by_id(dnn_list, target_id);
+    
+    int biggest = 0;
+    for(dnn_info * tmp = dnn_list->head; tmp != NULL; tmp = tmp->next){
+        if(tmp != target){
+            dnn_profile * tmp_profile = profile_list[tmp->type];
+            for(int i =0; i < tmp->layers; i++){
+                if(tmp_profile->cfg[i] == From->res_id){
+                    int current = From->res_id == GPU ? tmp_profile->gpu_exec[i] : tmp_profile->cpu_exec[i];
+                    if (current > biggest) biggest =  current;
+                }
+            }
+        }
+    }
+
+    return biggest;
 }
 
 ///// communication ////
