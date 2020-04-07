@@ -1655,7 +1655,11 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         clock_gettime(CLOCK_MONOTONIC, &current_time);
 
         miss = deadline_miss_check(&release_time, &current_time);
-        if(miss) exit(-1);
+        if(miss){
+            printf("============ %d task %d job miss  ==============\n", getpid(), k);
+            free_network(net);
+            exit(-1);
+        }
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
 

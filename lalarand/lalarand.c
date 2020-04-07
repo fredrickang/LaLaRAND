@@ -57,7 +57,9 @@ int main(int argc, char **argv){
     fd_set readfds;
     dnn_info *node;
     
-//    freopen("/tmp/dummpy.txt","w",stderr);
+    char log_name[30];
+    snprintf(log_name, 30, "./lalarand_log_%d.txt",getpid());
+    freopen(log_name,"w",stderr);
     do{
         gpu_target = -1;
         cpu_target = -1;

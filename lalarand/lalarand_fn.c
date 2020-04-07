@@ -118,7 +118,7 @@ void enQueue(Queue *q, int layer, int id, int period){
 
     else{
         QNode * start = q->front;
-        while(start->next != NULL && start->next->period > tmp->period){
+        while(start->next != NULL && start->next->period < tmp->period){
             start = start->next;
         }
 
@@ -178,7 +178,7 @@ void print_queue(char * name, Queue * q){
         fprintf(stderr,"{[%d] %d} ", head -> id, head -> layer);
         head = head->next; 
     }
-    puts("");
+    fprintf(stderr,"\n");
 }
 
 ///// Utils ////
@@ -303,12 +303,12 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
     dnn -> type = msg -> type;
     dnn -> period = msg -> period;
     
-    printf("======== REGISTRATION ========\n");
-    printf("[ID]     %3d\n", dnn-> id);
-    printf("[PID]    %3d\n", dnn-> pid);
-    printf("[Layers] %3d\n", dnn-> layers);
-    printf("[Type]   %s\n", get_dnn_name(dnn->type));
-    printf("[Period] %3d\n", dnn->period);
+    fprintf(stderr,"======== REGISTRATION ========\n");
+    fprintf(stderr,"[ID]     %3d\n", dnn-> id);
+    fprintf(stderr,"[PID]    %3d\n", dnn-> pid);
+    fprintf(stderr,"[Layers] %3d\n", dnn-> layers);
+    fprintf(stderr,"[Type]   %s\n", get_dnn_name(dnn->type));
+    fprintf(stderr,"[Period] %3d\n", dnn->period);
     char req_fd_name[30];
     char dec_fd_name[30];
 
@@ -331,8 +331,9 @@ void de_regist(dnn_queue * dnn_list, reg_msg * msg){
     int pid;
     dnn_info * target = find_dnn_by_pid(dnn_list, msg -> pid);
     pid = target -> pid;
+    close_channels(target);
     deleteDNN(dnn_list, target);
-    printf("================== %d DNN has been de registered ===================\n", pid); 
+    fprintf(stderr,"================== %d DNN has been de registered ===================\n", pid); 
 }
 
 int check_request(dnn_queue * dnn_list, fd_set* readfds, int sync){
@@ -545,30 +546,31 @@ int open_channel(char * pipe_name,int mode){
         exit(-1);
     }
     if( (pipe_fd = open(pipe_name, mode)) < 0){
-        printf("[ERROR]Fail to open channel for %s\n", pipe_name);
+        fprintf(stderr,"[ERROR]Fail to open channel for %s\n", pipe_name);
         exit(-1);
     }
-   printf("Channel for %s has been successfully openned!\n", pipe_name);
+   fprintf(stderr,"Channel for %s has been successfully openned!\n", pipe_name);
    
    return pipe_fd;
 }
 
 void close_channel(char * pipe_name){
     if ( unlink(pipe_name) == -1){
-        printf("[ERROR]Fail to remove %s\n",pipe_name);
+        fprintf(stderr,"[ERROR]Fail to remove %s\n",pipe_name);
         exit(-1);
     }
 }
 
-void close_channels(dnn_info ** dnn_list, int dnns){
+void close_channels(dnn_info * dnn){
     char request_name[30];
     char decision_name[30];
-    for(int i = 0; i < dnns; i++){
-        snprintf(request_name, 30, "lalarand_request_%d", dnn_list[i]->pid);
-        snprintf(decision_name, 30, "lalarand_decision_%d", dnn_list[i]->pid);
-        close_channel(request_name);
-        close_channel(decision_name);
-    }
+    
+    snprintf(request_name, 30, "/tmp/request_%d", dnn->pid);
+    snprintf(decision_name, 30, "/tmp/decision_%d", dnn->pid);
+    
+    close_channel(request_name);
+    close_channel(decision_name);
+    
 }
 
 int make_fdset(fd_set *readfds,int reg_fd, dnn_queue * dnn_list){

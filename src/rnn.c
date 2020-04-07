@@ -540,8 +540,11 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
         clock_gettime(CLOCK_MONOTONIC, &current_time);
 
         miss = deadline_miss_check(&release_time,&current_time);
-        if(miss) exit(-1);
-
+        if(miss){
+            printf("============ %d task %d job miss  ==============\n", getpid(), i);
+            free_network(net);
+            exit(-1);
+        }
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
     //printf("\n");

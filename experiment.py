@@ -115,12 +115,18 @@ if __name__ == "__main__":
         if(sum(result) != task_num):
             unsched.append(taskset_list)
             for task in taskset_list:
-                f_unsched.write(task+"\n")
+                for element in task:
+                    f_unsched.write(element)
+                    f_unsched.write(" ")
+                f_unsched.write("\n")
             f_unsched.write("1\n")
         else:
             sched.append(taskset_list)
             for task in taskset_list:
-                f_sched.write(task+"\n")
+                for element in task:
+                    f_sched.write(element)
+                    f_sched.write(" ")
+                f_sched.write("\n")
             f_sched.write("1\n")
 
         os.kill(lalarand_pid[0],signal.SIGKILL)

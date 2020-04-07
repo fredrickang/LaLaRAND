@@ -43,5 +43,5 @@ double blocking(dnn_queue * dnn_list, dnn_profile ** profile_list, resource *res
 
 int open_channel(char * pipe_name,int mode);
 void close_channel(char * pipe_name);
-void close_channels(dnn_info ** dnn_list, int dnns);
+void close_channels(dnn_info * dnn);
 #endif
