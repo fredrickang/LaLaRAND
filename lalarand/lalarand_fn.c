@@ -85,7 +85,6 @@ QNode* newNode (int layer, int id, int period){
     tmp -> layer = layer;
     tmp -> id = id;
     tmp -> next = NULL;
-    tmp -> prev = NULL;
     tmp -> period = period;
 
     return tmp;
@@ -115,7 +114,7 @@ void enQueue(Queue *q, int layer, int id, int period){
     
     if(q->front -> period > tmp-> period ){
         tmp->next = q->front;
-        q->front = tmp->next;
+        q->front = tmp;
     }
 
     else{
@@ -149,6 +148,7 @@ int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double
     
     q -> count --;
     free(target);
+    fprintf(stderr,"Dequeue : [ID] %d [layers] %d \n", target_id, target_layer);
     return target_id;
 }  
 
@@ -231,7 +231,6 @@ dnn_profile ** make_profile_list(int mode){
     for(int i =0; i < 4; i++)
         profile_list[i] = (dnn_profile *)malloc(sizeof(dnn_profile));
 
-    
 
     int yolo_gpu[24]  = {1069 ,152 ,462 ,125 ,317 ,113 ,262 ,87 ,256 ,99 ,275 ,104 ,735 ,177 ,273 ,135 ,110 ,81 ,124 ,103 ,92 ,466 ,157 ,122 };
     int yolo_cpu[24] = {7240 ,1476 ,12392 ,608 ,15986 ,255 ,8566 ,121 ,8661 ,65 ,11764 ,414 ,46709 ,2596 ,11455 ,1387 ,94 ,20 ,375 ,180 ,126 ,27672 ,1844 ,302 };
@@ -270,23 +269,13 @@ dnn_profile ** make_profile_list(int mode){
 
 
     if (mode == 1){
-        memset(yolo_cfg,1,sizeof(int)*24);
-        memset(extraction_cfg,1, sizeof(int)*28);
-        memset(resnet_cfg,1, sizeof(int)*29);
-        memset(rnn_cfg,1, sizeof(int)*6);
+        for(int i = 0; i < 24; i++) yolo_cfg[i] = 1;
+        for(int i = 0; i < 28; i++) extraction_cfg[i] = 1;
+        for(int i = 0; i < 29; i++) resnet_cfg[i] = 1;
+        for(int i = 0; i < 6 ; i++) rnn_cfg[i] = 1;
     }
     if (mode == 3){
-        memset(yolo_cfg, 0, sizeof(int)*24);
-        memset(extraction_cfg, 0, sizeof(int)*28);
-        memset(resnet_cfg, 0, sizeof(int)*29);
-        memset(rnn_cfg, 0, sizeof(int)*6);
-
-        memset(yolo_cfg, 1, sizeof(int)*12);
-        memset(extraction_cfg, 1, sizeof(int)*14);
-        memset(resnet_cfg, 1, sizeof(int)*14);
-        memset(rnn_cfg, 1, sizeof(int)*3);
     }
-
     
     make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg);
     make_profile(profile_list[EXTRACTION], 28, extraction_gpu, extraction_cpu, extraction_cfg);
@@ -344,7 +333,7 @@ void de_regist(dnn_queue * dnn_list, reg_msg * msg){
     dnn_info * target = find_dnn_by_pid(dnn_list, msg -> pid);
     pid = target -> pid;
     deleteDNN(dnn_list, target);
-    printf("%d DNN has been de registered\n", pid); 
+    printf("================== %d DNN has been de registered ===================\n", pid); 
 }
 
 int check_request(dnn_queue * dnn_list, fd_set* readfds, int sync){
@@ -395,7 +384,7 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
       }
 
      if(request_layer != node -> layers){
-         if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting,request_layer, node ->  id, node -> period);
+         if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> period);
          else enQueue(cpu->waiting, request_layer, node -> id, node -> period );
       }
 }
@@ -509,7 +498,7 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
     }
     
     for(QNode *tmp = q->front; tmp->period < target->period; tmp = tmp->next){
-        dnn_info * dnn = find_dnn_by_id(tmp->id);
+        dnn_info * dnn = find_dnn_by_id(dnn_list,tmp->id);
         for(int i = tmp->layer; i < dnn->layers ; i ++){
             if(profile_list[dnn->type]->cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];
             else break;

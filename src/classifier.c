@@ -1340,7 +1340,7 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
         if(miss) exit(-1);
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
-
+    free_network(net);
 }
 
 

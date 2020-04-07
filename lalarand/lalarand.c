@@ -72,6 +72,8 @@ int main(int argc, char **argv){
                 if(FD_ISSET(node->request_fd, &readfds))
                     request_handler(node, gpu, cpu, profile_list[node->type], current_time);
 
+            print_queue("GPU ",gpu->waiting);
+            print_queue("CPU ",cpu->waiting);
             if(!(gpu->waiting->count + cpu->waiting->count < Sync)){
             
                 if(Sync) update_deadline_all(dnn_list, current_time);

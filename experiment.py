@@ -59,7 +59,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--mode", type = int , default = 4, help = "1: ALL GPU 2: Preferable 3: Static 4: LaLaRAND")
-
+    parser.add_argument("--n", type = int, default = -1, help = " -1 : ALL , other is other number")
     opt = parser.parse_args()
 
     fp = open("taskset_list.txt","r")
@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     list_of_taskset_list = []
     taskset_list = []
-    for line in lines[1:]:
+    for line in lines:
         token = line.split()
         if len(token) == 1:
             list_of_taskset_list.append(taskset_list)
@@ -78,7 +78,10 @@ if __name__ == "__main__":
     
     sched = []
     unsched = []
-    for taskset_list in list_of_taskset_list:
+    num = opt.n
+    if num == -1:
+        num = len(list_of_taskset_list)
+    for taskset_list in list_of_taskset_list[:num]:
         task_num = len(taskset_list)
         task_thread = []
         
