@@ -442,6 +442,11 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
         if( slack > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer])) { /* first condidtion */
             future_wait = waiting(q, dnn_list, profile_list, current_time, From, tmp->id);
             blocked = blocking(dnn_list, profile_list, From, tmp->id);
+            //printf("Future_wait : %f\n", future_wait);
+            //printf("Blocked : %f\n", blocked);
+            //printf("GPU : %d\n", profile_list[node->type]->gpu_exec[tmp->layer]);
+            //printf("CPU : %d\n", profile_list[node->type]->cpu_exec[tmp->layer]);
+            //printf("DIFF : %d\n", abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer]));
             if ( future_wait - blocked > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer]))
                 if( slack < smallest ){
                     target_id = tmp -> id;
@@ -508,7 +513,7 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
     return waited;
 }
 
-double blocking(dnn_queue * dnn_list, dnn_profile ** proflie_list, resource * From, int target_id){
+double blocking(dnn_queue * dnn_list, dnn_profile ** profile_list, resource * From, int target_id){
     dnn_info * target = find_dnn_by_id(dnn_list, target_id);
     
     int biggest = 0;

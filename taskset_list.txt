@@ -1,5 +1,6 @@
 Extraction 400 3
-Yolo 300 10
+Resnet 500 4
+Yolo 20 10
 1
 Resnet 450 280
 Extraction 500 252
