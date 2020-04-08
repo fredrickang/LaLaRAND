@@ -26,8 +26,6 @@ def darknet(task_info, pids, lalarand_pid ,result, taskset_path):
     command_line.append(str(task_period))
     command_line.append("-num")
     command_line.append(str(task_num))
-    command_line.append("-log_path")
-    command_line.append(taskset_path)
 
     sub = subprocess.Popen(command_line)
     
@@ -55,17 +53,14 @@ def darknet(task_info, pids, lalarand_pid ,result, taskset_path):
     else:
         result.append(1) 
     
-def lalarand(task_num, lalarand_pid ,mode, log, taskset_path):
+def lalarand(task_num, lalarand_pid ,mode, index):
     command_line = ["./lalarand/lalarand"]
     command_line.append("-sync")
     command_line.append(str(task_num))
     command_line.append("-mode")
     command_line.append(str(mode))
-    command_line.append("-log")
-    command_line.append(str(log))
-    command_line.append("-log_path")
-    command_line.append(taskset_path)
-
+    command_line.append("-index")
+    command_line.append(str(index))
     sub = subprocess.Popen(command_line)
     lalarand_pid.append(sub.pid)
 
@@ -74,22 +69,17 @@ if __name__ == "__main__":
 
     parser.add_argument("--mode", type = int , default = 4, help = "1: ALL GPU 2: Preferable 3: Static 4: LaLaRAND")
     parser.add_argument("--n", type = int, default = -1, help = " -1 : ALL , other is other number")
-    parser.add_argument("--output", type = str, default = "_")
-    parser.add_argumetn("--log_path", type = str, default = "Exp/RM/")
-    parser.add_argument("--log", type =int, default = 1, help = "1: log on , 0: log off")
+    parser.add_argument("--log_path", type = str, default = "Exp/RM/")
 
     opt = parser.parse_args()
 
     fp = open("taskset_list.txt","r")
     lines = fp.readlines()
     fp.close() 
-
-    if opt.output == "_":
-        print("Need Output file name")
-        exit(-1)
     
-    f_sched = open("Exp/RM/"+opt.output+"_sched.txt","w")
-    f_unsched = open("Exp/RM/"+ opt.output+"_unsched.txt","w")
+   
+    f_sched = open(opt.log_path+"Sched.txt","w")
+    f_unsched = open(opt.log_path+"Unsched.txt","w")
 
     list_of_taskset_list = []
     taskset_list = []
@@ -115,8 +105,11 @@ if __name__ == "__main__":
         
         taskset_path = os.path.join(path,"taskset_"+str(index))
         
-        os.mkdir(taskset_path)
-        
+        try:
+            os.mkdir(taskset_path)
+        except FileExistsError:
+            pass
+
         fp = open(taskset_path + "/tasksetinfo.txt","w")
 
         for task in taskset_list:
@@ -132,7 +125,7 @@ if __name__ == "__main__":
         pids = []
 
         lalarand_pid = []
-        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,opt.mode, opt.log, taskset_path))
+        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,opt.mode, index))
        
         for task in taskset_list:
             task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, taskset_path)))

@@ -29,10 +29,9 @@
 int main(int argc, char **argv){
     int Sync = find_int_arg(argc, argv, "-sync", 1);
     int mode = find_int_arg(argc, argv, "-mode", 4); // mode 1: ALL GPU // mode 2: preferable // mode 3: Static //mode 4: LaLaRAND
-    int log = find_int_arg(argc, argv, "-log", 1);
     int index = find_int_arg(argc, argv, "-index", -1);
 
-    printf("Sync : %d Mode :%d Log :%d Index :%d\n", Sync, mode, log, index);
+    printf("Sync : %d Mode :%d Index :%d\n", Sync, mode, index);
 
     if(index == -1){
         puts("taskset index is not correct!");
@@ -68,15 +67,18 @@ int main(int argc, char **argv){
     char log_path[50];
     switch (mode){
         case 1:
-            snprintf(log_path, 50, "../Exp/RM/taskset_%d/lala_%d.txt", index, getpid());
+            snprintf(log_path, 50, "./Exp/RM/taskset_%d/lala_%d.txt", index, getpid());
+            break;
         case 2:
-            snprintf(log_path, 50, "../Exp/RM_PR/taskset_%d/lala_%d.txt", index, getpid());
+            snprintf(log_path, 50, "./Exp/RM_PR/taskset_%d/lala_%d.txt", index, getpid());
+            break;
         case 3:
-            snprintf(log_path, 50, "../Exp/RM_DART/taskset_%d/lala_%d.txt", index, getpid());
+            snprintf(log_path, 50, "./Exp/RM_DART/taskset_%d/lala_%d.txt", index, getpid());
+            break;
         case 4:
-            snprintf(log_path, 50, "../Exp/RM_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+            snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/lala_%d.txt", index, getpid());
     }
-
+    
     freopen(log_path,"w", stderr);
 
     do{
