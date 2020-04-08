@@ -68,21 +68,26 @@ void enDNNQueue(dnn_queue * dnn_list, dnn_info * dnn){
 void setDNNpriority(dnn_queue * dnn_list){
     int len = dnn_list -> count;
 
-    int priority, smallest;
-    for(int i =1; i < len + 1; i++){
-        priority = i;
+    int smallest, pid;
+    for(dnn_info * tmp = dnn_list->head; tmp != NULL; tmp = tmp->next)
+        tmp->priority = -1;
 
-        dnn_info * target = NULL;
+    
+    for(int i =1; i < len + 1; i++){
         smallest = 1000;
+        pid = -1;
         for(dnn_info * tmp = dnn_list->head; tmp!=NULL; tmp = tmp->next){
             if(tmp->priority == -1){
                 if(tmp->period < smallest) {
-                    target = tmp;   
                     smallest = tmp->period;
+                    pid = tmp->pid;
                 }            
             }
         }
-        target->priority = priority;
+        for(dnn_info * tmp = dnn_list->head; tmp!=NULL; tmp = tmp->next)
+            if (tmp -> pid == pid) tmp->priority = i;
+       
+       
     }
 
 }
@@ -191,12 +196,24 @@ dnn_info * find_dnn_by_pid(dnn_queue * dnn_list, int pid){
     return node;
 }   
 
+void print_list(char * name, dnn_queue * dnn_list){
+    dnn_info * head = dnn_list -> head;
+    fprintf(stderr, "%s :", name);
+    if (head == NULL) fprintf(stderr,"Nothing registered");
+
+    while( head != NULL){
+        fprintf(stderr,"{[%d] %d} ", head->id, head->priority);
+        head = head->next;
+    }
+    fprintf(stderr,"\n");
+}
+
 
 void print_queue(char * name, Queue * q){
     QNode * head =  q -> front;
     fprintf(stderr,"%s :",name);
     if (head == NULL) 
-        fprintf(stderr,"Doubly Linked list empty"); 
+        fprintf(stderr,"Empty Queue"); 
   
     while (head != NULL) { 
         fprintf(stderr,"{[%d] %d} ", head -> id, head -> layer);
@@ -350,7 +367,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
 
 void bubbleSort(QNode * start) 
 { 
-    int swapped, i; 
+    int swapped; 
     QNode *ptr1; 
     QNode *lptr = NULL; 
   
@@ -397,7 +414,7 @@ void re_assign_priority(dnn_queue * dnn_list, resource * gpu , resource * cpu){
     if(gpu->waiting->front != NULL){
         Queue * waiting  = gpu->waiting;
         for(QNode * tmp = waiting->front; tmp != NULL; tmp= tmp->next){
-            dnn_info * target = find_dnn_by_id(tmp->id);
+            dnn_info * target = find_dnn_by_id(dnn_list, tmp->id);
             tmp->priority = target->priority;
         }
 
@@ -407,7 +424,7 @@ void re_assign_priority(dnn_queue * dnn_list, resource * gpu , resource * cpu){
     if(cpu->waiting->front != NULL){
         Queue * waiting = cpu->waiting;
         for(QNode * tmp = waiting->front; tmp != NULL; tmp = tmp->next){
-            dnn_info * target = find_dnn_by_id(tmp->id);
+            dnn_info * target = find_dnn_by_id(dnn_list ,tmp->id);
             tmp->priority = target->priority;
         }
 
@@ -483,7 +500,6 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
 
 
 void decision_handler(int target_id, dnn_queue * dnn_list, int decision){
-    int rev;
     dnn_info * target = find_dnn_by_id(dnn_list, target_id);
     if( write(target->decision_fd,&decision,sizeof(int)) < 0){
         perror("decision_handler");  

@@ -29,8 +29,8 @@
 int main(int argc, char **argv){
     int Sync = find_int_arg(argc, argv, "-sync", 1);
     int mode = find_int_arg(argc, argv, "-mode", 4); // mode 1: ALL GPU // mode 2: preferable // mode 3: Static //mode 4: LaLaRAND
-
-    printf("Sync : %d Mode :%d \n", Sync, mode);
+    int log = find_int_arg(argc, argv, "-log", 1);
+    printf("Sync : %d Mode :%d Log :%d\n", Sync, mode, log);
     
     struct sched_param high;
     memset( &high, 0, sizeof(high));
@@ -59,7 +59,8 @@ int main(int argc, char **argv){
     
     char log_name[30];
     snprintf(log_name, 30, "./lalarand_log_%d.txt",getpid());
-    freopen(log_name,"w",stderr);
+    
+    if(log) freopen(log_name,"w",stderr);
     do{
         gpu_target = -1;
         cpu_target = -1;
@@ -70,14 +71,16 @@ int main(int argc, char **argv){
             if(FD_ISSET(reg_fd, &readfds)) {
                 check_registration(dnn_list, reg_fd);
                 re_assign_priority(dnn_list, gpu, cpu);
+                
+                print_list("REGIST",dnn_list);
             }
             // 2nd request check 
             for(node = dnn_list ->head; node !=NULL; node = node -> next) 
                 if(FD_ISSET(node->request_fd, &readfds))
                     request_handler(node, gpu, cpu, profile_list[node->type], current_time);
 
-            print_queue("GPU ",gpu->waiting);
-            print_queue("CPU ",cpu->waiting);
+            print_queue("GPU",gpu->waiting);
+            print_queue("CPU",cpu->waiting);
             if(!(gpu->waiting->count + cpu->waiting->count < Sync)){
             
                 if(Sync) update_deadline_all(dnn_list, current_time);

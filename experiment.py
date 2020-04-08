@@ -6,7 +6,7 @@ from threading import Thread
 import subprocess 
 import os, signal
 
-def darknet(task_info, pids, result):
+def darknet(task_info, pids, lalarand_pid ,result):
     task_name= task_info[0]
     task_period = int(task_info[1])
     task_num = int(task_info[2])
@@ -34,6 +34,14 @@ def darknet(task_info, pids, result):
     
     sub.wait()
     if sub.returncode != 0:
+        for pid in lalarand_pid:
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                pass
+            else:
+                os.kill(pid,signal.SIGKILL)
+
         for pid in pids:
             try:
                 os.kill(pid, 0)
@@ -45,13 +53,15 @@ def darknet(task_info, pids, result):
     else:
         result.append(1) 
     
-def lalarand(task_num, lalarand_pid ,mode):
+def lalarand(task_num, lalarand_pid ,mode, log):
     command_line = ["./lalarand/lalarand"]
     command_line.append("-sync")
     command_line.append(str(task_num))
     command_line.append("-mode")
     command_line.append(str(mode))
-   
+    command_line.append("-log")
+    command_line.append(str(log))
+
     sub = subprocess.Popen(command_line)
     lalarand_pid.append(sub.pid)
 
@@ -61,7 +71,7 @@ if __name__ == "__main__":
     parser.add_argument("--mode", type = int , default = 4, help = "1: ALL GPU 2: Preferable 3: Static 4: LaLaRAND")
     parser.add_argument("--n", type = int, default = -1, help = " -1 : ALL , other is other number")
     parser.add_argument("--output", type = str, default = "_")
-
+    parser.add_argument("--log", type =int, default = 1, help = "1: log on , 0: log off");
     opt = parser.parse_args()
 
     fp = open("taskset_list.txt","r")
@@ -98,10 +108,10 @@ if __name__ == "__main__":
         pids = []
 
         lalarand_pid = []
-        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,opt.mode))
+        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,opt.mode, opt.log))
        
         for task in taskset_list:
-            task_thread.append(Thread(target = darknet, args= (task, pids ,result)))
+            task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result)))
     
     
         lalarand_thread.start()

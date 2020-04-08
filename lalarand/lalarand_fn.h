@@ -6,6 +6,7 @@
 dnn_queue * createDNNQueue();
 void enDNNQueue(dnn_queue * dnn_list, dnn_info* dnn);
 void deleteDNN(dnn_queue * dnn_list, dnn_info* dnn);
+void setDNNpriority(dnn_queue * dnn_list);
 
 ///// resource /////
 resource * createResource(int res_id);
@@ -17,12 +18,17 @@ void enQueue(Queue *q, int layer, int id, int period);
 int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res);
 dnn_info * find_dnn_by_id(dnn_queue * dnn_list, int id);
 void print_queue(char * name, Queue * q);
+void print_list(char * name, dnn_queue * dnn_list);
 void re_assign_priority(dnn_queue * dnn_list, resource * gpu, resource * cpu);
 
 ///// Utils ////
 void del_arg(int argc, char **argv, int index);
 int find_int_arg(int argc, char **argv, char *arg, int def);
 double get_time_point();
+void bubbleSort(QNode * start);
+void swap(QNode * a, QNode *b);
+
+
 
 //// LaLaRAND ////
 void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg);
