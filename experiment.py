@@ -6,7 +6,7 @@ from threading import Thread
 import subprocess 
 import os, signal
 
-def darknet(task_info, pids, lalarand_pid ,result):
+def darknet(task_info, pids, lalarand_pid ,result, taskset_path):
     task_name= task_info[0]
     task_period = int(task_info[1])
     task_num = int(task_info[2])
@@ -26,7 +26,9 @@ def darknet(task_info, pids, lalarand_pid ,result):
     command_line.append(str(task_period))
     command_line.append("-num")
     command_line.append(str(task_num))
-    
+    command_line.append("-log_path")
+    command_line.append(taskset_path)
+
     sub = subprocess.Popen(command_line)
     
     pid = sub.pid
@@ -53,7 +55,7 @@ def darknet(task_info, pids, lalarand_pid ,result):
     else:
         result.append(1) 
     
-def lalarand(task_num, lalarand_pid ,mode, log):
+def lalarand(task_num, lalarand_pid ,mode, log, taskset_path):
     command_line = ["./lalarand/lalarand"]
     command_line.append("-sync")
     command_line.append(str(task_num))
@@ -61,6 +63,8 @@ def lalarand(task_num, lalarand_pid ,mode, log):
     command_line.append(str(mode))
     command_line.append("-log")
     command_line.append(str(log))
+    command_line.append("-log_path")
+    command_line.append(taskset_path)
 
     sub = subprocess.Popen(command_line)
     lalarand_pid.append(sub.pid)
@@ -71,7 +75,9 @@ if __name__ == "__main__":
     parser.add_argument("--mode", type = int , default = 4, help = "1: ALL GPU 2: Preferable 3: Static 4: LaLaRAND")
     parser.add_argument("--n", type = int, default = -1, help = " -1 : ALL , other is other number")
     parser.add_argument("--output", type = str, default = "_")
-    parser.add_argument("--log", type =int, default = 1, help = "1: log on , 0: log off");
+    parser.add_argumetn("--log_path", type = str, default = "Exp/RM/")
+    parser.add_argument("--log", type =int, default = 1, help = "1: log on , 0: log off")
+
     opt = parser.parse_args()
 
     fp = open("taskset_list.txt","r")
@@ -82,11 +88,12 @@ if __name__ == "__main__":
         print("Need Output file name")
         exit(-1)
     
-    f_sched = open(opt.output+"_sched.txt","w")
-    f_unsched = open(opt.output+"_unsched.txt","w")
+    f_sched = open("Exp/RM/"+opt.output+"_sched.txt","w")
+    f_unsched = open("Exp/RM/"+ opt.output+"_unsched.txt","w")
 
     list_of_taskset_list = []
     taskset_list = []
+    
     for line in lines:
         token = line.split()
         if len(token) == 1:
@@ -98,9 +105,26 @@ if __name__ == "__main__":
     sched = []
     unsched = []
     num = opt.n
+    
     if num == -1:
         num = len(list_of_taskset_list)
-    for taskset_list in list_of_taskset_list[:num]:
+    
+    path = opt.log_path
+
+    for index, taskset_list in enumerate(list_of_taskset_list[:num]):
+        
+        taskset_path = os.path.join(path,"taskset_"+str(index))
+        
+        os.mkdir(taskset_path)
+        
+        fp = open(taskset_path + "/tasksetinfo.txt","w")
+
+        for task in taskset_list:
+            for info in task:
+                fp.write(str(info)+" ")
+            fp.write("\n")
+
+
         task_num = len(taskset_list)
         task_thread = []
         
@@ -108,10 +132,10 @@ if __name__ == "__main__":
         pids = []
 
         lalarand_pid = []
-        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,opt.mode, opt.log))
+        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,opt.mode, opt.log, taskset_path))
        
         for task in taskset_list:
-            task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result)))
+            task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, taskset_path)))
     
     
         lalarand_thread.start()
@@ -122,22 +146,28 @@ if __name__ == "__main__":
     
         for thread in task_thread:
             thread.join()
+    
         if(sum(result) != task_num):
+            fp.write("unsched\n")
+            f_unsched.write(str(index) + "\n")
             unsched.append(taskset_list)
             for task in taskset_list:
                 for element in task:
                     f_unsched.write(element)
                     f_unsched.write(" ")
                 f_unsched.write("\n")
-            f_unsched.write("1\n")
         else:
+            fp.write("sched\n")
+            f_sched.write(str(index) + "\n")
             sched.append(taskset_list)
             for task in taskset_list:
                 for element in task:
                     f_sched.write(element)
                     f_sched.write(" ")
                 f_sched.write("\n")
-            f_sched.write("1\n")
+
+
+        fp.close()
 
         os.kill(lalarand_pid[0],signal.SIGKILL)
 

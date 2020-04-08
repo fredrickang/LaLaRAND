@@ -30,8 +30,16 @@ int main(int argc, char **argv){
     int Sync = find_int_arg(argc, argv, "-sync", 1);
     int mode = find_int_arg(argc, argv, "-mode", 4); // mode 1: ALL GPU // mode 2: preferable // mode 3: Static //mode 4: LaLaRAND
     int log = find_int_arg(argc, argv, "-log", 1);
-    printf("Sync : %d Mode :%d Log :%d\n", Sync, mode, log);
-    
+    int index = find_int_arg(argc, argv, "-index", -1);
+
+    printf("Sync : %d Mode :%d Log :%d Index :%d\n", Sync, mode, log, index);
+
+    if(index == -1){
+        puts("taskset index is not correct!");
+        exit(-1);
+    }
+
+
     struct sched_param high;
     memset( &high, 0, sizeof(high));
     high.sched_priority = 20;
@@ -57,10 +65,20 @@ int main(int argc, char **argv){
     fd_set readfds;
     dnn_info *node;
     
-    char log_name[30];
-    snprintf(log_name, 30, "./lalarand_log_%d.txt",getpid());
-    
-    if(log) freopen(log_name,"w",stderr);
+    char log_path[50];
+    switch (mode){
+        case 1:
+            snprintf(log_path, 50, "../Exp/RM/taskset_%d/lala_%d.txt", index, getpid());
+        case 2:
+            snprintf(log_path, 50, "../Exp/RM_PR/taskset_%d/lala_%d.txt", index, getpid());
+        case 3:
+            snprintf(log_path, 50, "../Exp/RM_DART/taskset_%d/lala_%d.txt", index, getpid());
+        case 4:
+            snprintf(log_path, 50, "../Exp/RM_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+    }
+
+    freopen(log_path,"w", stderr);
+
     do{
         gpu_target = -1;
         cpu_target = -1;
