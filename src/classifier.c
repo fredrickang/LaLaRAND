@@ -1292,7 +1292,7 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     char *input = buff;
     //int size = net.w;
 
-    puts("===== Initialize ====");
+    puts("===== Initialize =====");
     for (int k = 0; k < 3; k++){
         input = paths[k];
         image im = load_image_color(input, 0, 0);
@@ -1309,7 +1309,7 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     int pid = getpid();
     for (int k =0; k < numofjob; k++){
 
-        printf("=====================%d JOB %d=====================\n", pid, k);
+        fprintf(stderr,"=====================%d JOB %d=====================\n", pid, k);
 
         input = paths[k%m];
         image im = load_image_color(input, 0, 0);
@@ -1338,7 +1338,7 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
 
         miss = deadline_miss_check(&release_time,&current_time);
         if(miss){
-            printf("============ %d task %d job miss  ==============\n", getpid(), k);
+            fprintf(stderr,"============ %d task %d job miss  ==============\n", getpid(), k);
             free_network(net);
             exit(-1);
         }

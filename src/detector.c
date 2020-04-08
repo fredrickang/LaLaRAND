@@ -1542,7 +1542,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
 
     int m = plist->size;
     
-    puts("Initialize");
+    puts("=======Initialize========");
     for(k = 0; k< 3; k++){
         input = paths[k];
         image im =load_image(input, 0, 0, net.c);
@@ -1565,7 +1565,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     for (k =0; k< numofjob; k++){
         //t_period = get_time_point();
         ///// IMAGE PREPROCESSING /////
-        printf("=====================%d JOB %d=====================\n",pid, k);
+        fprintf(stderr,"=====================%d JOB %d=====================\n",pid, k);
         input = paths[k%m];
         image im = load_image(input, 0, 0, net.c);
         image sized;
@@ -1656,7 +1656,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
 
         miss = deadline_miss_check(&release_time, &current_time);
         if(miss){
-            printf("============ %d task %d job miss  ==============\n", getpid(), k);
+            fprintf(stderr,"============ %d task %d job miss  ==============\n", getpid(), k);
             free_network(net);
             exit(-1);
         }

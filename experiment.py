@@ -6,7 +6,7 @@ from threading import Thread
 import subprocess 
 import os, signal
 
-def darknet(task_info, pids, lalarand_pid ,result, taskset_path):
+def darknet(task_info, pids, lalarand_pid ,result, mode, index):
     task_name= task_info[0]
     task_period = int(task_info[1])
     task_num = int(task_info[2])
@@ -26,6 +26,10 @@ def darknet(task_info, pids, lalarand_pid ,result, taskset_path):
     command_line.append(str(task_period))
     command_line.append("-num")
     command_line.append(str(task_num))
+    command_line.append("-mode")
+    command_line.append(str(mode))
+    command_line.append("-index")
+    command_line.append(str(index))
 
     sub = subprocess.Popen(command_line)
     
@@ -128,7 +132,7 @@ if __name__ == "__main__":
         lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,opt.mode, index))
        
         for task in taskset_list:
-            task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, taskset_path)))
+            task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, opt.mode, index)))
     
     
         lalarand_thread.start()

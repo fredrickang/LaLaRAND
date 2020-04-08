@@ -147,7 +147,7 @@ void forward_network_gpu(network net, network_state state)
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
         
-        printf("[%d] Layer %3d Resource %d Executed %8.5f\n", getpid(), i, resource, ((double)get_time_point() - execution)/1000);
+        fprintf(stderr,"[%d] Layer %3d Resource %d Executed %8.5f\n", getpid(), i, resource, ((double)get_time_point() - execution)/1000);
 
         state.input = resource ? l.output_gpu : l.output; 
         before = resource;
@@ -158,7 +158,7 @@ void forward_network_gpu(network net, network_state state)
         perror("Request :");
         exit(-1);
     }
-    printf("Total Time cost : %8.5f\n", ((double)get_time_point() - total_time)/1000);
+    fprintf(stderr,"Total Time cost : %8.5f\n", ((double)get_time_point() - total_time)/1000);
 }
 
 

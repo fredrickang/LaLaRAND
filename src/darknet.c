@@ -531,6 +531,27 @@ int main(int argc, char **argv)
     numofjob = find_int_arg(argc, argv, "-num",  -1);
     assert(numofjob != -1);
     
+    int mode = find_int_arg(argc, argv, "-mode", 1);
+    int index = find_int_arg(argc, argv, "-index", 0);
+
+    char log_path[50];
+    
+    switch (mode){
+        case 1:
+            snprintf(log_path, 50, "./Exp/RM/taskset_%d/task_%d.txt", index, getpid());
+            break;
+        case 2:
+            snprintf(log_path, 50, "./Exp/RM_PR/taskset_%d/task_%d.txt", index, getpid());
+            break;
+        case 3:
+            snprintf(log_path, 50, "./Exp/RM_DART/taskset_%d/task_%d.txt", index, getpid());
+            break;
+        case 4:
+            snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/task_%d.txt", index, getpid());
+    }
+
+    freopen(log_path, "w", stderr);
+
 #ifndef GPU
     gpu_index = -1;
 #else
@@ -547,14 +568,12 @@ int main(int argc, char **argv)
 
     get_task_info(task, argv);
         ///// data cfg
-    printf("data path %s\n",argv[3]);
+    fprintf(stderr,"data path %s\n",argv[3]);
         ///// model cfg
-    printf("model path %s\n",argv[4]);
+    fprintf(stderr,"model path %s\n",argv[4]);
         ///// weight cfg
-    printf("weight path %s\n",argv[5]);
+    fprintf(stderr,"weight path %s\n",argv[5]);
         //redirect stdout & stderr to certain file.
-
-    freopen("/tmp/dummy.txt","w",stderr);
 
     //original darknet main process.
     if (0 == strcmp(argv[1], "average")){

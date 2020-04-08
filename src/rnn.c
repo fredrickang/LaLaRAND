@@ -524,7 +524,7 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
     
     int pid = getpid();
     for(i = 0; i < numofjob; ++i){
-        printf("=====================%d JOB %d====================\n",pid,i);
+        fprintf(stderr,"=====================%d JOB %d====================\n",pid,i);
         input[c] = 1;
         float *out = network_predict(net, input);
         input[c] = 0;
@@ -541,7 +541,7 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
 
         miss = deadline_miss_check(&release_time,&current_time);
         if(miss){
-            printf("============ %d task %d job miss  ==============\n", getpid(), i);
+            fprintf(stderr,"============ %d task %d job miss  ==============\n", getpid(), i);
             free_network(net);
             exit(-1);
         }
