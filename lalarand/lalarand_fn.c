@@ -196,6 +196,14 @@ dnn_info * find_dnn_by_pid(dnn_queue * dnn_list, int pid){
     return node;
 }   
 
+QNode * find_node_by_id(Queue *q, int id){
+    QNode * node = q->front;
+    while(node -> id != id){
+        node = node->next;
+    }
+    return node;
+}
+
 void print_list(char * name, dnn_queue * dnn_list){
     dnn_info * head = dnn_list -> head;
     fprintf(stderr, "%s :", name);
@@ -344,6 +352,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
     dnn -> type = msg -> type;
     dnn -> period = msg -> period;
     dnn -> priority = -1;
+    dnn -> active = 0;
     fprintf(stderr,"======== REGISTRATION ========\n");
     fprintf(stderr,"[ID]     %3d\n", dnn-> id);
     fprintf(stderr,"[PID]    %3d\n", dnn-> pid);
@@ -493,9 +502,11 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
       }
 
      if(request_layer != node -> layers){
+         node->active = 1;
          if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
          else enQueue(cpu->waiting, request_layer, node -> id, node -> priority );
       }
+      else node->active = 0;
 }
 
 
@@ -550,7 +561,7 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
         slack = node->deadline - current_time - workload_left(profile_list[node->type],tmp -> layer, node->layers);
         if( slack > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer])) { /* first condidtion */
             future_wait = waiting(q, dnn_list, profile_list, current_time, From, tmp->id);
-            blocked = blocking(dnn_list, profile_list, From, tmp->id);
+            blocked = blocking(q, dnn_list, profile_list, From, tmp->id);
             //printf("Future_wait : %f\n", future_wait);
             //printf("Blocked : %f\n", blocked);
             //printf("GPU : %d\n", profile_list[node->type]->gpu_exec[tmp->layer]);
@@ -622,17 +633,32 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
     return waited;
 }
 
-double blocking(dnn_queue * dnn_list, dnn_profile ** profile_list, resource * From, int target_id){
+/*
+    1.find target's execution window (current time, target.deadline)
+    2.find task's which next release(deadline) is between them
+    3. for 2) they search all layers
+    4.search remaining layers which is currently activated
+*/
+double blocking(Queue * q, dnn_queue * dnn_list,dnn_profile ** profile_list, resource * From, int target_id){
     dnn_info * target = find_dnn_by_id(dnn_list, target_id);
-    
-    int biggest = 0;
-    for(dnn_info * tmp = dnn_list->head; tmp != NULL; tmp = tmp->next){
-        if(tmp != target){
+
+    double limit = target -> deadline;
+    double biggest = 0;
+
+    for(dnn_info * tmp = dnn_list->head; tmp != NULL; tmp = tmp ->next){
+        if(tmp -> deadline < limit){
             dnn_profile * tmp_profile = profile_list[tmp->type];
-            for(int i =0; i < tmp->layers; i++){
-                if(tmp_profile->cfg[i] == From->res_id){
-                    int current = From->res_id == GPU ? tmp_profile->gpu_exec[i] : tmp_profile->cpu_exec[i];
-                    if (current > biggest) biggest =  current;
+            for(int i = 0; i < tmp->layers; i++){
+                double now = From->res_id == GPU ? tmp_profile -> gpu_exec[i] : tmp_profile -> cpu_exec[i] ;
+                if ( biggest < now) biggest = now;
+            }        
+        }else{
+            if(tmp -> active){
+                dnn_profile * tmp_profile = profile_list[tmp->type];
+                int current_layer = find_node_by_id(q, tmp->id)->layer;
+                for(int i = current_layer; i < tmp->layers; i++){
+                    double now = From->res_id == GPU ? tmp_profile -> gpu_exec[i] : tmp_profile -> cpu_exec[i];
+                    if (biggest < now) biggest = now;
                 }
             }
         }

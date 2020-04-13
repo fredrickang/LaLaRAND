@@ -17,6 +17,8 @@ Queue * createQueue();
 void enQueue(Queue *q, int layer, int id, int period);
 int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res);
 dnn_info * find_dnn_by_id(dnn_queue * dnn_list, int id);
+dnn_info * find_dnn_by_pid(dnn_queue * dnn_list, int pid);
+QNode * find_node_by_id(Queue *q, int id);
 void print_queue(char * name, Queue * q);
 void print_list(char * name, dnn_queue * dnn_list);
 void re_assign_priority(dnn_queue * dnn_list, resource * gpu, resource * cpu);
@@ -46,8 +48,7 @@ char* get_dnn_name(DNN_TYPE type);
 double workload_left(dnn_profile * profile, int current_layer, int layer_num);
 int make_fdset(fd_set *readfds,int reg_fd, dnn_queue * dnn_list);
 double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res, int target_id);
-double blocking(dnn_queue * dnn_list, dnn_profile ** profile_list, resource *res, int target_id);
-
+double blocking(Queue * q, dnn_queue * dnn_list,dnn_profile ** profile_list, resource * From, int target_id);
 int open_channel(char * pipe_name,int mode);
 void close_channel(char * pipe_name);
 void close_channels(dnn_info * dnn);
