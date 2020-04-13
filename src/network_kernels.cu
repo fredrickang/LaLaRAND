@@ -87,7 +87,7 @@ void forward_network_gpu(network net, network_state state)
         state.index = i;
         layer l = net.layers[i];
         
-        
+  //      double send_request = get_time_point();        
         // send request
         if( write(request_fd, &i, sizeof(int)) == -1 ){
             perror("request send : ");
@@ -98,6 +98,8 @@ void forward_network_gpu(network net, network_state state)
             perror("decision recv : ");
             exit(-1);
         } 
+        double get_decision = get_time_point();
+//        printf("[OVERHEAD] %d %d REQUEST&DECISION: %8.5f\n",getpid(), i ,((double)get_decision - send_request));
 
         if( i == 0){
             clock_gettime(CLOCK_MONOTONIC, &release_time);

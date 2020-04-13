@@ -104,7 +104,7 @@ if __name__ == "__main__":
         num = len(list_of_taskset_list)
     
     path = opt.log_path
-
+    print(num)
     for index, taskset_list in enumerate(list_of_taskset_list[:num]):
         
         taskset_path = os.path.join(path,"taskset_"+str(index))

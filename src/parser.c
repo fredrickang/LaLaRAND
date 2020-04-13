@@ -931,6 +931,7 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     
 
     // Register to LaLaRAND 
+    double reg_start = get_time_point();
     if( (register_fd = open("/tmp/lalarand_registration",O_WRONLY)) < 0){
         perror("Opening Registeration : ");
         exit(-1);
@@ -952,7 +953,8 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
         perror("Registerating :  ");
         exit(-1);
     }
-    
+    //printf("[OVERHEAD] REGISTRATION: %8.5f\n",((double)get_time_point() - reg_start));
+    double channel_start = get_time_point();
     char request[30];
     char decision[30];
     
@@ -961,7 +963,7 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
 
     while( (request_fd = open(request, O_WRONLY)) < 0);
     while( (decision_fd = open(decision, O_RDONLY)) < 0);
-    
+    //printf("[OVERHEAD] CHANNEL OPEN: %8.5f\n",((double)get_time_point() - channel_start));   
     fprintf(stderr, "   layer   filters  size/strd(dil)      input                output\n");
     while(n){
         params.index = count;
@@ -1488,13 +1490,13 @@ void load_weights_upto(network *net, char *filename, int cutoff)
     fread(&revision, sizeof(int), 1, fp);
     if ((major * 10 + minor) >= 2) {
     //if(0){
-        printf("\n seen 64 \n");
+        //printf("\n seen 64 \n");
         uint64_t iseen = 0;
         fread(&iseen, sizeof(uint64_t), 1, fp);
         *net->seen = iseen;
     }
     else {
-        printf("\n seen 32 \n");
+        //printf("\n seen 32 \n");
         uint32_t iseen = 0;
         fread(&iseen, sizeof(uint32_t), 1, fp);
         *net->seen = iseen;

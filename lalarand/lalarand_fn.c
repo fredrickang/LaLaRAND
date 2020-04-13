@@ -176,7 +176,7 @@ int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double
     
     q -> count --;
     free(target);
-    fprintf(stderr,"Dequeue : [ID] %d [layers] %d \n", target_id, target_layer);
+    fprintf(stderr,"Dequeue : [ID] %d [layer] %d \n", target_id, target_layer);
     return target_id;
 }  
 
@@ -320,7 +320,7 @@ dnn_profile ** make_profile_list(int mode){
     make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg);
     make_profile(profile_list[EXTRACTION], 28, extraction_gpu, extraction_cpu, extraction_cfg);
     make_profile(profile_list[RESNET], 29, resnet_gpu, resnet_cpu, resnet_cfg);
-    make_profile(profile_list[RECURRENT], 5, rnn_gpu, rnn_cpu, rnn_cfg);
+    make_profile(profile_list[RECURRENT], 6, rnn_gpu, rnn_cpu, rnn_cfg);
 
     return profile_list;
 }

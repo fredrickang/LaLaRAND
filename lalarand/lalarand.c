@@ -117,6 +117,7 @@ int main(int argc, char **argv){
                 if(cpu_target != -1) decision_handler(cpu_target, dnn_list, CPU);
                 Sync = 0;
             }
+            printf("[OVERHEAD] LaLa %8.5f\n",((double)get_time_point() - current_time));
         }
     }while(!(Sync == 0 && dnn_list -> count == 0)); 
 }   
