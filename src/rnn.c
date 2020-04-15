@@ -474,6 +474,8 @@ void vec_char_rnn(char *cfgfile, char *weightfile, char *seed)
 
 void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float temp, int rseed, char *token_file, float ms_period)
 {
+    
+    puts("=======Initialize========");
     char **tokens = 0;
     if(token_file){
         size_t n;
