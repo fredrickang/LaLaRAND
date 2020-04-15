@@ -13,6 +13,7 @@ typedef struct _DNN_PROFILE{
     int * gpu_exec;
     int * cpu_exec;
     int *cfg;
+    int * layer_inputs;
 }dnn_profile;
 
 typedef struct _DNN_INFO{

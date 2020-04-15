@@ -260,15 +260,18 @@ double get_time_point(){
 
 
 //// LaLaRAND ////
-void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg){
+void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg, int *layer_inputs){
     
     tmp->gpu_exec = (int *)malloc(sizeof(int) * layers);
     tmp->cpu_exec = (int *)malloc(sizeof(int) * layers);
     tmp->cfg = (int *)malloc(sizeof(int) * layers);
+    tmp->layer_inputs = (int *)malloc(sizeof(int) * layers);
+
 
     memcpy(tmp->gpu_exec, gpu, sizeof(int) *layers);
     memcpy(tmp->cpu_exec, cpu, sizeof(int) *layers);
     memcpy(tmp->cfg , cfg, sizeof(int) * layers);
+    memcpy(tmp->layer_inputs, layer_inputs, sizeof(int)* layers);
 }
 
 dnn_profile ** make_profile_list(int mode){
@@ -325,10 +328,10 @@ dnn_profile ** make_profile_list(int mode){
     if (mode == 3){
     }
     
-    make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg);
-    make_profile(profile_list[EXTRACTION], 28, extraction_gpu, extraction_cpu, extraction_cfg);
-    make_profile(profile_list[RESNET], 29, resnet_gpu, resnet_cpu, resnet_cfg);
-    make_profile(profile_list[RECURRENT], 6, rnn_gpu, rnn_cpu, rnn_cfg);
+    make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg, yolo_inputs);
+    make_profile(profile_list[EXTRACTION], 28, extraction_gpu, extraction_cpu, extraction_cfg, extraction_inputs);
+    make_profile(profile_list[RESNET], 29, resnet_gpu, resnet_cpu, resnet_cfg, resnet_inputs);
+    make_profile(profile_list[RECURRENT], 6, rnn_gpu, rnn_cpu, rnn_cfg, rnn_inputs);
 
     return profile_list;
 }
@@ -550,7 +553,7 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
     if(q->count == 0)
         return -1;
     
-    double slack, future_wait, blocked;
+    double slack, future_wait, blocked, data_trans;
     dnn_info * node;
     int target_id = -1;
     int target_layer = -1;
@@ -562,12 +565,13 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
         if( slack > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer])) { /* first condidtion */
             future_wait = waiting(q, dnn_list, profile_list, current_time, From, tmp->id);
             blocked = blocking(q, dnn_list, profile_list, From, tmp->id);
+            data_trans = data_transfer(dnn_list , profile_list, From, tmp->id, tmp->layer);
             //printf("Future_wait : %f\n", future_wait);
             //printf("Blocked : %f\n", blocked);
             //printf("GPU : %d\n", profile_list[node->type]->gpu_exec[tmp->layer]);
             //printf("CPU : %d\n", profile_list[node->type]->cpu_exec[tmp->layer]);
             //printf("DIFF : %d\n", abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer]));
-            if ( future_wait - blocked > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer]))
+            if ( future_wait - blocked - data_trans > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer]))
                 if( slack < smallest ){
                     target_id = tmp -> id;
                     target_layer = tmp -> layer;
@@ -665,6 +669,30 @@ double blocking(Queue * q, dnn_queue * dnn_list,dnn_profile ** profile_list, res
     }
 
     return biggest;
+}
+
+
+double data_transfer(dnn_queue * dnn_list, dnn_profile **profile_list, resource *From ,int target_id, int target_layer){
+    double d2h = 10;
+    double h2d = 10;
+
+    dnn_info * target = find_dnn_by_id(dnn_list, target_id);
+
+    dnn_profile * target_profile = profile_list[target->type];
+    int go, back;
+
+    go = target_profile->layer_inputs[target_layer];
+
+    back = 0;
+    for(int i = target_layer+1 ; i < target->layers; i++) 
+        if( back < target_profile->layer_inputs[i]) 
+            back = target_profile->layer_inputs[i];
+
+    double go_time, back_time;
+    go_time = From->res_id == GPU ? go*d2h : go*h2d;
+    back_time = From->res_id == GPU ? back*h2d : back*d2h;
+
+    return go_time + back_time;
 }
 
 ///// communication ////
