@@ -196,14 +196,6 @@ dnn_info * find_dnn_by_pid(dnn_queue * dnn_list, int pid){
     return node;
 }   
 
-QNode * find_node_by_id(Queue *q, int id){
-    QNode * node = q->front;
-    while(node -> id != id){
-        node = node->next;
-    }
-    return node;
-}
-
 void print_list(char * name, dnn_queue * dnn_list){
     dnn_info * head = dnn_list -> head;
     fprintf(stderr, "%s :", name);
@@ -286,22 +278,22 @@ dnn_profile ** make_profile_list(int mode){
     int yolo_gpu[24]  = {527 ,52 ,210 ,32 ,135 ,24 ,103 ,21 ,98 ,13 ,104 ,20 ,324 ,71 ,106 ,45 ,76 ,10 ,50 ,25 ,21 ,197 ,61 ,76};
     int yolo_cpu[24] = {6946 ,1507 ,12932 ,673 ,24668 ,496 ,11377 ,323 ,11158 ,101 ,15261 ,321 ,60332 ,3368 ,15216 ,1684 ,37 ,20 ,440 ,126 ,94 ,34176 ,2454 ,157 };
     int yolo_cfg[24] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1 }; 
-    int yolo_inputs[24] =  {519168,2768896,692224,1384448,346112,692224,173056,346112,86528,173056,43264,86528,86528,173056,43264,86528,43095,43264,43264,21632,259584,259584,173056,172380}
+    int yolo_inputs[24] =  {519168,2768896,692224,1384448,346112,692224,173056,346112,86528,173056,43264,86528,86528,173056,43264,86528,43095,43264,43264,21632,259584,259584,173056,172380};
     
     int extraction_gpu[28] = {172 ,29 ,155 ,23 ,53 ,98 ,77 ,267 ,22 ,55 ,110 ,49 ,106 ,50 ,107 ,50 ,109 ,71 ,328 ,17 ,50 ,228 ,50 ,225 ,67 ,16 ,93 ,6 };
     int extraction_cpu[28] = {15523 ,400 ,19323 ,307 ,1146 ,12767 ,2821 ,56113 ,204 ,1670 ,14507 ,1664 ,14563 ,1618 ,14526 ,1623 ,14509 ,3237 ,57573 ,111 ,3143 ,28034 ,3135 ,28047,6064 ,21 ,8 ,1 };
     int extraction_cfg[28]=  {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0 };
-    int extraction_inputs[28] = {150528,802816,200704,602112,150528,100352,200704,200704,401408,100352,50176,100352,50176,100352,50176,100352,50176,100352,100352,200704,50176,25088,50176,25088,50176,49000,1000,1000}
+    int extraction_inputs[28] = {150528,802816,200704,602112,150528,100352,200704,200704,401408,100352,50176,100352,50176,100352,50176,100352,50176,100352,100352,200704,50176,25088,50176,25088,50176,49000,1000,1000};
     
     int resnet_gpu[29] = {208 ,32 ,82 ,74 ,25 ,79 ,72 ,24 ,77 ,103 ,24 ,104 ,107 ,19 ,71 ,67 ,22 ,67 ,66 ,16 ,81 ,125 ,21 ,126 ,126 ,19 ,22 ,40 ,95 };
     int resnet_cpu[29] = {17983 ,520 ,8618 ,8576 ,120 ,8923 ,8880 ,123 ,4746 ,9105 ,130 ,9394 ,9258 ,60 ,4666 ,9362 ,64 ,9351 ,9363 ,33 ,6811 ,13605 ,37 ,13730 ,14108 ,16,13 ,763 ,10 };
     int resnet_cfg[29] =  {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0};
-    int resnet_inputs[29] = {196608,1048576,262144,262144,262144,262144,262144,262144,262144,131072,131072,131072,131072,131072,131072,65536,65536,65536,65536,65536,65536,32768,32768,32768,32768,32768,32768,512,1000}
+    int resnet_inputs[29] = {196608,1048576,262144,262144,262144,262144,262144,262144,262144,131072,131072,131072,131072,131072,131072,65536,65536,65536,65536,65536,65536,32768,32768,32768,32768,32768,32768,512,1000};
 
     int rnn_gpu[6] = {199 ,183 ,164 ,49 ,36 ,5 };
     int rnn_cpu[6] = {203 ,259 ,254 ,21 ,8 ,1 };
     int rnn_cfg[6] = {1, 1, 1, 0, 0, 0};
-    int rnn_inputs[6] = {256,1024,1024,1024,256,256}
+    int rnn_inputs[6] = {256,1024,1024,1024,256,256};
 
     for(int i = 0; i < 24; i++){
         yolo_gpu[i] = yolo_gpu[i]*10;
@@ -514,6 +506,16 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
       else node->active = 0;
 }
 
+void send_release_time(dnn_queue * dnn_list){
+    struct timespec current_time;
+    clock_gettime(CLOCK_MONOTONIC, &current_time);
+    
+    for(dnn_info * tmp = dnn_list-> head; tmp != NULL; tmp = tmp->next){
+       if (write(tmp->decision_fd, &current_time, sizeof(struct timespec)) < 0)
+            perror("release_time ");
+    }
+
+}
 
 void decision_handler(int target_id, dnn_queue * dnn_list, int decision){
     dnn_info * target = find_dnn_by_id(dnn_list, target_id);
@@ -652,19 +654,21 @@ double blocking(Queue * q, dnn_queue * dnn_list,dnn_profile ** profile_list, res
     double biggest = 0;
 
     for(dnn_info * tmp = dnn_list->head; tmp != NULL; tmp = tmp ->next){
-        if(tmp -> deadline < limit){
-            dnn_profile * tmp_profile = profile_list[tmp->type];
-            for(int i = 0; i < tmp->layers; i++){
-                double now = From->res_id == GPU ? tmp_profile -> gpu_exec[i] : tmp_profile -> cpu_exec[i] ;
-                if ( biggest < now) biggest = now;
-            }        
-        }else{
-            if(tmp -> active){
+        if(tmp != target){
+            if(tmp -> deadline < limit){
                 dnn_profile * tmp_profile = profile_list[tmp->type];
-                int current_layer = find_node_by_id(q, tmp->id)->layer;
-                for(int i = current_layer; i < tmp->layers; i++){
-                    double now = From->res_id == GPU ? tmp_profile -> gpu_exec[i] : tmp_profile -> cpu_exec[i];
-                    if (biggest < now) biggest = now;
+                for(int i = 0; i < tmp->layers; i++){
+                    double now = From->res_id == GPU ? tmp_profile -> gpu_exec[i] : tmp_profile -> cpu_exec[i] ;
+                    if ( biggest < now) biggest = now;
+                }        
+            }else{
+                if(tmp -> active){
+                    dnn_profile * tmp_profile = profile_list[tmp->type];
+                    int current_layer = find_node_by_id(q, tmp->id)->layer;
+                    for(int i = current_layer; i < tmp->layers; i++){
+                        double now = From->res_id == GPU ? tmp_profile -> gpu_exec[i] : tmp_profile -> cpu_exec[i];
+                        if (biggest < now) biggest = now;
+                    }
                 }
             }
         }

@@ -79,7 +79,7 @@ int main(int argc, char **argv){
             snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/lala_%d.txt", index, getpid());
     }
     
-    freopen(log_path,"w", stderr);
+    //freopen(log_path,"w", stderr);
 
     do{
         gpu_target = -1;
@@ -102,7 +102,7 @@ int main(int argc, char **argv){
             print_queue("GPU",gpu->waiting);
             print_queue("CPU",cpu->waiting);
             if(!(gpu->waiting->count + cpu->waiting->count < Sync)){
-            
+                 
                 if(Sync) update_deadline_all(dnn_list, current_time);
 
                 if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);
@@ -113,6 +113,8 @@ int main(int argc, char **argv){
                     if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, gpu, cpu);
                 }
                 
+                if(Sync) send_release_time(dnn_list);
+
                 if(gpu_target != -1) decision_handler(gpu_target, dnn_list, GPU);
                 if(cpu_target != -1) decision_handler(cpu_target, dnn_list, CPU);
                 Sync = 0;

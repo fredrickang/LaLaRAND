@@ -56,6 +56,8 @@ extern int request_fd, decision_fd, lalarand_pid;
 extern int * history = NULL;
 extern struct timespec release_time = {0, 0};
 
+int first = 1;
+
 void forward_network_gpu(network net, network_state state)
 {
     cudaDeviceSynchronize();
@@ -87,25 +89,27 @@ void forward_network_gpu(network net, network_state state)
         state.index = i;
         layer l = net.layers[i];
         
-  //      double send_request = get_time_point();        
+        // double send_request = get_time_point();        
         // send request
         if( write(request_fd, &i, sizeof(int)) == -1 ){
             perror("request send : ");
             exit(-1);
         }
         // wait for decision 
+        
+        if(first){
+            if( read(decision_fd, &release_time, sizeof(struct timespec)) == -1){
+                perror("release time : ");
+                exit(-1);
+            }
+            first = 0;
+        }
         if( read(decision_fd, &resource, sizeof(int)) == -1){
             perror("decision recv : ");
             exit(-1);
         } 
-        double get_decision = get_time_point();
 //        printf("[OVERHEAD] %d %d REQUEST&DECISION: %8.5f\n",getpid(), i ,((double)get_decision - send_request));
 
-        if( i == 0){
-            clock_gettime(CLOCK_MONOTONIC, &release_time);
-            total_time = get_time_point();
-        }
-        
         history[i] = resource; 
         execution = get_time_point();
 
@@ -160,7 +164,8 @@ void forward_network_gpu(network net, network_state state)
         perror("Request :");
         exit(-1);
     }
-    fprintf(stderr,"Total Time cost : %8.5f\n", ((double)get_time_point() - total_time)/1000);
+    //fprintf(stderr,"Total Time cost : %8.5f\n", ((double)get_time_point() - total_time)/1000);
+    //if(sched_setscheduler(0, SCHED_FIFO, &low) == -1) perror("SCHED_FIFO low : ");
 }
 
 

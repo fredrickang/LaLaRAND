@@ -931,7 +931,6 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     
 
     // Register to LaLaRAND 
-    double reg_start = get_time_point();
     if( (register_fd = open("/tmp/lalarand_registration",O_WRONLY)) < 0){
         perror("Opening Registeration : ");
         exit(-1);

@@ -30,8 +30,7 @@ double get_time_point();
 void bubbleSort(QNode * start);
 void swap(QNode * a, QNode *b);
 
-
-
+void send_release_time(dnn_queue * dnn_list);
 //// LaLaRAND ////
 void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg);
 dnn_profile ** make_profile_list(int mode);
@@ -52,4 +51,7 @@ double blocking(Queue * q, dnn_queue * dnn_list,dnn_profile ** profile_list, res
 int open_channel(char * pipe_name,int mode);
 void close_channel(char * pipe_name);
 void close_channels(dnn_info * dnn);
+double data_transfer(dnn_queue * dnn_list ,dnn_profile ** profile_list, resource *From, int target_id, int target_layer);
+
+
 #endif

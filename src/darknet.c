@@ -550,7 +550,7 @@ int main(int argc, char **argv)
             snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/task_%d.txt", index, getpid());
     }
 
-    freopen(log_path, "w", stderr);
+    //freopen(log_path, "w", stderr);
 
 #ifndef GPU
     gpu_index = -1;

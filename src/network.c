@@ -1197,14 +1197,11 @@ void free_network(network net)
     free(net.steps);
     free(net.seen);
     
-    double free_start = get_time_point();
-
     msg * de_reg = (msg *)malloc(sizeof(msg));
     de_reg -> regist = 0;
     de_reg -> pid = getpid();
 
     write(register_fd, de_reg, sizeof(int) * 2);
-    //printf("[OVERHEAD] DEREGISTARTION %8.5f\n",((double)get_time_point() - free_start));
 #ifdef GPU
     if (gpu_index >= 0){
         cuda_free(net.workspace);
