@@ -349,7 +349,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
     dnn -> type = msg -> type;
     dnn -> period = msg -> period;
     dnn -> priority = -1;
-    dnn -> active = 0;
+    dnn -> current_layer = -1;
     fprintf(stderr,"======== REGISTRATION ========\n");
     fprintf(stderr,"[ID]     %3d\n", dnn-> id);
     fprintf(stderr,"[PID]    %3d\n", dnn-> pid);
@@ -499,11 +499,11 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
       }
 
      if(request_layer != node -> layers){
-         node->active = 1;
+         node->current_layer = request_layer;
          if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
          else enQueue(cpu->waiting, request_layer, node -> id, node -> priority );
       }
-      else node->active = 0;
+      else node->current_layer = -1;
 }
 
 void send_release_time(dnn_queue * dnn_list){
@@ -662,10 +662,9 @@ double blocking(Queue * q, dnn_queue * dnn_list,dnn_profile ** profile_list, res
                     if ( biggest < now) biggest = now;
                 }        
             }else{
-                if(tmp -> active){
+                if(tmp -> current_layer != -1){
                     dnn_profile * tmp_profile = profile_list[tmp->type];
-                    int current_layer = find_node_by_id(q, tmp->id)->layer;
-                    for(int i = current_layer; i < tmp->layers; i++){
+                    for(int i = tmp->current_layer; i < tmp->layers; i++){
                         double now = From->res_id == GPU ? tmp_profile -> gpu_exec[i] : tmp_profile -> cpu_exec[i];
                         if (biggest < now) biggest = now;
                     }
