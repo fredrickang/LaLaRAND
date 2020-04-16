@@ -47,6 +47,7 @@ char* get_dnn_name(DNN_TYPE type);
 double workload_left(dnn_profile * profile, int current_layer, int layer_num);
 int make_fdset(fd_set *readfds,int reg_fd, dnn_queue * dnn_list);
 double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res, int target_id);
+double limit(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res, int target_id);
 double blocking(Queue * q, dnn_queue * dnn_list,dnn_profile ** profile_list, resource * From, int target_id);
 int open_channel(char * pipe_name,int mode);
 void close_channel(char * pipe_name);

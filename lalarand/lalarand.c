@@ -22,6 +22,7 @@
 #include "lalarand_fn.h"
 
 #define GPU 1
+
 #define CPU 0
 
 #define REGISTRATION "/tmp/lalarand_registration"

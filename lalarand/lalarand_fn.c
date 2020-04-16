@@ -557,11 +557,13 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
     if(q->count == 0)
         return -1;
     
-    double slack, future_wait, blocked, data_trans;
+    double slack, future_wait, blocked, data_trans, limits;
     dnn_info * node;
     int target_id = -1;
     int target_layer = -1;
     double smallest = DBL_MAX;
+    
+    int current_execution;
 
     for(QNode * tmp = q->front; tmp != NULL; tmp = tmp -> next){
         node = find_dnn_by_id(dnn_list, tmp -> id);
@@ -570,17 +572,16 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
             future_wait = waiting(q, dnn_list, profile_list, current_time, From, tmp->id);
             blocked = blocking(q, dnn_list, profile_list, From, tmp->id);
             data_trans = data_transfer(dnn_list , profile_list, From, tmp->id, tmp->layer);
-            //printf("Future_wait : %f\n", future_wait);
-            //printf("Blocked : %f\n", blocked);
-            //printf("GPU : %d\n", profile_list[node->type]->gpu_exec[tmp->layer]);
-            //printf("CPU : %d\n", profile_list[node->type]->cpu_exec[tmp->layer]);
-            //printf("DIFF : %d\n", abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer]));
-            if ( future_wait - blocked - data_trans > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer]))
-                if( slack < smallest ){
-                    target_id = tmp -> id;
-                    target_layer = tmp -> layer;
-                    smallest = slack;
-                }
+            if ( future_wait - blocked - data_trans > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer])){
+                limits = limit(q,dnn_list, profile_list, current_time, From, tmp->id);
+                current_execution = (From->res_id == GPU) ? profile_list[node->type]->cpu_exec[tmp->layer] : profile_list[node->type]->gpu_exec[tmp->layer];
+                if( limits > current_execution)
+                    if( slack < smallest ){
+                        target_id = tmp -> id;
+                        target_layer = tmp -> layer;
+                        smallest = slack;
+                    }
+            }
         }
     }
 
@@ -633,10 +634,50 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
     for(QNode *tmp = q->front; tmp->priority < target->priority; tmp = tmp->next){
         dnn_info * dnn = find_dnn_by_id(dnn_list,tmp->id);
         for(int i = tmp->layer; i < dnn->layers ; i ++){
-            if(profile_list[dnn->type]->cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];
+            if(profile_list[dnn->type]->cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[dnn->type]->gpu_exec[i] : profile_list[dnn->type]->cpu_exec[i];
             else break;
         }
     }
+
+    return waited;
+}
+
+double limit(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * From , int target_id){
+    double waited = 0;
+    dnn_info * current = find_dnn_by_id(dnn_list, From->id);
+    dnn_info * target = find_dnn_by_id(dnn_list, target_id);
+
+    double current_wait = From->res_id == GPU ? profile_list[current->type]->gpu_exec[From->layer] - (current_time - From->scheduled) : profile_list[current->type] -> cpu_exec[From->layer] - (current_time - From->scheduled);
+
+    waited += current_wait;
+
+    int islimit = 1;
+
+    if(target->priority > current -> priority){
+        for(int i = From -> layer + 1;  i < current->layers; i ++){
+            if(profile_list[current->type] -> cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];
+            else{
+                islimit = 0;
+                break;
+            }
+        }
+    }
+
+    if(islimit){
+        for(QNode * tmp = q->front; tmp->priority < target->priority ; tmp = tmp->next){
+            dnn_info * dnn = find_dnn_by_id(dnn_list, tmp->id);
+            for(int i  = tmp->layer; i < dnn->layers; i++){
+                if(islimit){
+                    if(profile_list[dnn->type] -> cfg[i] == From -> res_id) waited += From->res_id == GPU ? profile_list[dnn->type]->gpu_exec[i] : profile_list[dnn->type]->cpu_exec[i];
+                    else{
+                        islimit = 0;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
 
     return waited;
 }
