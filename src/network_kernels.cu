@@ -122,7 +122,7 @@ void forward_network_gpu(network net, network_state state)
             if(resource == GPU) state.input = net.input_state_gpu;
             else state.input = net.input_pinned_cpu;
         }
-
+        double transfer = get_time_point();
         if( i > 0 && before != resource ){
             layer tmp  = net.layers[i-1];
             if( resource == GPU ){
@@ -133,6 +133,7 @@ void forward_network_gpu(network net, network_state state)
                 cuda_pull_array(tmp.output_gpu, tmp.output, tmp.batch * tmp.outputs);
                 state.input = tmp.output;
             }
+            printf("[Data Transfer] %8.5f\n",((double)get_time_point() - transfer)/1000);
         }
         // inference
         if (resource == CPU) {

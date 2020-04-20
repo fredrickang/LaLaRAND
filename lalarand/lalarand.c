@@ -47,7 +47,7 @@ int main(int argc, char **argv){
     // cpu affininty setting 
     cpu_set_t mask;
     CPU_ZERO(&mask);
-    CPU_SET(0, &mask);
+    CPU_SET(1, &mask);
     sched_setaffinity(0, sizeof(mask), &mask);
     
     dnn_profile ** profile_list = make_profile_list(mode);

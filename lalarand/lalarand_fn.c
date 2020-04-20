@@ -313,7 +313,7 @@ dnn_profile ** make_profile_list(int mode){
     }
 
 
-    if (mode == 1){
+    if (mode == 1 || mode == 4){
         for(int i = 0; i < 24; i++) yolo_cfg[i] = 1;
         for(int i = 0; i < 28; i++) extraction_cfg[i] = 1;
         for(int i = 0; i < 29; i++) resnet_cfg[i] = 1;
@@ -738,7 +738,8 @@ double data_transfer(dnn_queue * dnn_list, dnn_profile **profile_list, resource 
     go_time = From->res_id == GPU ? go*d2h : go*h2d;
     back_time = From->res_id == GPU ? back*h2d : back*d2h;
 
-    return go_time + back_time;
+    //return go_time + back_time;
+    return 10000;
 }
 
 ///// communication ////
