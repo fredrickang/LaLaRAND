@@ -54,15 +54,12 @@ void enDNNQueue(dnn_queue * dnn_list, dnn_info * dnn){
     if(dnn_list->head == NULL){
         dnn_list -> head = dnn;
         dnn_list -> count ++;
-        setDNNpriority(dnn_list);
         return;
     }    
 
     dnn -> next = dnn_list -> head;
     dnn_list -> head = dnn;
     dnn_list -> count ++ ; 
-
-    setDNNpriority(dnn_list);
 }
 
 void setDNNpriority(dnn_queue * dnn_list){
@@ -333,7 +330,7 @@ dnn_profile ** make_profile_list(int mode){
 void check_registration(dnn_queue * dnn_list, int reg_fd){
     reg_msg * msg = (reg_msg *)malloc(sizeof(reg_msg));
         
-    while( read(reg_fd, msg, 5*sizeof(int)) > 0){
+    while( read(reg_fd, msg, 6*sizeof(int)) > 0){
         if(msg -> regist == 1) regist(dnn_list, msg); 
         else de_regist(dnn_list, msg);
     }
@@ -348,7 +345,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
     dnn -> layers = msg -> layers;
     dnn -> type = msg -> type;
     dnn -> period = msg -> period;
-    dnn -> priority = -1;
+    dnn -> priority = msg -> priority;
     dnn -> current_layer = -1;
     fprintf(stderr,"======== REGISTRATION ========\n");
     fprintf(stderr,"[ID]     %3d\n", dnn-> id);

@@ -8,8 +8,9 @@ import os, signal
 
 def darknet(task_info, pids, lalarand_pid ,result, mode, index):
     task_name= task_info[0]
-    task_period = int(task_info[1])
-    task_num = int(task_info[2])
+    task_priority = int(task_info[1])
+    task_period = int(task_info[2])
+    task_num = int(task_info[3])
     
     if task_name == "Yolo":
         task_name = "./task/yolotiny.list"
@@ -22,6 +23,8 @@ def darknet(task_info, pids, lalarand_pid ,result, mode, index):
     command_line = ["./darknet"]
     command_line.append("-task")
     command_line.append(task_name)
+    command_line.append("-priority")
+    command_line.append(task_priority)
     command_line.append("-period")
     command_line.append(str(task_period))
     command_line.append("-num")
@@ -80,8 +83,7 @@ if __name__ == "__main__":
     fp = open("taskset_list.txt","r")
     lines = fp.readlines()
     fp.close() 
-    
-   
+
     f_sched = open(opt.log_path+"Sched.txt","w")
     f_unsched = open(opt.log_path+"Unsched.txt","w")
 

@@ -52,6 +52,7 @@ extern void run_super(int argc, char **argv);
 
 extern int period = -1;
 extern int numofjob = -1;
+extern int priority = -1;
 //DetectorParameter structure for multi-threading.
 DetectorParams *_g_detector_params;
 //!end of DetectorParameter structure init.
@@ -527,6 +528,9 @@ int main(int argc, char **argv)
     }
 
     period = find_int_arg(argc, argv, "-period", 300);
+
+    priority = find_int_arg(argc, argv, "-priority", -1);
+    assert(priority != -1);
 
     numofjob = find_int_arg(argc, argv, "-num",  -1);
     assert(numofjob != -1);

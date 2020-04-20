@@ -54,6 +54,7 @@ typedef struct _MSG_PACKET{
     int layers;
     DNN_TYPE type;
     int period;
+    int priority;
 }reg_msg;
 
 typedef struct _RESOURCE{

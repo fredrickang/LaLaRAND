@@ -44,6 +44,7 @@
 #include "yolo_layer.h"
 
 extern int period;
+extern int priority;
 extern int request_fd = -1;
 extern int decision_fd = -1;
 extern int register_fd = -1;
@@ -884,6 +885,7 @@ typedef struct _MSG_PACKET{
     int layers;
     DNN_TYPE type;
     int period;
+    int priority;
 }msg;
 
 network parse_network_cfg_custom(char *filename, int batch, int time_steps)
@@ -941,6 +943,7 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     dummy->pid = getpid();
     dummy->layers = net.n;
     dummy->period = period;
+    dummy->priority = priority;
 
     if(strstr(filename, "yolo") != NULL) dummy->type = YOLOt;
     if(strstr(filename, "extraction") != NULL) dummy->type = EXTRACTION;
@@ -948,10 +951,11 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     if(strstr(filename, "rnn") != NULL) dummy->type = RECURRENT;
     
     
-    if(write(register_fd, dummy, 5*sizeof(int)) < 0){
+    if(write(register_fd, dummy, 6*sizeof(int)) < 0){
         perror("Registerating :  ");
         exit(-1);
     }
+    
     //printf("[OVERHEAD] REGISTRATION: %8.5f\n",((double)get_time_point() - reg_start));
     double channel_start = get_time_point();
     char request[30];
