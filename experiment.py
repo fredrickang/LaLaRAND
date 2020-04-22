@@ -24,7 +24,7 @@ def darknet(task_info, pids, lalarand_pid ,result, mode, index):
     command_line.append("-task")
     command_line.append(task_name)
     command_line.append("-priority")
-    command_line.append(task_priority)
+    command_line.append(str(task_priority))
     command_line.append("-period")
     command_line.append(str(task_period))
     command_line.append("-num")
@@ -75,12 +75,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--mode", type = int , default = 4, help = "1: ALL GPU 2: Preferable 3: Static 4: LaLaRAND")
+    parser.add_argument("--start",type = int , default = 0 );
     parser.add_argument("--n", type = int, default = -1, help = " -1 : ALL , other is other number")
     parser.add_argument("--log_path", type = str, default = "Exp/RM/")
-
+    parser.add_argument("--list", type = str, default = "taskset_list.txt")
     opt = parser.parse_args()
 
-    fp = open("taskset_list.txt","r")
+    fp = open(opt.list,"r")
     lines = fp.readlines()
     fp.close() 
 
@@ -107,8 +108,8 @@ if __name__ == "__main__":
     
     path = opt.log_path
     print(num)
-    for index, taskset_list in enumerate(list_of_taskset_list[:num]):
-        
+    for i, taskset_list in enumerate(list_of_taskset_list[opt.start:num]):
+        index = opt.start + i
         taskset_path = os.path.join(path,"taskset_"+str(index))
         
         try:

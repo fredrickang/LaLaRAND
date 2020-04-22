@@ -81,7 +81,7 @@ int main(int argc, char **argv){
     }
     
     freopen(log_path,"w", stderr);
-
+    
     do{
         gpu_target = -1;
         cpu_target = -1;
@@ -91,8 +91,6 @@ int main(int argc, char **argv){
             // 1st registration check
             if(FD_ISSET(reg_fd, &readfds)) {
                 check_registration(dnn_list, reg_fd);
-                re_assign_priority(dnn_list, gpu, cpu);
-                
                 print_list("REGIST",dnn_list);
             }
             // 2nd request check 
@@ -105,16 +103,20 @@ int main(int argc, char **argv){
             if(!(gpu->waiting->count + cpu->waiting->count < Sync)){
                  
                 if(Sync) update_deadline_all(dnn_list, current_time);
-
+                
+                double dequeue_start = get_time_point();
                 if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);
                 if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, cpu);
-                
+                fprintf(stderr, "[DEQUEUE] ABS : %f, Passed : %8.5f\n", dequeue_start,  ((double)get_time_point() - dequeue_start)/1000);
+
                 if (mode == 4){ /* only in LaLaRAND */
                     if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, cpu, gpu);
                     if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, gpu, cpu);
                 }
                 
+                double release_start = get_time_point();
                 if(Sync) send_release_time(dnn_list);
+                fprintf(stderr,"[RELEASE] ABS : %f\, Passed : %8.5f\n", release_start, ((double)get_time_point() - release_start)/1000);
 
                 if(gpu_target != -1) decision_handler(gpu_target, dnn_list, GPU);
                 if(cpu_target != -1) decision_handler(cpu_target, dnn_list, CPU);
