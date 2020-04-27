@@ -316,7 +316,11 @@ dnn_profile ** make_profile_list(int mode){
         for(int i = 0; i < 29; i++) resnet_cfg[i] = 1;
         for(int i = 0; i < 6 ; i++) rnn_cfg[i] = 1;
     }
-    if (mode == 3){
+    if (mode == 5){
+        for(int i = 0; i < 24; i++) yolo_cfg[i] = 0;
+        for(int i = 0; i < 28; i++) extraction_cfg[i] = 0;
+        for(int i = 0; i < 29; i++) resnet_cfg[i] = 0;
+        for(int i = 0; i < 6 ; i++) rnn_cfg[i] = 0;
     }
     
     make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg, yolo_inputs);
@@ -516,7 +520,6 @@ void send_release_time(dnn_queue * dnn_list){
 
 void decision_handler(int target_id, dnn_queue * dnn_list, int decision){
     dnn_info * target = find_dnn_by_id(dnn_list, target_id);
-    fprintf(stderr,"[Decision Handler] Sending Decison ID: %d  Time : %f\n", target->id, get_time_point());
     if( write(target->decision_fd,&decision,sizeof(int)) < 0){
         perror("decision_handler");  
     }

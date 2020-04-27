@@ -42,7 +42,7 @@ int main(int argc, char **argv){
 
     struct sched_param high;
     memset( &high, 0, sizeof(high));
-    high.sched_priority = 20;
+    high.sched_priority = 21;
     if(sched_setscheduler(getpid(), SCHED_FIFO, &high) == -1) perror("SCHED_FIFO :");
     // cpu affininty setting 
     cpu_set_t mask;
@@ -78,6 +78,9 @@ int main(int argc, char **argv){
             break;
         case 4:
             snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+            break;
+        case 5:
+            snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/lala_%d.txt", index, getpid());
     }
     
     freopen(log_path,"w", stderr);
@@ -107,7 +110,7 @@ int main(int argc, char **argv){
                 double dequeue_start = get_time_point();
                 if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);
                 if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, cpu);
-                fprintf(stderr, "[DEQUEUE] ABS : %f, Passed : %8.5f\n", dequeue_start,  ((double)get_time_point() - dequeue_start)/1000);
+                //fprintf(stderr, "[DEQUEUE] ABS : %f, Passed : %8.5f\n", dequeue_start,  ((double)get_time_point() - dequeue_start)/1000);
 
                 if (mode == 4){ /* only in LaLaRAND */
                     if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, cpu, gpu);
@@ -116,7 +119,7 @@ int main(int argc, char **argv){
                 
                 double release_start = get_time_point();
                 if(Sync) send_release_time(dnn_list);
-                fprintf(stderr,"[RELEASE] ABS : %f\, Passed : %8.5f\n", release_start, ((double)get_time_point() - release_start)/1000);
+                //fprintf(stderr,"[RELEASE] ABS : %f\, Passed : %8.5f\n", release_start, ((double)get_time_point() - release_start)/1000);
 
                 if(gpu_target != -1) decision_handler(gpu_target, dnn_list, GPU);
                 if(cpu_target != -1) decision_handler(cpu_target, dnn_list, CPU);

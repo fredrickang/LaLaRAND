@@ -552,6 +552,9 @@ int main(int argc, char **argv)
             break;
         case 4:
             snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/task_%d.txt", index, getpid());
+            break;
+        case 5:
+            snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/task_%d.txt", index, getpid());
     }
 
     freopen(log_path, "w", stderr);

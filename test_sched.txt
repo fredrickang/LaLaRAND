@@ -1,0 +1,22 @@
+Extraction 8 450 56
+Extraction 1 300 84
+Yolo 9 450 56
+RNN 4 350 72
+Resnet 10 450 56
+RNN 2 300 84
+Extraction 5 350 72
+Extraction 3 300 84
+Extraction 6 350 72
+RNN 7 400 63
+1
+Yolo 3 350 360
+Yolo 1 300 420
+Extraction 9 500 252
+Extraction 4 350 360
+RNN 5 350 360
+RNN 7 400 315
+Extraction 2 300 420
+RNN 8 450 280
+Yolo 6 350 360
+Yolo 10 500 252
+1

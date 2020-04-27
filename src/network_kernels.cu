@@ -79,7 +79,14 @@ void forward_network_gpu(network net, network_state state)
     memset(&low, 0, sizeof(low));
     high.sched_priority = 20;
     low.sched_priority = 19;
-    
+
+
+    cpu_set_t cpu_core, gpu_core;
+    CPU_ZERO(&gpu_core);
+    CPU_ZERO(&cpu_core);
+    CPU_SET(1, &gpu_core);
+    CPU_SET(0, &cpu_core);
+
     double execution, total_time; 
     for(i = 0; i < net.n; ++i){
         if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO high : ");
@@ -91,7 +98,7 @@ void forward_network_gpu(network net, network_state state)
         
         // double send_request = get_time_point();        
         // send request
-        fprintf(stderr, "[REQUEST] TIME : %f\n", get_time_point());
+        //fprintf(stderr, "[REQUEST] TIME : %f\n", get_time_point());
         if( write(request_fd, &i, sizeof(int)) == -1 ){
             perror("request send : ");
             exit(-1);
@@ -105,12 +112,12 @@ void forward_network_gpu(network net, network_state state)
             }
             first = 0;
         }
-        fprintf(stderr, "[UPDATE RELEAE] TIME : %f\n", get_time_point());
+        //fprintf(stderr, "[UPDATE RELEAE] TIME : %f\n", get_time_point());
         if( read(decision_fd, &resource, sizeof(int)) == -1){
             perror("decision recv : ");
             exit(-1);
         } 
-        fprintf(stderr, "[DECISION] TIME : %f\n",get_time_point());
+        //fprintf(stderr, "[DECISION] TIME : %f\n",get_time_point());
         //printf("[OVERHEAD] %d %d REQUEST&DECISION: %8.5f\n",getpid(), i ,((double)get_decision - send_request));
 
         history[i] = resource; 
@@ -138,17 +145,17 @@ void forward_network_gpu(network net, network_state state)
 //            printf("[Data Transfer] %8.5f\n",((double)get_time_point() - transfer)/1000);
         }
         // inference
-        fprintf(stderr,"[PRE INFERENCE] Passed : %8.5f\n", ((double)get_time_point() - execution)/1000);
+        //fprintf(stderr,"[PRE INFERENCE] Passed : %8.5f\n", ((double)get_time_point() - execution)/1000);
         if (resource == CPU) {
-            if(sched_setscheduler(0, SCHED_FIFO, &low) == -1) perror("SCHED_FIFO low : ");
+            sched_setaffinity(0, sizeof(cpu_core), &cpu_core);
             sched_yield();
             l.forward(l,state);
-            if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO high : ");
+            sched_setaffinity(0, sizeof(gpu_core), &gpu_core);
             sched_yield();
         }else if(resource == GPU){
-            double fure_infer = get_time_point();
+            //double fure_infer = get_time_point();
             l.forward_gpu(l, state);
-            fprintf(stderr,"[PURE INFER] Passed : %8.5f\n", ((double)get_time_point() - fure_infer)/1000);
+            //fprintf(stderr,"[PURE INFER] Passed : %8.5f\n", ((double)get_time_point() - fure_infer)/1000);
             CHECK_CUDA(cudaDeviceSynchronize());
         }
         else{
