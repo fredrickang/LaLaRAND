@@ -53,6 +53,11 @@ extern void run_super(int argc, char **argv);
 extern int period = -1;
 extern int numofjob = -1;
 extern int priority = -1;
+extern cpu_set_t *cpu_core = NULL;
+extern cpu_set_t *gpu_core = NULL;
+
+
+
 //DetectorParameter structure for multi-threading.
 DetectorParams *_g_detector_params;
 //!end of DetectorParameter structure init.
@@ -568,10 +573,24 @@ int main(int argc, char **argv)
         }
 #endif
         // CPU Affinity setting //
-    cpu_set_t mask;
-    CPU_ZERO(&mask);
-    CPU_SET(1, &mask);
-    sched_setaffinity(0,sizeof(mask), &mask);
+
+    struct sched_param high;
+    memset(&high, 0, sizeof(high));
+    high.sched_priority = 98;
+    
+    gpu_core = (cpu_set_t *)malloc(sizeof(cpu_set_t));
+    cpu_core = (cpu_set_t *)malloc(sizeof(cpu_set_t));
+
+    CPU_ZERO(gpu_core);
+    CPU_ZERO(cpu_core);
+
+    CPU_SET(1, gpu_core);
+    CPU_SET(0, cpu_core);
+
+    
+    if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO high :");
+    if(sched_setaffinity(0, sizeof(cpu_set_t) , gpu_core) == -1) perror("SCHED_AFFINITY :");
+    sched_yield();
 
     get_task_info(task, argv);
         ///// data cfg

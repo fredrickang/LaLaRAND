@@ -537,10 +537,14 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
         //print_symbol(c, tokens);
 
         int miss;
-        timespec_add(&release_time, &period_time);
         
         clock_gettime(CLOCK_MONOTONIC, &current_time);
+    
+        get_response_time(&release_time, &current_time);
 
+        timespec_add(&release_time, &period_time);
+
+        
         miss = deadline_miss_check(&release_time,&current_time);
         if(miss){
             fprintf(stderr,"============ %d task %d job miss  ==============\n", getpid(), i);

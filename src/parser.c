@@ -50,6 +50,7 @@ extern int decision_fd = -1;
 extern int register_fd = -1;
 
 extern int lalarand_pid = -1;
+extern int *history =  NULL;
 
 typedef struct{
     char *type;
@@ -931,6 +932,8 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     int count = 0;
     free_section(s);
     
+    history = (int *)malloc(sizeof(int) * net.n);
+    memset(history, -1, sizeof(int) * net.n);
 
     // Register to LaLaRAND 
     if( (register_fd = open("/tmp/lalarand_registration",O_WRONLY)) < 0){
@@ -1609,6 +1612,19 @@ network *load_network(char *cfg, char *weights, int clear)
     return net;
 }
 
+void get_response_time(struct timespec *start, struct timespec *stop){
+    struct timespec result;
+    if ((stop->tv_nsec - start->tv_nsec) < 0) {
+        result.tv_sec = stop->tv_sec - start->tv_sec - 1;
+        result.tv_nsec = stop->tv_nsec - start->tv_nsec + 1000000000;
+    } else {
+        result.tv_sec = stop->tv_sec - start->tv_sec;
+        result.tv_nsec = stop->tv_nsec - start->tv_nsec;
+    }
+
+    double millisec = result.tv_sec * 1000 + result.tv_nsec / 1000000 ; 
+    fprintf(stderr, "[RESPONSE] %f milli-sec\n",millisec);
+}
 
 // miss : 1 unmiss : 0
 int deadline_miss_check(struct timespec *deadline, struct timespec *current){

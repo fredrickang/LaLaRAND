@@ -1569,6 +1569,8 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     if(letter_box) sized = letterbox_image(im, net.w, net.h);
     else sized = resize_image(im, net.w, net.h);
 
+    double post;
+
     for (k =0; k< numofjob; k++){
         //t_period = get_time_point();
         ///// IMAGE PREPROCESSING /////
@@ -1579,8 +1581,9 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         float *X = sized.data;
         ///// IMAGE PREPROCESSING ////
         network_predict(net, X);
-
-
+        
+        
+        post = get_time_point();
         ///// IMAGE POSTPROCESSING /////
         /*
         int nboxes = 0;
@@ -1654,9 +1657,14 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         
         
         int miss;
-        timespec_add(&release_time, &period_time);
         clock_gettime(CLOCK_MONOTONIC, &current_time);
+        
+        fprintf(stderr, "[POST] %f\n", ((double)get_time_point() - post)/1000);
 
+        get_response_time(&release_time, &current_time);
+
+        timespec_add(&release_time, &period_time);  
+        
         miss = deadline_miss_check(&release_time, &current_time);
         if(miss){
             fprintf(stderr,"============ %d task %d job miss  ==============\n", getpid(), k);
@@ -1665,7 +1673,6 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         }
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
-
 
     if (outfile) {
         char *tmp = "\n]";

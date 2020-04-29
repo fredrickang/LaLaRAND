@@ -1334,8 +1334,11 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
         //free_image(im);
         
         int miss;
-        timespec_add(&release_time, &period_time);
         clock_gettime(CLOCK_MONOTONIC, &current_time);
+
+        get_response_time(&release_time, &current_time);
+
+        timespec_add(&release_time, &period_time);
 
         miss = deadline_miss_check(&release_time,&current_time);
         if(miss){

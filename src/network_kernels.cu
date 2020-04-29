@@ -53,14 +53,16 @@ float * get_network_delta_gpu_layer(network net, int i);
 float * get_network_output_gpu(network net);
 
 extern int request_fd, decision_fd, lalarand_pid;
-extern int * history = NULL;
 extern struct timespec release_time = {0, 0};
+extern int *history;
+
+extern cpu_set_t * gpu_core, * cpu_core;
 
 int first = 1;
 
 void forward_network_gpu(network net, network_state state)
 {
-    cudaDeviceSynchronize();
+//    cudaDeviceSynchronize();
     state.workspace = net.workspace;
     state.workspace_cpu = net.workspace_cpu;
     int i;
@@ -69,41 +71,19 @@ void forward_network_gpu(network net, network_state state)
 
     int size = get_network_input_size(net) * net.batch;
     
-    history = (int *)malloc(sizeof(int) * net.n);
-    memset(history, -1, sizeof(int) * net.n);
+    double inference, total;
     
-    int rev;
-    
-    struct sched_param high, low;
-    memset(&high ,0, sizeof(high));
-    memset(&low, 0, sizeof(low));
-    high.sched_priority = 20;
-    low.sched_priority = 19;
-
-
-    cpu_set_t cpu_core, gpu_core;
-    CPU_ZERO(&gpu_core);
-    CPU_ZERO(&cpu_core);
-    CPU_SET(1, &gpu_core);
-    CPU_SET(0, &cpu_core);
-
-    double execution, total_time; 
     for(i = 0; i < net.n; ++i){
-        if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO high : ");
-        sched_yield();
+        total = get_time_point();
         resource = -1;
 
         state.index = i;
         layer l = net.layers[i];
         
-        // double send_request = get_time_point();        
-        // send request
-        //fprintf(stderr, "[REQUEST] TIME : %f\n", get_time_point());
         if( write(request_fd, &i, sizeof(int)) == -1 ){
             perror("request send : ");
             exit(-1);
         }
-        // wait for decision 
          
         if(first){
             if( read(decision_fd, &release_time, sizeof(struct timespec)) == -1){
@@ -112,16 +92,24 @@ void forward_network_gpu(network net, network_state state)
             }
             first = 0;
         }
-        //fprintf(stderr, "[UPDATE RELEAE] TIME : %f\n", get_time_point());
+        
         if( read(decision_fd, &resource, sizeof(int)) == -1){
             perror("decision recv : ");
             exit(-1);
         } 
-        //fprintf(stderr, "[DECISION] TIME : %f\n",get_time_point());
-        //printf("[OVERHEAD] %d %d REQUEST&DECISION: %8.5f\n",getpid(), i ,((double)get_decision - send_request));
+        if(before != resource){
+            if(resource == GPU){
+                sched_setaffinity(0, sizeof(cpu_set_t), gpu_core);
+                sched_yield();
+            }
+            else{
+                sched_setaffinity(0, sizeof(cpu_set_t), cpu_core);
+                sched_yield();
+            }
+        }
 
         history[i] = resource; 
-        execution = get_time_point();
+        inference = get_time_point();
 
         if(l.delta_gpu && state.train){
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
@@ -142,21 +130,13 @@ void forward_network_gpu(network net, network_state state)
                 cuda_pull_array(tmp.output_gpu, tmp.output, tmp.batch * tmp.outputs);
                 state.input = tmp.output;
             }
-//            printf("[Data Transfer] %8.5f\n",((double)get_time_point() - transfer)/1000);
         }
         // inference
-        //fprintf(stderr,"[PRE INFERENCE] Passed : %8.5f\n", ((double)get_time_point() - execution)/1000);
         if (resource == CPU) {
-            sched_setaffinity(0, sizeof(cpu_core), &cpu_core);
-            sched_yield();
             l.forward(l,state);
-            sched_setaffinity(0, sizeof(gpu_core), &gpu_core);
-            sched_yield();
         }else if(resource == GPU){
-            //double fure_infer = get_time_point();
             l.forward_gpu(l, state);
-            //fprintf(stderr,"[PURE INFER] Passed : %8.5f\n", ((double)get_time_point() - fure_infer)/1000);
-            CHECK_CUDA(cudaDeviceSynchronize());
+            cudaDeviceSynchronize();
         }
         else{
             printf("resource config wrong\n");
@@ -166,12 +146,12 @@ void forward_network_gpu(network net, network_state state)
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
         
-        fprintf(stderr,"[%d] Layer %3d Resource %d Executed %8.5f\n", getpid(), i, resource, ((double)get_time_point() - execution)/1000);
+        fprintf(stderr,"[%d] Layer %3d Resource %d Inference %8.5f\n", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
 
         state.input = resource ? l.output_gpu : l.output; 
-        before = resource;
-                
-    }
+        before = resource;                
+       
+    }   
     
     if( write(request_fd,&net.n, sizeof(int)) == -1){
         perror("Request :");
@@ -600,29 +580,10 @@ float *network_predict_gpu(network net, float *input)
     state.delta = 0;
 
     //cudaDeviceSynchronize();
+    
     forward_network_gpu(net, state);
+
     float *out = get_network_output_gpu(net);
 
-    //free cuda memories and return original memory pointer.
-    //printf("start of returning memory reallocation\n");
-    //for(i=0; i<net.n; ++i){
-    //    if(res_arr[i] != res_arr[i+1]){
-    //        layer *lptr = &(net.layers[i]);
-    //       if(res_arr[i] == 0){
-    //            cuda_free(lptr->output);
-    //            lptr->output = temp_ptr[i];
-    //        }
-    //       else{
-    //           cuda_free(lptr->output_gpu);
-    //            lptr->output_gpu = temp_ptr[i];
-    //       }
-    //    }
-    // }
-    //printf("end of returning memory reallocation\n");
-    //!freed.
-
-    //cuda_free(state.input);   // will be freed in the free_network()
     return out;
-
-
 }

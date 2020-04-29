@@ -564,24 +564,45 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
     int target_layer = -1;
     double smallest = DBL_MAX;
     
-    int current_execution;
+    int prefer, non_prefer; 
 
+    //fprintf(stderr, "==============[MIGRATION]==============\n");
     for(QNode * tmp = q->front; tmp != NULL; tmp = tmp -> next){
         node = find_dnn_by_id(dnn_list, tmp -> id);
         slack = node->deadline - current_time - workload_left(profile_list[node->type],tmp -> layer, node->layers);
-        if( slack > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer])) { /* first condidtion */
+        
+        prefer = (From -> res_id ==GPU) ? profile_list[node->type] -> gpu_exec[tmp->layer] : profile_list[node->type] -> cpu_exec[tmp->layer];
+        non_prefer = (From -> res_id == GPU) ? profile_list[node->type] -> cpu_exec[tmp->layer] : profile_list[node->type] -> gpu_exec[tmp->layer];
+        
+        //fprintf(stderr, "[ID] : %d\n", tmp -> id);
+        //fprintf(stderr, "[Slack] : %f\n",slack);
+        //fprintf(stderr, "[Prefer] : %d\n",prefer);
+        //fprintf(stderr, "[Non_prefer] : %d\n", non_prefer);
+        
+        if( slack > non_prefer - prefer ){ /* first condidtion */
+            
             future_wait = waiting(q, dnn_list, profile_list, current_time, From, tmp->id);
             blocked = blocking(q, dnn_list, profile_list, From, tmp->id);
             data_trans = data_transfer(dnn_list , profile_list, From, tmp->id, tmp->layer);
-            if ( future_wait - blocked - data_trans > abs(profile_list[node->type]->gpu_exec[tmp->layer] - profile_list[node->type]->cpu_exec[tmp->layer])){
+            
+            //fprintf(stderr, "[Futer_wait] : %f\n", future_wait);
+            //fprintf(stderr, "[Blocked] : %f\n", blocked);
+            //fprintf(stderr, "[data_trans] : %f\n", data_trans);
+
+            if ( future_wait + prefer > blocked + data_trans + non_prefer ){
+                
                 limits = limit(q,dnn_list, profile_list, current_time, From, tmp->id);
-                current_execution = (From->res_id == GPU) ? profile_list[node->type]->cpu_exec[tmp->layer] : profile_list[node->type]->gpu_exec[tmp->layer];
-                if( limits > current_execution)
+                
+                //fprintf(stderr,"[Limits] : %f\n", limits);
+
+                if( limits > non_prefer){
                     if( slack < smallest ){
                         target_id = tmp -> id;
                         target_layer = tmp -> layer;
                         smallest = slack;
                     }
+                }
+                //fprintf(stderr, "[Smallest] : %f\n", smallest);
             }
         }
     }

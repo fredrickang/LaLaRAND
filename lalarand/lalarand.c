@@ -42,7 +42,7 @@ int main(int argc, char **argv){
 
     struct sched_param high;
     memset( &high, 0, sizeof(high));
-    high.sched_priority = 21;
+    high.sched_priority = 99;
     if(sched_setscheduler(getpid(), SCHED_FIFO, &high) == -1) perror("SCHED_FIFO :");
     // cpu affininty setting 
     cpu_set_t mask;
@@ -117,7 +117,6 @@ int main(int argc, char **argv){
                     if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, gpu, cpu);
                 }
                 
-                double release_start = get_time_point();
                 if(Sync) send_release_time(dnn_list);
                 //fprintf(stderr,"[RELEASE] ABS : %f\, Passed : %8.5f\n", release_start, ((double)get_time_point() - release_start)/1000);
 
