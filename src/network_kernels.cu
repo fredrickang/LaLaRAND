@@ -56,7 +56,7 @@ extern int request_fd, decision_fd, lalarand_pid;
 extern struct timespec release_time = {0, 0};
 extern int *history;
 
-extern cpu_set_t * gpu_core, * cpu_core;
+extern cpu_set_t gpu_core, cpu_core;
 
 int first = 1;
 
@@ -80,6 +80,7 @@ void forward_network_gpu(network net, network_state state)
         state.index = i;
         layer l = net.layers[i];
         
+        fprintf(stderr,"[MSG] : %8.5f\n", ((double)get_time_point()));
         if( write(request_fd, &i, sizeof(int)) == -1 ){
             perror("request send : ");
             exit(-1);
@@ -99,11 +100,11 @@ void forward_network_gpu(network net, network_state state)
         } 
         if(before != resource){
             if(resource == GPU){
-                sched_setaffinity(0, sizeof(cpu_set_t), gpu_core);
+                sched_setaffinity(0, sizeof(cpu_set_t), &gpu_core);
                 sched_yield();
             }
             else{
-                sched_setaffinity(0, sizeof(cpu_set_t), cpu_core);
+                sched_setaffinity(0, sizeof(cpu_set_t), &cpu_core);
                 sched_yield();
             }
         }
@@ -579,8 +580,6 @@ float *network_predict_gpu(network net, float *input)
     state.train = 0;
     state.delta = 0;
 
-    //cudaDeviceSynchronize();
-    
     forward_network_gpu(net, state);
 
     float *out = get_network_output_gpu(net);
