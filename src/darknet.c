@@ -575,7 +575,7 @@ int main(int argc, char **argv)
 
     struct sched_param high;
     memset(&high, 0, sizeof(high));
-    high.sched_priority = 20;
+    high.sched_priority = 90;
     
     CPU_ZERO(&gpu_core);
     CPU_ZERO(&cpu_core);

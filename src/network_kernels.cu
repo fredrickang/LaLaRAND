@@ -62,7 +62,8 @@ int first = 1;
 
 void forward_network_gpu(network net, network_state state)
 {
-//    cudaDeviceSynchronize();
+  //  double pre = get_time_point();
+    cudaDeviceSynchronize();
     state.workspace = net.workspace;
     state.workspace_cpu = net.workspace_cpu;
     int i;
@@ -73,6 +74,7 @@ void forward_network_gpu(network net, network_state state)
     
     double inference, total;
     
+//    fprintf(stderr, "[DATA] : %8.5f\n",((double)get_time_point() - pre)/1000);
     for(i = 0; i < net.n; ++i){
         total = get_time_point();
         resource = -1;
@@ -80,7 +82,7 @@ void forward_network_gpu(network net, network_state state)
         state.index = i;
         layer l = net.layers[i];
         
-        fprintf(stderr,"[MSG] : %8.5f\n", ((double)get_time_point()));
+//        fprintf(stderr,"[MSG] : %8.5f\n", ((double)get_time_point()));
         if( write(request_fd, &i, sizeof(int)) == -1 ){
             perror("request send : ");
             exit(-1);
@@ -147,7 +149,7 @@ void forward_network_gpu(network net, network_state state)
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
         
-        fprintf(stderr,"[%d] Layer %3d Resource %d Inference %8.5f\n", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
+        //fprintf(stderr,"[%d] Layer %3d Resource %d Inference %8.5f\n", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
 
         state.input = resource ? l.output_gpu : l.output; 
         before = resource;                

@@ -42,7 +42,7 @@ int main(int argc, char **argv){
 
     struct sched_param high;
     memset( &high, 0, sizeof(high));
-    high.sched_priority = 23;
+    high.sched_priority = 93;
     if(sched_setscheduler(getpid(), SCHED_FIFO, &high) == -1) perror("SCHED_FIFO :");
     // cpu affininty setting 
     cpu_set_t mask;
@@ -104,7 +104,6 @@ int main(int argc, char **argv){
             print_queue("GPU",gpu->waiting);
             print_queue("CPU",cpu->waiting);
             if(!(gpu->waiting->count + cpu->waiting->count < Sync)){
-                fprintf(stderr, "[MSG] %8.5f\n",((double)get_time_point())); 
                 if(Sync) update_deadline_all(dnn_list, current_time);
                 
                 double dequeue_start = get_time_point();
