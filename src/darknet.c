@@ -573,19 +573,12 @@ int main(int argc, char **argv)
 #endif
         // CPU Affinity setting //
 
-    struct sched_param high;
-    memset(&high, 0, sizeof(high));
-    high.sched_priority = 90;
     
     CPU_ZERO(&gpu_core);
     CPU_ZERO(&cpu_core);
 
     CPU_SET(1, &gpu_core);
     CPU_SET(0, &cpu_core);
-
-    if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO high :");
-    if(sched_setaffinity(0, sizeof(cpu_set_t) , &gpu_core) == -1) perror("SCHED_AFFINITY :");
-    sched_yield();
 
     get_task_info(task, argv);
         ///// data cfg

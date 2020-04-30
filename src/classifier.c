@@ -28,6 +28,8 @@
 extern struct timespec release_time;
 extern int period, numofjob;
 
+extern cpu_set_t cpu_core, gpu_core;
+
 float validate_classifier_single(char *datacfg, char *filename, char *weightfile, network *existing_net, int topk_custom);
 
 float *get_regression_values(char **labels, int n)
@@ -1292,6 +1294,8 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     char *input = buff;
     //int size = net.w;
 
+    if(sched_setaffinity(0, sizeof(cpu_set_t), &gpu_core) == -1) perror("SCHED_AFFINITY");
+    sched_yield();
     puts("=======Initialize========");
     for (int k = 0; k < 3; k++){
         input = paths[k];
@@ -1310,6 +1314,17 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     image r = crop_image(resized, (resized.w - net.w)/2, (resized.h - net.h)/2, net.w, net.h);
 
     int pid = getpid();
+    
+    if(sched_setaffinity(0, sizeof(cpu_set_t), &gpu_core) == -1) perror("SCHED_AFFINITY");
+    
+    struct sched_param high;
+    memset(&high, 0, sizeof(high));
+    high.sched_priority = 20;
+
+    if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO high :");
+    
+    sched_yield();
+
     for (int k =0; k < numofjob; k++){
 
         fprintf(stderr,"=====================%d JOB %d=====================\n", pid, k);

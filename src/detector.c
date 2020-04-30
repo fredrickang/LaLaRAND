@@ -26,6 +26,9 @@ static int coco_ids[] = { 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,
 extern struct timespec release_time;
 extern int period, numofjob;
 
+extern cpu_set_t cpu_core, gpu_core;
+
+
 void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int dont_show, int calc_map, int mjpeg_port, int show_imgs)
 {
     list *options = read_data_cfg(datacfg);
@@ -1541,7 +1544,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     char **paths = (char **)list_to_array(plist);
 
     int m = plist->size;
-    
+
     puts("=======Initialize========");
     for(k = 0; k< 3; k++){
         input = paths[k];
@@ -1570,6 +1573,14 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     else sized = resize_image(im, net.w, net.h);
 
     double post;
+    struct sched_param high;
+    memset(&high, 0, sizeof(high));
+    high.sched_priority = 20;
+
+    if(sched_setaffinity(0, sizeof(cpu_set_t), &gpu_core) == -1) perror("SCHED_AFFINITY");
+    if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO : ");
+    
+    sched_yield();
 
     for (k =0; k< numofjob; k++){
         //t_period = get_time_point();
