@@ -56,8 +56,6 @@ extern int request_fd, decision_fd, lalarand_pid;
 extern struct timespec release_time = {0, 0};
 extern int *history;
 
-extern cpu_set_t gpu_core, cpu_core;
-
 int first = 1;
 
 void forward_network_gpu(network net, network_state state)
@@ -97,16 +95,6 @@ void forward_network_gpu(network net, network_state state)
             perror("decision recv : ");
             exit(-1);
         } 
-        if(before != resource){
-            if(resource == GPU){
-                sched_setaffinity(0, sizeof(cpu_set_t), &gpu_core);
-                sched_yield();
-            }
-            else{
-                sched_setaffinity(0, sizeof(cpu_set_t), &cpu_core);
-                sched_yield();
-            }
-        }
 
         history[i] = resource; 
         inference = get_time_point();

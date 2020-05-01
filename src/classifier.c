@@ -28,7 +28,7 @@
 extern struct timespec release_time;
 extern int period, numofjob;
 
-extern cpu_set_t cpu_core, gpu_core;
+extern cpu_set_t gpu_core;
 extern int request_fd;
 float validate_classifier_single(char *datacfg, char *filename, char *weightfile, network *existing_net, int topk_custom);
 
@@ -1319,7 +1319,7 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     
     struct sched_param high;
     memset(&high, 0, sizeof(high));
-    high.sched_priority = 20;
+    high.sched_priority = 90;
 
     if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO high :");
     

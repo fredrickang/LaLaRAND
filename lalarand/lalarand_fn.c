@@ -351,6 +351,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
     dnn -> period = msg -> period;
     dnn -> priority = msg -> priority;
     dnn -> current_layer = -1;
+    dnn -> assigned = 1;
     fprintf(stderr,"======== REGISTRATION ========\n");
     fprintf(stderr,"[ID]     %3d\n", dnn-> id);
     fprintf(stderr,"[PID]    %3d\n", dnn-> pid);
@@ -519,7 +520,17 @@ void send_release_time(dnn_queue * dnn_list){
 }
 
 void decision_handler(int target_id, dnn_queue * dnn_list, int decision){
+    cpu_set_t core;
+    CPU_ZERO(&core);
+    CPU_SET(decision, &core);
+    
     dnn_info * target = find_dnn_by_id(dnn_list, target_id);
+    
+    if(target->assigned != decision){
+        sched_setaffinity(target->pid; sizeof(cpu_set_t), &core);
+        target->assinged = decision;
+    }
+
     if( write(target->decision_fd,&decision,sizeof(int)) < 0){
         perror("decision_handler");  
     }

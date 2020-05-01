@@ -54,7 +54,7 @@ extern int period = -1;
 extern int numofjob = -1;
 extern int priority = -1;
 
-cpu_set_t cpu_core, gpu_core;
+cpu_set_t gpu_core;
 
 
 //DetectorParameter structure for multi-threading.
@@ -575,10 +575,7 @@ int main(int argc, char **argv)
 
     
     CPU_ZERO(&gpu_core);
-    CPU_ZERO(&cpu_core);
-
     CPU_SET(1, &gpu_core);
-    CPU_SET(0, &cpu_core);
 
     get_task_info(task, argv);
         ///// data cfg

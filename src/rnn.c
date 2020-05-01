@@ -7,7 +7,7 @@
 extern int period, numofjob;
 extern struct timespec release_time;
 
-extern cpu_set_t gpu_core, cpu_core;
+extern cpu_set_t gpu_core;
 extern int request_fd;
 
 typedef struct {
@@ -529,7 +529,7 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
    
     struct sched_param high;
     memset(&high, 0, sizeof(high));
-    high.sched_priority = 20;
+    high.sched_priority = 90;
     
     if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_SETSCHEDULER");
     if(sched_setaffinity(0, sizeof(cpu_set_t) , &gpu_core) == -1) perror("SCHED_AFFINITY");

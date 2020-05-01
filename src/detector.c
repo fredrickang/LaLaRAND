@@ -27,7 +27,7 @@ extern struct timespec release_time;
 extern int period, numofjob;
 
 extern int request_fd;
-extern cpu_set_t cpu_core, gpu_core;
+extern cpu_set_t gpu_core;
 
 
 void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int dont_show, int calc_map, int mjpeg_port, int show_imgs)
@@ -1576,7 +1576,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     double post;
     struct sched_param high;
     memset(&high, 0, sizeof(high));
-    high.sched_priority = 20;
+    high.sched_priority = 90;
 
     if(sched_setaffinity(0, sizeof(cpu_set_t), &gpu_core) == -1) perror("SCHED_AFFINITY");
     if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO : ");

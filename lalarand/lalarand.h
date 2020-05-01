@@ -27,6 +27,7 @@ typedef struct _DNN_INFO{
     int decision_fd;
     int priority;
     int current_layer;
+    int assigned;
     struct _DNN_INFO * next;
 }dnn_info;
 
