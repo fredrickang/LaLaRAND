@@ -29,7 +29,7 @@ extern struct timespec release_time;
 extern int period, numofjob;
 
 extern cpu_set_t cpu_core, gpu_core;
-
+extern int request_fd;
 float validate_classifier_single(char *datacfg, char *filename, char *weightfile, network *existing_net, int topk_custom);
 
 float *get_regression_values(char **labels, int n)
@@ -1359,6 +1359,10 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
         if(miss){
             fprintf(stderr,"============ %d task %d job miss  ==============\n", getpid(), k);
             free_network(net);
+            exit(-1);
+        }
+        if( write(request_fd,&net.n, sizeof(int)) == -1){
+            perror("Request :");
             exit(-1);
         }
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);

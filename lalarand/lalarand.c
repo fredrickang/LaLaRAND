@@ -106,7 +106,6 @@ int main(int argc, char **argv){
             if(!(gpu->waiting->count + cpu->waiting->count < Sync)){
                 if(Sync) update_deadline_all(dnn_list, current_time);
                 
-                double dequeue_start = get_time_point();
                 if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);
                 if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, cpu);
                 //fprintf(stderr, "[DEQUEUE] ABS : %f, Passed : %8.5f\n", dequeue_start,  ((double)get_time_point() - dequeue_start)/1000);

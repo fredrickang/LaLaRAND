@@ -8,6 +8,7 @@ extern int period, numofjob;
 extern struct timespec release_time;
 
 extern cpu_set_t gpu_core, cpu_core;
+extern int request_fd;
 
 typedef struct {
     float *x;
@@ -560,6 +561,11 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
             fprintf(stderr,"============ %d task %d job miss  ==============\n", getpid(), i);
             free_network(net);
             exit(-1);
+        }
+        
+        if( write(request_fd,&net.n, sizeof(int)) == -1){
+                perror("Request :");
+                exit(-1);
         }
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }

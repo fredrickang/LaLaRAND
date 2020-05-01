@@ -62,8 +62,7 @@ int first = 1;
 
 void forward_network_gpu(network net, network_state state)
 {
-  //  double pre = get_time_point();
-    cudaDeviceSynchronize();
+//    cudaDeviceSynchronize();
     state.workspace = net.workspace;
     state.workspace_cpu = net.workspace_cpu;
     int i;
@@ -74,7 +73,6 @@ void forward_network_gpu(network net, network_state state)
     
     double inference, total;
     
-//    fprintf(stderr, "[DATA] : %8.5f\n",((double)get_time_point() - pre)/1000);
     for(i = 0; i < net.n; ++i){
         total = get_time_point();
         resource = -1;
@@ -82,7 +80,6 @@ void forward_network_gpu(network net, network_state state)
         state.index = i;
         layer l = net.layers[i];
         
-//        fprintf(stderr,"[MSG] : %8.5f\n", ((double)get_time_point()));
         if( write(request_fd, &i, sizeof(int)) == -1 ){
             perror("request send : ");
             exit(-1);
@@ -149,19 +146,14 @@ void forward_network_gpu(network net, network_state state)
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
         
-        //fprintf(stderr,"[%d] Layer %3d Resource %d Inference %8.5f\n", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
+        fprintf(stderr,"[%d] Layer %3d Resource %d Inference %8.5f ", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
 
         state.input = resource ? l.output_gpu : l.output; 
         before = resource;                
-       
+        
+        fprintf(stderr, "Total %8.5f\n",((double)get_time_point() - total)/1000);
+        
     }   
-    
-    if( write(request_fd,&net.n, sizeof(int)) == -1){
-        perror("Request :");
-        exit(-1);
-    }
-    //fprintf(stderr,"Total Time cost : %8.5f\n", ((double)get_time_point() - total_time)/1000);
-    //if(sched_setscheduler(0, SCHED_FIFO, &low) == -1) perror("SCHED_FIFO low : ");
 }
 
 
@@ -574,14 +566,15 @@ float *network_predict_gpu(network net, float *input)
     state.index = 0;
     state.net = net;
     //state.input = cuda_make_array(input, size);   // memory will be allocated in the parse_network_cfg_custom() 
-    
+   
     memcpy(net.input_pinned_cpu, input, size * sizeof(float));
     cuda_push_array(net.input_state_gpu, net.input_pinned_cpu, size );
-        
+    
+    cudaDeviceSynchronize();
     state.truth = 0;
     state.train = 0;
     state.delta = 0;
-
+    fprintf(stderr, "[%d] INPUT DATA : %8.5f\n", getpid(),((double)get_time_point() - _time)/1000);
     forward_network_gpu(net, state);
 
     float *out = get_network_output_gpu(net);

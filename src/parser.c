@@ -1623,7 +1623,7 @@ void get_response_time(struct timespec *start, struct timespec *stop){
     }
 
     double millisec = result.tv_sec * 1000 + result.tv_nsec / 1000000 ; 
-    fprintf(stderr, "[RESPONSE] %f milli-sec\n",millisec);
+    fprintf(stderr,"[RESPONSE] %f milli-sec\n",millisec);
 }
 
 // miss : 1 unmiss : 0

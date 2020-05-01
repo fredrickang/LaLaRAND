@@ -26,6 +26,7 @@ static int coco_ids[] = { 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,
 extern struct timespec release_time;
 extern int period, numofjob;
 
+extern int request_fd;
 extern cpu_set_t cpu_core, gpu_core;
 
 
@@ -1682,6 +1683,11 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
             free_network(net);
             exit(-1);
         }
+        if( write(request_fd,&net.n, sizeof(int)) == -1){
+            perror("Request :");
+            exit(-1);
+        }
+
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
 
