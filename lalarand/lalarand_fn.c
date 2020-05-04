@@ -527,8 +527,8 @@ void decision_handler(int target_id, dnn_queue * dnn_list, int decision){
     dnn_info * target = find_dnn_by_id(dnn_list, target_id);
     
     if(target->assigned != decision){
-        sched_setaffinity(target->pid; sizeof(cpu_set_t), &core);
-        target->assinged = decision;
+        sched_setaffinity(target->pid, sizeof(cpu_set_t), &core);
+        target->assigned = decision;
     }
 
     if( write(target->decision_fd,&decision,sizeof(int)) < 0){
