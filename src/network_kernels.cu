@@ -56,7 +56,8 @@ extern int request_fd, decision_fd, lalarand_pid;
 extern struct timespec release_time = {0, 0};
 extern int *history;
 
-int first = 1;
+int Sync = 1;
+int resource = -1;
 
 void forward_network_gpu(network net, network_state state)
 {
@@ -65,7 +66,6 @@ void forward_network_gpu(network net, network_state state)
     state.workspace_cpu = net.workspace_cpu;
     int i;
     int before = 1;
-    int resource ;
 
     int size = get_network_input_size(net) * net.batch;
     
@@ -73,28 +73,27 @@ void forward_network_gpu(network net, network_state state)
     
     for(i = 0; i < net.n; ++i){
         total = get_time_point();
-        resource = -1;
 
         state.index = i;
         layer l = net.layers[i];
         
-        if( write(request_fd, &i, sizeof(int)) == -1 ){
-            perror("request send : ");
-            exit(-1);
-        }
-         
-        if(first){
-            if( read(decision_fd, &release_time, sizeof(struct timespec)) == -1){
-                perror("release time : ");
+        if(!Sync){        
+            
+            if( write(request_fd, &i, sizeof(int)) == -1 ){
+                perror("request send : ");
                 exit(-1);
             }
-            first = 0;
-        }
+         
+
+            if( read(decision_fd, &resource, sizeof(int)) == -1){
+                perror("decision recv : ");
+                exit(-1);
+            }
         
-        if( read(decision_fd, &resource, sizeof(int)) == -1){
-            perror("decision recv : ");
-            exit(-1);
-        } 
+        }else{
+            Sycn = 0;
+        }
+
 
         history[i] = resource; 
         inference = get_time_point();
@@ -554,18 +553,42 @@ float *network_predict_gpu(network net, float *input)
     state.index = 0;
     state.net = net;
     //state.input = cuda_make_array(input, size);   // memory will be allocated in the parse_network_cfg_custom() 
-   
+    
+
+    synchronizeRelease();
+
     memcpy(net.input_pinned_cpu, input, size * sizeof(float));
     cuda_push_array(net.input_state_gpu, net.input_pinned_cpu, size );
     
     cudaDeviceSynchronize();
+    
     state.truth = 0;
     state.train = 0;
     state.delta = 0;
+    
     fprintf(stderr, "[%d] INPUT DATA : %8.5f\n", getpid(),((double)get_time_point() - _time)/1000);
     forward_network_gpu(net, state);
 
     float *out = get_network_output_gpu(net);
 
     return out;
+}
+
+void synchronizeRelease(){
+    if(Sync){
+        if( write(request_fd, 0, sizeof(int)) == -1 ){
+            perror("request send : ");
+            exit(-1);
+        }
+         
+        if( read(decision_fd, &release_time, sizeof(struct timespec)) == -1){
+            perror("release time : ");
+            exit(-1);
+        }
+        
+        if( read(decision_fd, &resource, sizeof(int)) == -1){
+            perror("decision recv : ");
+            exit(-1);
+        } 
+    }
 }
