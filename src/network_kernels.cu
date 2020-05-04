@@ -545,7 +545,7 @@ float *network_predict_gpu(network net, float *input)
 {
     int i;
 
-    double _time = get_time_point();
+    
     if (net.gpu_index != cuda_get_device())
         cuda_set_device(net.gpu_index);
     int size = get_network_input_size(net) * net.batch;
@@ -556,7 +556,8 @@ float *network_predict_gpu(network net, float *input)
     
 
     synchronizeRelease();
-
+    
+    double _time = get_time_point();
     memcpy(net.input_pinned_cpu, input, size * sizeof(float));
     cuda_push_array(net.input_state_gpu, net.input_pinned_cpu, size );
     
