@@ -54,6 +54,8 @@ extern int period = -1;
 extern int numofjob = -1;
 extern int priority = -1;
 
+FILE * pLogFile;
+
 cpu_set_t gpu_core;
 
 
@@ -542,8 +544,9 @@ int main(int argc, char **argv)
     int mode = find_int_arg(argc, argv, "-mode", 1);
     int index = find_int_arg(argc, argv, "-index", 0);
 
-    char log_path[50];
     
+    char log_path[50];
+
     switch (mode){
         case 1:
             snprintf(log_path, 50, "./Exp/RM/taskset_%d/task_%d.txt", index, getpid());
@@ -561,11 +564,10 @@ int main(int argc, char **argv)
             snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/task_%d.txt", index, getpid());
     }
 
-    freopen(log_path, "w", stderr);
-    
+    pLogFile = fopen(log_path, "w");
 
-    fprintf(stderr, "[%d] Priority : %d , Period : %d\n", getpid(), priority, period);
-
+    fprintf(pLogFile, "[%d] Priority : %d , Period : %d\n", getpid(), priority, period);
+    fflush(pLogFile);
 #ifndef GPU
     gpu_index = -1;
 #else
@@ -582,13 +584,14 @@ int main(int argc, char **argv)
 
     get_task_info(task, argv);
         ///// data cfg
-    fprintf(stderr,"data path %s\n",argv[3]);
+    fprintf(pLogFile,"data path %s\n",argv[3]);
         ///// model cfg
-    fprintf(stderr,"model path %s\n",argv[4]);
+    fprintf(pLogFile,"model path %s\n",argv[4]);
         ///// weight cfg
-    fprintf(stderr,"weight path %s\n",argv[5]);
+    fprintf(pLogFile,"weight path %s\n",argv[5]);
         //redirect stdout & stderr to certain file.
-
+    
+    fflush(pLogFile);
     //original darknet main process.
     if (0 == strcmp(argv[1], "average")){
         average(argc, argv);

@@ -59,6 +59,8 @@ typedef struct{
 
 list *read_cfg(char *filename);
 
+extern FILE * pLogFile;
+
 LAYER_TYPE string_to_layer_type(char * type)
 {
 
@@ -1623,8 +1625,9 @@ void get_response_time(struct timespec *start, struct timespec *stop){
     }
 
     double millisec = result.tv_sec * 1000 + result.tv_nsec / 1000000 ; 
-    fprintf(stderr,"[RESPONSE] %f milli-sec\n",millisec);
-}
+    fprintf(pLogFile,"[RESPONSE] %f milli-sec\n",millisec);
+    fflush(pLogFile);
+}   
 
 // miss : 1 unmiss : 0
 int deadline_miss_check(struct timespec *deadline, struct timespec *current){

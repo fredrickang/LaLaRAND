@@ -29,6 +29,7 @@ extern int period, numofjob;
 extern int request_fd;
 extern cpu_set_t gpu_core;
 
+extern FILE * pLogFile;
 
 void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int dont_show, int calc_map, int mjpeg_port, int show_imgs)
 {
@@ -1586,8 +1587,8 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     for (k =0; k< numofjob; k++){
         //t_period = get_time_point();
         ///// IMAGE PREPROCESSING /////
-        fprintf(stderr,"=====================%d JOB %d=====================\n",pid, k);
-
+        fprintf(pLogFile,"=====================%d JOB %d=====================\n",pid, k);
+        fflush(pLogFile);
         layer l = net.layers[net.n - 1];
 
         float *X = sized.data;
@@ -1671,15 +1672,14 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         int miss;
         clock_gettime(CLOCK_MONOTONIC, &current_time);
         
-        fprintf(stderr, "[POST] %f\n", ((double)get_time_point() - post)/1000);
-
         get_response_time(&release_time, &current_time);
 
         timespec_add(&release_time, &period_time);  
         
         miss = deadline_miss_check(&release_time, &current_time);
         if(miss){
-            fprintf(stderr,"============ %d task %d job miss  ==============\n", getpid(), k);
+            fprintf(pLogFile,"============ %d task %d job miss  ==============\n", getpid(), k);
+            fflush(pLogFile);
             free_network(net);
             exit(-1);
         }

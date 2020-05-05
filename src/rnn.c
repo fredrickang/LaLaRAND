@@ -6,6 +6,7 @@
 
 extern int period, numofjob;
 extern struct timespec release_time;
+extern FILE * pLogFile;
 
 extern cpu_set_t gpu_core;
 extern int request_fd;
@@ -537,7 +538,8 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
 
     int pid = getpid();
     for(i = 0; i < numofjob; ++i){
-        fprintf(stderr,"=====================%d JOB %d====================\n",pid,i);
+        fprintf(pLogFile,"=====================%d JOB %d====================\n",pid,i);
+        fflush(pLogFile);
         input[c] = 1;
         float *out = network_predict(net, input);
         input[c] = 0;
@@ -558,7 +560,8 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
         
         miss = deadline_miss_check(&release_time,&current_time);
         if(miss){
-            fprintf(stderr,"============ %d task %d job miss  ==============\n", getpid(), i);
+            fprintf(pLogFile,"============ %d task %d job miss  ==============\n", getpid(), i);
+            fflush(pLogFile);
             free_network(net);
             exit(-1);
         }

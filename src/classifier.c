@@ -32,6 +32,8 @@ extern cpu_set_t gpu_core;
 extern int request_fd;
 float validate_classifier_single(char *datacfg, char *filename, char *weightfile, network *existing_net, int topk_custom);
 
+extern FILE * pLogFile;
+
 float *get_regression_values(char **labels, int n)
 {
     float* v = (float*)calloc(n, sizeof(float));
@@ -1327,8 +1329,8 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
 
     for (int k =0; k < numofjob; k++){
 
-        fprintf(stderr,"=====================%d JOB %d=====================\n", pid, k);
-
+        fprintf(pLogFile,"=====================%d JOB %d=====================\n", pid, k);
+        fflush(pLogFile);
 
         //image r = resize_min(im, size);
         //resize_network(&net, r.w, r.h);
@@ -1357,7 +1359,8 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
 
         miss = deadline_miss_check(&release_time,&current_time);
         if(miss){
-            fprintf(stderr,"============ %d task %d job miss  ==============\n", getpid(), k);
+            fprintf(pLogFile,"============ %d task %d job miss  ==============\n", getpid(), k);
+            fflush(pLogFile);
             free_network(net);
             exit(-1);
         }
