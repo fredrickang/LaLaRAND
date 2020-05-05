@@ -1,3 +1,7 @@
+#define DEBUG 0
+#define debug_print(fmt, args...) \
+            do { if (DEBUG) fprintf(stderr, fmt, ##args); } while (0)
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -131,11 +135,11 @@ void enQueue(Queue *q, int layer, int id, int priority){
     
     if(q->front == NULL){
         q->front = tmp;
-        fprintf(stderr,"Enqueue : [ID] %d [layer] %d \n", id, layer);
+        debug_print("Enqueue : [ID] %d [layer] %d \n", id, layer);
         return;
     }    
 
-    fprintf(stderr,"Enqueue : [ID] %d [layer] %d \n", id, layer);
+    debug_print("Enqueue : [ID] %d [layer] %d \n", id, layer);
     
     if(q->front -> priority > tmp-> priority ){
         tmp->next = q->front;
@@ -173,7 +177,7 @@ int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double
     
     q -> count --;
     free(target);
-    fprintf(stderr,"Dequeue : [ID] %d [layer] %d \n", target_id, target_layer);
+    debug_print("Dequeue : [ID] %d [layer] %d \n", target_id, target_layer);
     return target_id;
 }  
 
@@ -195,28 +199,28 @@ dnn_info * find_dnn_by_pid(dnn_queue * dnn_list, int pid){
 
 void print_list(char * name, dnn_queue * dnn_list){
     dnn_info * head = dnn_list -> head;
-    fprintf(stderr, "%s :", name);
-    if (head == NULL) fprintf(stderr,"Nothing registered");
+    debug_print( "%s :", name);
+    if (head == NULL) debug_print("Nothing registered");
 
     while( head != NULL){
-        fprintf(stderr,"{[%d] %d} ", head->id, head->priority);
+        debug_print("{[%d] %d} ", head->id, head->priority);
         head = head->next;
     }
-    fprintf(stderr,"\n");
+    debug_print("\n");
 }
 
 
 void print_queue(char * name, Queue * q){
     QNode * head =  q -> front;
-    fprintf(stderr,"%s :",name);
+    debug_print("%s :",name);
     if (head == NULL) 
-        fprintf(stderr,"Empty Queue"); 
+        debug_print("Empty Queue"); 
   
     while (head != NULL) { 
-        fprintf(stderr,"{[%d] %d} ", head -> id, head -> layer);
+        debug_print("{[%d] %d} ", head -> id, head -> layer);
         head = head->next; 
     }
-    fprintf(stderr,"\n");
+    debug_print("\n");
 }
 
 ///// Utils ////
@@ -352,12 +356,12 @@ void regist(dnn_queue * dnn_list, reg_msg * msg){
     dnn -> priority = msg -> priority;
     dnn -> current_layer = -1;
     dnn -> assigned = 1;
-    fprintf(stderr,"======== REGISTRATION ========\n");
-    fprintf(stderr,"[ID]     %3d\n", dnn-> id);
-    fprintf(stderr,"[PID]    %3d\n", dnn-> pid);
-    fprintf(stderr,"[Layers] %3d\n", dnn-> layers);
-    fprintf(stderr,"[Type]   %s\n", get_dnn_name(dnn->type));
-    fprintf(stderr,"[Period] %3d\n", dnn->period);
+    debug_print("======== REGISTRATION ========\n");
+    debug_print("[ID]     %3d\n", dnn-> id);
+    debug_print("[PID]    %3d\n", dnn-> pid);
+    debug_print("[Layers] %3d\n", dnn-> layers);
+    debug_print("[Type]   %s\n", get_dnn_name(dnn->type));
+    debug_print("[Period] %3d\n", dnn->period);
     char req_fd_name[30];
     char dec_fd_name[30];
 
@@ -450,7 +454,7 @@ void de_regist(dnn_queue * dnn_list, reg_msg * msg){
     pid = target -> pid;
     close_channels(target);
     deleteDNN(dnn_list, target);
-    fprintf(stderr,"================== %d DNN has been de registered ===================\n", pid); 
+    debug_print("================== %d DNN has been de registered ===================\n", pid); 
 }
 
 int check_request(dnn_queue * dnn_list, fd_set* readfds, int sync){
@@ -482,7 +486,7 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
     
     read(node -> request_fd, &request_layer, sizeof(int));
     
-    //fprintf(stderr,"[request_handler] : [ID] %d [layer] %d \n", node -> id, request_layer);
+    //debug_print("[request_handler] : [ID] %d [layer] %d \n", node -> id, request_layer);
 
     if(request_layer == 0) update_deadline(node, current_time);
 
@@ -540,7 +544,7 @@ void update_deadline(dnn_info * dnn, double current_time){
     // milli period to micro period
     double micro_period = dnn->period * 1000;
     dnn-> deadline = current_time + micro_period;
-    fprintf(stderr,"Deadline update : [dnn] %s ,[current] %f, [deadline] %f\n", get_dnn_name(dnn->type), current_time, dnn -> deadline);
+    debug_print("Deadline update : [dnn] %s ,[current] %f, [deadline] %f\n", get_dnn_name(dnn->type), current_time, dnn -> deadline);
 }
 
 void update_deadline_all(dnn_queue * dnn_list, double current_time){
@@ -577,7 +581,7 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
     
     int prefer, non_prefer; 
 
-    //fprintf(stderr, "==============[MIGRATION]==============\n");
+    //debug_print( "==============[MIGRATION]==============\n");
     for(QNode * tmp = q->front; tmp != NULL; tmp = tmp -> next){
         node = find_dnn_by_id(dnn_list, tmp -> id);
         slack = node->deadline - current_time - workload_left(profile_list[node->type],tmp -> layer, node->layers);
@@ -585,10 +589,10 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
         prefer = (From -> res_id ==GPU) ? profile_list[node->type] -> gpu_exec[tmp->layer] : profile_list[node->type] -> cpu_exec[tmp->layer];
         non_prefer = (From -> res_id == GPU) ? profile_list[node->type] -> cpu_exec[tmp->layer] : profile_list[node->type] -> gpu_exec[tmp->layer];
         
-        //fprintf(stderr, "[ID] : %d\n", tmp -> id);
-        //fprintf(stderr, "[Slack] : %f\n",slack);
-        //fprintf(stderr, "[Prefer] : %d\n",prefer);
-        //fprintf(stderr, "[Non_prefer] : %d\n", non_prefer);
+        //debug_print( "[ID] : %d\n", tmp -> id);
+        //debug_print( "[Slack] : %f\n",slack);
+        //debug_print( "[Prefer] : %d\n",prefer);
+        //debug_print( "[Non_prefer] : %d\n", non_prefer);
         
         if( slack > non_prefer - prefer ){ /* first condidtion */
             
@@ -596,15 +600,15 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
             blocked = blocking(q, dnn_list, profile_list, From, tmp->id);
             data_trans = data_transfer(dnn_list , profile_list, From, tmp->id, tmp->layer);
             
-            //fprintf(stderr, "[Futer_wait] : %f\n", future_wait);
-            //fprintf(stderr, "[Blocked] : %f\n", blocked);
-            //fprintf(stderr, "[data_trans] : %f\n", data_trans);
+            //debug_print( "[Futer_wait] : %f\n", future_wait);
+            //debug_print( "[Blocked] : %f\n", blocked);
+            //debug_print( "[data_trans] : %f\n", data_trans);
 
             if ( future_wait + prefer > blocked + data_trans + non_prefer ){
                 
                 limits = limit(q,dnn_list, profile_list, current_time, From, tmp->id);
                 
-                //fprintf(stderr,"[Limits] : %f\n", limits);
+                //debug_print("[Limits] : %f\n", limits);
 
                 if( limits > non_prefer){
                     if( slack < smallest ){
@@ -613,7 +617,7 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
                         smallest = slack;
                     }
                 }
-                //fprintf(stderr, "[Smallest] : %f\n", smallest);
+                //debug_print( "[Smallest] : %f\n", smallest);
             }
         }
     }
@@ -642,7 +646,7 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
     
         q -> count --;
 
-        fprintf(stderr,"Migration : [ID] %d [Layer] %d \n",target_id, target_layer);
+        debug_print("Migration : [ID] %d [Layer] %d \n",target_id, target_layer);
     }
 
     return target_id; 
@@ -788,17 +792,17 @@ int open_channel(char * pipe_name,int mode){
         exit(-1);
     }
     if( (pipe_fd = open(pipe_name, mode)) < 0){
-        fprintf(stderr,"[ERROR]Fail to open channel for %s\n", pipe_name);
+        debug_print("[ERROR]Fail to open channel for %s\n", pipe_name);
         exit(-1);
     }
-   fprintf(stderr,"Channel for %s has been successfully openned!\n", pipe_name);
+   debug_print("Channel for %s has been successfully openned!\n", pipe_name);
    
    return pipe_fd;
 }
 
 void close_channel(char * pipe_name){
     if ( unlink(pipe_name) == -1){
-        fprintf(stderr,"[ERROR]Fail to remove %s\n",pipe_name);
+        debug_print("[ERROR]Fail to remove %s\n",pipe_name);
         exit(-1);
     }
 }

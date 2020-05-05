@@ -1,3 +1,4 @@
+#define DEBUG 0
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -66,25 +67,27 @@ int main(int argc, char **argv){
     dnn_info *node;
     
     char log_path[50];
-    switch (mode){
-        case 1:
-            snprintf(log_path, 50, "./Exp/RM/taskset_%d/lala_%d.txt", index, getpid());
-            break;
-        case 2:
-            snprintf(log_path, 50, "./Exp/RM_PR/taskset_%d/lala_%d.txt", index, getpid());
-            break;
-        case 3:
-            snprintf(log_path, 50, "./Exp/RM_DART/taskset_%d/lala_%d.txt", index, getpid());
-            break;
-        case 4:
-            snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-            break;
-        case 5:
-            snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/lala_%d.txt", index, getpid());
+    if(DEBUG){
+        switch (mode){
+            case 1:
+                snprintf(log_path, 50, "./Exp/RM/taskset_%d/lala_%d.txt", index, getpid());
+                break;
+            case 2:
+                snprintf(log_path, 50, "./Exp/RM_PR/taskset_%d/lala_%d.txt", index, getpid());
+                break;
+            case 3:
+                snprintf(log_path, 50, "./Exp/RM_DART/taskset_%d/lala_%d.txt", index, getpid());
+                break;
+            case 4:
+                snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+                break;
+            case 5:
+                snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/lala_%d.txt", index, getpid());
+        }
+    
+        freopen(log_path,"w", stderr);
     }
-    
-    freopen(log_path,"w", stderr);
-    
+
     do{
         gpu_target = -1;
         cpu_target = -1;
@@ -108,7 +111,6 @@ int main(int argc, char **argv){
                 
                 if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);
                 if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, cpu);
-                //fprintf(stderr, "[DEQUEUE] ABS : %f, Passed : %8.5f\n", dequeue_start,  ((double)get_time_point() - dequeue_start)/1000);
 
                 if (mode == 4){ /* only in LaLaRAND */
                     if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, cpu, gpu);
@@ -116,13 +118,11 @@ int main(int argc, char **argv){
                 }
                 
                 if(Sync) send_release_time(dnn_list);
-                //fprintf(stderr,"[RELEASE] ABS : %f\, Passed : %8.5f\n", release_start, ((double)get_time_point() - release_start)/1000);
 
                 if(gpu_target != -1) decision_handler(gpu_target, dnn_list, GPU);
                 if(cpu_target != -1) decision_handler(cpu_target, dnn_list, CPU);
                 Sync = 0;
             }
-            //printf("[OVERHEAD] LaLa %8.5f\n",((double)get_time_point() - current_time));
         }
     }while(!(Sync == 0 && dnn_list -> count == 0)); 
 }   

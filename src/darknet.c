@@ -562,6 +562,9 @@ int main(int argc, char **argv)
     }
 
     freopen(log_path, "w", stderr);
+    
+
+    fprintf(stderr, "[%d] Priority : %d , Period : %d\n", getpid(), priority, period);
 
 #ifndef GPU
     gpu_index = -1;

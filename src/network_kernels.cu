@@ -91,7 +91,7 @@ void forward_network_gpu(network net, network_state state)
             }
         
         }else{
-            Sycn = 0;
+            Sync = 0;
         }
 
 
@@ -576,8 +576,9 @@ float *network_predict_gpu(network net, float *input)
 }
 
 void synchronizeRelease(){
+    int request = 0;
     if(Sync){
-        if( write(request_fd, 0, sizeof(int)) == -1 ){
+        if( write(request_fd, &request, sizeof(int)) == -1 ){
             perror("request send : ");
             exit(-1);
         }
