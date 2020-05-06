@@ -85,6 +85,8 @@ if __name__ == "__main__":
     parser.add_argument("--log_path", type = str, default = "Exp/RM/")
     parser.add_argument("--list", type = str, default = "taskset_list.txt")
     opt = parser.parse_args()
+    
+    print(opt)
 
     fp = open(opt.list,"r")
     lines = fp.readlines()

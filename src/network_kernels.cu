@@ -1,4 +1,4 @@
-#define DEBUG 0
+#define DEBUG 1
 #define debug_print(fd ,fmt, args...) \
             do { if (DEBUG) {fprintf(fd, fmt, ##args); fflush(fd);} } while (0)
 #include "dark_cuda.h"
