@@ -76,8 +76,8 @@ void forward_network_gpu(network net, network_state state)
     for(i = 0; i < net.n; ++i){
         total = get_time_point();
         
-        fprintf(stderr, "%d layer starts : %f\n", i , total/1000);
-        fflush(pLogFile);
+//        fprintf(pLogFile, "%d layer starts : %f\n", i , total/1000);
+//        fflush(pLogFile);
 
         state.index = i;
         layer l = net.layers[i];
@@ -103,8 +103,8 @@ void forward_network_gpu(network net, network_state state)
         history[i] = resource; 
         inference = get_time_point();
         
-        fprintf(pLogFile, "%d infer starts : %f\n", i, inference/1000);
-        fflush(pLogFile);
+//        fprintf(pLogFile, "%d infer starts : %f\n", i, inference/1000);
+//        fflush(pLogFile);
 
         if(l.delta_gpu && state.train){
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
@@ -141,18 +141,18 @@ void forward_network_gpu(network net, network_state state)
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
         
-        fprintf(pLogFile,"%d infer ends : %f\n", i, get_time_point()/1000);
-        fprintf(pLogFile,"[%d] Layer %3d Resource %d Inference %8.5f ", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
+//        fprintf(pLogFile,"%d infer ends : %f\n", i, get_time_point()/1000);
+//        fprintf(pLogFile,"[%d] Layer %3d Resource %d Inference %8.5f ", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
         
-        fflush(pLogFile);
+//        fflush(pLogFile);
 
         state.input = resource ? l.output_gpu : l.output; 
         before = resource;                
         
-        fprintf(pLogFile, "Total %8.5f\n",((double)get_time_point() - total)/1000);
-        fprintf(pLogFile, "%d layer ends : %f\n", i , get_time_point()/1000);
+//        fprintf(pLogFile, "Total %8.5f\n",((double)get_time_point() - total)/1000);
+//        fprintf(pLogFile, "%d layer ends : %f\n", i , get_time_point()/1000);
         
-        fflush(pLogFile);
+//        fflush(pLogFile);
     }   
 }
 
