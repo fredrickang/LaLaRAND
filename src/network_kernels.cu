@@ -1,3 +1,6 @@
+#define DEBUG 0
+#define debug_print(fd ,fmt, args...) \
+            do { if (DEBUG) {fprintf(fd, fmt, ##args); fflush(fd);} } while (0)
 #include "dark_cuda.h"
 
 #include <stdio.h>
@@ -76,9 +79,6 @@ void forward_network_gpu(network net, network_state state)
     for(i = 0; i < net.n; ++i){
         total = get_time_point();
         
-//        fprintf(pLogFile, "%d layer starts : %f\n", i , total/1000);
-//        fflush(pLogFile);
-
         state.index = i;
         layer l = net.layers[i];
         
@@ -103,9 +103,6 @@ void forward_network_gpu(network net, network_state state)
         history[i] = resource; 
         inference = get_time_point();
         
-//        fprintf(pLogFile, "%d infer starts : %f\n", i, inference/1000);
-//        fflush(pLogFile);
-
         if(l.delta_gpu && state.train){
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
         }   
@@ -141,18 +138,11 @@ void forward_network_gpu(network net, network_state state)
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
         
-//        fprintf(pLogFile,"%d infer ends : %f\n", i, get_time_point()/1000);
-//        fprintf(pLogFile,"[%d] Layer %3d Resource %d Inference %8.5f ", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
-        
-//        fflush(pLogFile);
-
+        debug_print(pLogFile,"[%d] Layer %3d Resource %d Inference %8.5f ", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
         state.input = resource ? l.output_gpu : l.output; 
         before = resource;                
-        
-//        fprintf(pLogFile, "Total %8.5f\n",((double)get_time_point() - total)/1000);
-//        fprintf(pLogFile, "%d layer ends : %f\n", i , get_time_point()/1000);
-        
-//        fflush(pLogFile);
+
+        debug_print(pLogFile, "Total %8.5f\n",((double)get_time_point() - total)/1000);
     }   
 }
 
@@ -580,8 +570,8 @@ float *network_predict_gpu(network net, float *input)
     state.train = 0;
     state.delta = 0;
     
-    fprintf(pLogFile, "[%d] INPUT DATA : %8.5f\n", getpid(),((double)get_time_point() - _time)/1000);
-    fflush(pLogFile);
+    debug_print(pLogFile, "[%d] INPUT DATA : %8.5f\n", getpid(),((double)get_time_point() - _time)/1000);
+
     forward_network_gpu(net, state);
 
     float *out = get_network_output_gpu(net);

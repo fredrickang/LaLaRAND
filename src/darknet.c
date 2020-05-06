@@ -563,7 +563,7 @@ int main(int argc, char **argv)
         case 5:
             snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/task_%d.txt", index, getpid());
     }
-
+    freopen(log_path,"w", stderr);
     pLogFile = fopen(log_path, "w");
 
     fprintf(pLogFile, "[%d] Priority : %d , Period : %d\n", getpid(), priority, period);
