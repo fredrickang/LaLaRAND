@@ -1295,9 +1295,7 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     char buff[256];
     char *input = buff;
     //int size = net.w;
-
-    if(sched_setaffinity(0, sizeof(cpu_set_t), &gpu_core) == -1) perror("SCHED_AFFINITY");
-    sched_yield();
+    
     puts("=======Initialize========");
     for (int k = 0; k < 3; k++){
         input = paths[k];
@@ -1318,12 +1316,6 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     int pid = getpid();
     
     if(sched_setaffinity(0, sizeof(cpu_set_t), &gpu_core) == -1) perror("SCHED_AFFINITY");
-    
-    struct sched_param high;
-    memset(&high, 0, sizeof(high));
-    high.sched_priority = 90;
-
-    if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO high :");
     
     sched_yield();
 
@@ -1359,7 +1351,7 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
 
         miss = deadline_miss_check(&release_time,&current_time);
         if(miss){
-            fprintf(pLogFile,"============ %d task %d job miss  ==============\n", getpid(), k);
+            fprintf(pLogFile,"============ %d task %d job miss  ==============\n", getpid(), i);
             fflush(pLogFile);
             free_network(net);
             exit(-1);

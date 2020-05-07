@@ -1,0 +1,11 @@
+Extraction 6 400 105 
+Extraction 1 300 140 
+Yolo 4 350 120 
+Extraction 7 400 105 
+Resnet 2 300 140 
+Resnet 8 400 105 
+Extraction 3 300 140 
+Resnet 5 350 120 
+Resnet 9 400 105 
+Extraction 10 500 84 
+unsched

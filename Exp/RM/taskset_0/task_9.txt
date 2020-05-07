@@ -1,0 +1,5 @@
+[9529] Priority : 9 , Period : 400
+data path ./cfg/imagenet1k.data
+model path ./cfg/resnet18.cfg
+weight path ./weights/resnet18.weights
+=====================9529 JOB 0=====================

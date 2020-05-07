@@ -1,0 +1,36 @@
+[9508] Priority : 1 , Period : 300
+data path cfg/imagenet1k.data
+model path cfg/extraction.cfg
+weight path weights/extraction.weights
+=====================9508 JOB 0=====================
+[9508] INPUT DATA :  0.87300
+[9508] Layer   0 Resource 1 Inference 849.03200 Total 849.11100
+[9508] Layer   1 Resource 1 Inference  0.13800 Total  0.30300
+[9508] Layer   2 Resource 1 Inference  1.28700 Total  1.36500
+[9508] Layer   3 Resource 1 Inference  0.07700 Total  0.20200
+[9508] Layer   4 Resource 1 Inference  0.31100 Total  0.38100
+[9508] Layer   5 Resource 1 Inference  0.70700 Total  0.77100
+[9508] Layer   6 Resource 1 Inference  0.33700 Total  0.40000
+[9508] Layer   7 Resource 1 Inference  2.04400 Total  2.13400
+[9508] Layer   8 Resource 1 Inference  0.08900 Total  0.16700
+[9508] Layer   9 Resource 1 Inference  0.19800 Total  0.25100
+[9508] Layer  10 Resource 1 Inference  0.73100 Total  0.79100
+[9508] Layer  11 Resource 1 Inference  0.29600 Total  0.35700
+[9508] Layer  12 Resource 1 Inference  0.75500 Total  0.82600
+[9508] Layer  13 Resource 1 Inference  0.28200 Total  0.36300
+[9508] Layer  14 Resource 1 Inference  0.73300 Total  0.82300
+[9508] Layer  15 Resource 1 Inference  0.29800 Total  0.38600
+[9508] Layer  16 Resource 1 Inference  0.74600 Total  0.92300
+[9508] Layer  17 Resource 1 Inference  0.30600 Total  0.37100
+[9508] Layer  18 Resource 1 Inference  2.21700 Total  2.29600
+[9508] Layer  19 Resource 1 Inference  0.05800 Total  0.16100
+[9508] Layer  20 Resource 1 Inference  0.30600 Total  0.38800
+[9508] Layer  21 Resource 1 Inference  1.29300 Total  1.38300
+[9508] Layer  22 Resource 1 Inference  0.28400 Total  0.37700
+[9508] Layer  23 Resource 1 Inference  1.35500 Total  1.49900
+[9508] Layer  24 Resource 1 Inference  0.36400 Total  0.47000
+[9508] Layer  25 Resource 1 Inference  0.05900 Total  0.10900
+[9508] Layer  26 Resource 1 Inference  0.48700 Total  0.58200
+[9508] Layer  27 Resource 1 Inference  0.01500 Total  0.10300
+[RESPONSE] 869.000000 milli-sec
+============ 9508 task 0 job miss  ==============

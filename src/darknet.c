@@ -55,9 +55,8 @@ extern int numofjob = -1;
 extern int priority = -1;
 
 FILE * pLogFile;
-
 cpu_set_t gpu_core;
-
+struct sched_param prior;
 
 //DetectorParameter structure for multi-threading.
 DetectorParams *_g_detector_params;
@@ -508,7 +507,6 @@ int main(int argc, char **argv)
     int j;
     int i;
     int k;
-    
     for (i = 0; i < argc; ++i) {
 		if (!argv[i]) continue;
 		strip_args(argv[i]);
@@ -549,19 +547,19 @@ int main(int argc, char **argv)
 
     switch (mode){
         case 1:
-            snprintf(log_path, 50, "./Exp/RM/taskset_%d/task_%d.txt", index, getpid());
+            snprintf(log_path, 50, "./Exp/RM/taskset_%d/task_%d.txt", index, priority);
             break;
         case 2:
-            snprintf(log_path, 50, "./Exp/RM_PR/taskset_%d/task_%d.txt", index, getpid());
+            snprintf(log_path, 50, "./Exp/RM_PR/taskset_%d/task_%d.txt", index, priority);
             break;
         case 3:
-            snprintf(log_path, 50, "./Exp/RM_DART/taskset_%d/task_%d.txt", index, getpid());
+            snprintf(log_path, 50, "./Exp/RM_DART/taskset_%d/task_%d.txt", index, priority);
             break;
         case 4:
-            snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/task_%d.txt", index, getpid());
+            snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/task_%d.txt", index, priority);
             break;
         case 5:
-            snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/task_%d.txt", index, getpid());
+            snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/task_%d.txt", index, priority);
     }
     pLogFile = fopen(log_path, "w");
 
@@ -577,10 +575,16 @@ int main(int argc, char **argv)
 #endif
         // CPU Affinity setting //
 
-    
+    printf("========== %d =======\n",cuda_get_device()); 
+    perror("cuda device:");
     CPU_ZERO(&gpu_core);
-    CPU_SET(1, &gpu_core);
+    CPU_SET(2, &gpu_core);
+    
+    memset(&prior, 0, sizeof(prior)); 
+    prior.sched_priority = 50;
 
+    if(sched_setscheduler(0, SCHED_FIFO, &prior) == -1) perror("SCHED_FIFO : ");
+    
     get_task_info(task, argv);
         ///// data cfg
     fprintf(pLogFile,"data path %s\n",argv[3]);

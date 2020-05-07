@@ -1,4 +1,4 @@
-#define DEBUG 0
+#define DEBUG 1
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -43,12 +43,13 @@ int main(int argc, char **argv){
 
     struct sched_param high;
     memset( &high, 0, sizeof(high));
-    high.sched_priority = 93;
+    high.sched_priority = 50;
+    
     if(sched_setscheduler(getpid(), SCHED_FIFO, &high) == -1) perror("SCHED_FIFO :");
     // cpu affininty setting 
     cpu_set_t mask;
     CPU_ZERO(&mask);
-    CPU_SET(2, &mask);
+    CPU_SET(0, &mask);
     sched_setaffinity(0, sizeof(mask), &mask);
     
     dnn_profile ** profile_list = make_profile_list(mode);

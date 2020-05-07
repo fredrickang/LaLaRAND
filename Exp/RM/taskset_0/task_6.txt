@@ -1,0 +1,5 @@
+[9507] Priority : 6 , Period : 400
+data path cfg/imagenet1k.data
+model path cfg/extraction.cfg
+weight path weights/extraction.weights
+=====================9507 JOB 0=====================

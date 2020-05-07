@@ -491,6 +491,7 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
     fprintf(stderr, "%s\n", base);
 
     network net = parse_network_cfg_custom(cfgfile, 1, 1);  // batch=1, time_steps=1
+    
     if(weightfile){
         load_weights(&net, weightfile);
     }
@@ -528,11 +529,6 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
     period_time.tv_sec = 0;
     period_time.tv_nsec = ms_period*1000000;
    
-    struct sched_param high;
-    memset(&high, 0, sizeof(high));
-    high.sched_priority = 90;
-    
-    if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_SETSCHEDULER");
     if(sched_setaffinity(0, sizeof(cpu_set_t) , &gpu_core) == -1) perror("SCHED_AFFINITY");
     sched_yield();
 

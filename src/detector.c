@@ -1510,7 +1510,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     }else{
         net = parse_network_cfg_custom(cfgfile, 1, 1); // set batch=1
     }
-    
+
     if (weightfile) {
         load_weights(&net, weightfile);
     }
@@ -1575,13 +1575,8 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     else sized = resize_image(im, net.w, net.h);
 
     double post;
-    struct sched_param high;
-    memset(&high, 0, sizeof(high));
-    high.sched_priority = 90;
 
     if(sched_setaffinity(0, sizeof(cpu_set_t), &gpu_core) == -1) perror("SCHED_AFFINITY");
-    if(sched_setscheduler(0, SCHED_FIFO, &high) == -1) perror("SCHED_FIFO : ");
-    
     sched_yield();
 
     for (k =0; k< numofjob; k++){
@@ -1687,7 +1682,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
             perror("Request :");
             exit(-1);
         }
-
+        
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
 
