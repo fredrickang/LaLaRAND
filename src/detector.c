@@ -1548,18 +1548,17 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     int m = plist->size;
 
     puts("=======Initialize========");
-    for(k = 0; k< 3; k++){
-        input = paths[k];
-        image im =load_image(input, 0, 0, net.c);
-        image sized;
-        if(letter_box) sized = letterbox_image(im, net.w, net.h);
-        else sized = resize_image(im, net.w, net.h);
+    
+    input = paths[0];
+    image im = load_image(input, 0, 0, net.c);
+    image sized;
+    if(letter_box) sized = letterbox_image(im, net.w, net.h);
+    else sized = resize_image(im, net.w, net.h);
 
-        layer l = net.layers[net.n -1];
-
-        float *X = sized.data;
-        network_predict_cpu(net, X);
-    }
+    float *init_input = sized.data;
+    
+    for(int i =0 ; i < 3 ; i++) lala_init_cpu(net, init_input);
+    for(int i =0 ; i < 3 ; i++) lala_init_gpu(net, init_input);
 
     struct timespec period_time, current_time;
     int err;
@@ -1568,11 +1567,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     period_time.tv_nsec = ms_period*1000000;
     int pid = getpid();
 
-    input = paths[0];
-    image im = load_image(input, 0, 0, net.c);
-    image sized;
-    if(letter_box) sized = letterbox_image(im, net.w, net.h);
-    else sized = resize_image(im, net.w, net.h);
+
 
     double post;
 
@@ -1591,78 +1586,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         network_predict(net, X);
         
         
-        post = get_time_point();
-        ///// IMAGE POSTPROCESSING /////
-        /*
-        int nboxes = 0;
-        detection *dets = get_network_boxes(&net, im.w, im.h, thresh, hier_thresh, 0, 1, &nboxes, letter_box);
-        
-        if (nms) do_nms_sort(dets, nboxes, l.classes, nms);
-        
-        draw_detections_v3(im, dets, nboxes, thresh, names, alphabet, l.classes, ext_output);
-        //save_image(im, "predictions");
-
-        if (!dont_show) {
-            show_image(im, "predictions");
-        }
-
-        if (outfile) {
-            if (json_buf) {
-                char *tmp = ", \n";
-                fwrite(tmp, sizeof(char), strlen(tmp), json_file);
-            }
-            ++json_image_id;
-            json_buf = detection_to_json(dets, nboxes, l.classes, names, json_image_id, input);
-
-            fwrite(json_buf, sizeof(char), strlen(json_buf), json_file);
-            free(json_buf);
-        }
-
-        // pseudo labeling concept - fast.ai
-        if (save_labels)
-        {
-            char labelpath[4096];
-            replace_image_to_label(input, labelpath);
-
-            FILE* fw = fopen(labelpath, "wb");
-            int i;
-            for (i = 0; i < nboxes; ++i) {
-                char buff[1024];
-                int class_id = -1;
-                float prob = 0;
-                for (j = 0; j < l.classes; ++j) {
-                    if (dets[i].prob[j] > thresh && dets[i].prob[j] > prob) {
-                        prob = dets[i].prob[j];
-                        class_id = j;
-                    }
-                }
-                if (class_id >= 0) {
-                    sprintf(buff, "%d %2.4f %2.4f %2.4f %2.4f\n", class_id, dets[i].bbox.x, dets[i].bbox.y, dets[i].bbox.w, dets[i].bbox.h);
-                    fwrite(buff, sizeof(char), strlen(buff), fw);
-                }
-            }
-            fclose(fw);
-        }
-
-        free_detections(dets, nboxes);
-        free_image(im);
-        free_image(sized);
-
-        if (!dont_show) {
-            wait_until_press_key_cv();
-            destroy_all_windows_cv();
-        }
-        */
-        /*printf("PRE : %8.5f, PREDICT :%8.5f, POST :%8.5f, TOTAL :%8.5f\n",
-                k,
-                time_pre_arr[k] = (time_pre_end-time_pre)/1000,
-                time_predict_arr[k] = (time_predict_end-time_predict)/1000,
-                time_post_arr[k] = (time_post_end-time_post)/1000,
-                (time_post_end - time_pre)/1000);
-        //t_period_end = get_time_point();
-        //printf("period == %8.5f\n",t_period_end - t_period);
-        */
-        
+        post = get_time_point();  
         
         int miss;
         clock_gettime(CLOCK_MONOTONIC, &current_time);

@@ -103,8 +103,11 @@ void forward_network_gpu(network net, network_state state);
 void backward_network_gpu(network net, network_state state);
 void synchronizeRelease();
 void update_network_gpu(network net);
+void forward_network_pure_gpu(network net, network_state state);
+void lala_init_gpu(network net, float *input);
 #endif
 
+void lala_init_cpu(network net, float * input);
 float get_current_seq_subdivisions(network net);
 int get_sequence_value(network net);
 float get_current_rate(network net);

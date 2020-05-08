@@ -545,10 +545,7 @@ float *get_network_output_gpu(network net)
 }
 
 float *network_predict_gpu(network net, float *input)
-{
-    int i;
-
-    
+{    
     if (net.gpu_index != cuda_get_device())
         cuda_set_device(net.gpu_index);
     int size = get_network_input_size(net) * net.batch;
@@ -578,6 +575,58 @@ float *network_predict_gpu(network net, float *input)
 
     return out;
 }
+
+void forward_network_pure_gpu(network net, network_state state){
+    state.workspace = net.workspace;
+    state.workspace_cpu = net.workspace_cpu;
+    int i;
+    int before = 1;
+
+    int size = get_network_input_size(net) * net.batch;
+    
+    state.input = net.input_state_gpu;
+    
+    for(i = 0; i < net.n; ++i){
+        
+        state.index = i;
+        layer l = net.layers[i];
+        
+        if(l.delta_gpu && state.train){
+            fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
+        }   
+    
+        l.forward_gpu(l, state);
+        cudaDeviceSynchronize();
+            
+        if(net.wait_stream)
+            cudaStreamSynchronize(get_cuda_stream());
+        
+        
+        state.input = l.output_gpu;
+                
+
+    }   
+}
+
+void lala_init_gpu(network net, float *input){
+    if (net.gpu_index != cuda_get_device())
+        cuda_set_device(net.gpu_index);
+    int size = get_network_input_size(net) * net.batch;
+    network_state state;
+    state.index = 0;
+    state.net = net;
+
+    memcpy(net.input_pinned_cpu, input, size * sizeof(float));
+    cuda_push_array(net.input_state_gpu, net.input_pinned_cpu, size );
+
+    cudaDeviceSynchronize();
+    state.truth = 0;
+    state.train = 0;
+    state.delta = 0;
+
+    forward_network_pure_gpu(net, state);
+}
+
 
 void synchronizeRelease(){
     int request = 0;

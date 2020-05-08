@@ -859,7 +859,7 @@ float *network_predict(network net, float *input)
     return out;
 }
 
-void network_predict_cpu(network net, float *input){
+void lala_init_cpu(network net, float *input){
     network_state state;
     state.net = net;
     state.index = 0 ;
