@@ -575,8 +575,6 @@ int main(int argc, char **argv)
 #endif
         // CPU Affinity setting //
 
-    printf("========== %d =======\n",cuda_get_device()); 
-    perror("cuda device:");
     CPU_ZERO(&gpu_core);
     CPU_SET(2, &gpu_core);
     
