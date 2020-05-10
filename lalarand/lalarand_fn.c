@@ -314,7 +314,7 @@ dnn_profile ** make_profile_list(int mode){
     }
 
 
-    if (mode == 1 || mode == 4){
+    if (mode == 1 || mode == 4 || mode == 6){
         for(int i = 0; i < 24; i++) yolo_cfg[i] = 1;
         for(int i = 0; i < 28; i++) extraction_cfg[i] = 1;
         for(int i = 0; i < 29; i++) resnet_cfg[i] = 1;
@@ -327,6 +327,14 @@ dnn_profile ** make_profile_list(int mode){
         for(int i = 0; i < 6 ; i++) rnn_cfg[i] = 0;
     }
     
+    if (mode == 6){
+        for(int i = 0; i <12; i = i+2) yolo_cfg[i] = 0;
+        for(int i = 0; i <14; i = i+2) extraction_cfg[i] = 0;
+        for(int i = 0; i <14; i = i+2) resnet_cfg[i] = 0;
+        for(int i = 0; i< 3 ; i = i+2) rnn_cfg[i] = 0;
+    }
+
+
     make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg, yolo_inputs);
     make_profile(profile_list[EXTRACTION], 28, extraction_gpu, extraction_cpu, extraction_cfg, extraction_inputs);
     make_profile(profile_list[RESNET], 29, resnet_gpu, resnet_cpu, resnet_cfg, resnet_inputs);
@@ -777,7 +785,7 @@ double data_transfer(dnn_queue * dnn_list, dnn_profile **profile_list, resource 
     back_time = From->res_id == GPU ? back*h2d : back*d2h;
 
     //return go_time + back_time;
-    return 10000;
+    return 3000;
 }
 
 ///// communication ////

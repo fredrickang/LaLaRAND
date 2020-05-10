@@ -74,7 +74,7 @@ void forward_network_gpu(network net, network_state state)
 
     int size = get_network_input_size(net) * net.batch;
     
-    double inference, total;
+    double inference, total, data;
     
     for(i = 0; i < net.n; ++i){
         total = get_time_point();
@@ -112,6 +112,9 @@ void forward_network_gpu(network net, network_state state)
             if(resource == GPU) state.input = net.input_state_gpu;
             else state.input = net.input_pinned_cpu;
         }
+        
+        data = get_time_point();
+
         if( i > 0 && before != resource ){
             layer tmp  = net.layers[i-1];
             if( resource == GPU ){
@@ -123,6 +126,9 @@ void forward_network_gpu(network net, network_state state)
                 state.input = tmp.output;
             }
         }
+
+        debug_print(pLogFile, "[Data transfer] %8.5f\n",((double)get_time_point() - inference)/1000);
+
         // inference
         if (resource == CPU) {
             l.forward(l,state);
@@ -139,7 +145,6 @@ void forward_network_gpu(network net, network_state state)
             cudaStreamSynchronize(get_cuda_stream());
         
         //debug_print(pLogFile,"[%d] Layer %3d Resource %d Inference %8.5f ", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
-        debug_print(pLogFile, "%d %8.5f\n", i, ((double)get_time_point() - inference)/1000);
         state.input = resource ? l.output_gpu : l.output; 
         before = resource;                
 

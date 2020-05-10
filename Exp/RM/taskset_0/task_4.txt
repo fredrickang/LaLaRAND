@@ -1,5 +1,0 @@
-[9511] Priority : 4 , Period : 350
-data path ./cfg/coco.data
-model path ./cfg/yolov3-tiny.cfg
-weight path ./weights/yolov3-tiny.weights
-=====================9511 JOB 0=====================

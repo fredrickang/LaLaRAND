@@ -560,6 +560,9 @@ int main(int argc, char **argv)
             break;
         case 5:
             snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/task_%d.txt", index, priority);
+            break;
+        case 6:
+            snprintf(log_path, 50, "./Exp/RM_Custom/taskset_%d/task_%d.txt", index, priority);
     }
     pLogFile = fopen(log_path, "w");
 
