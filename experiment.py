@@ -76,24 +76,14 @@ def lalarand(task_num, lalarand_pid ,mode, index):
     sub = subprocess.Popen(command_line)
     lalarand_pid.append(sub.pid)
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+def submain(mode, _list, path, start, end):
 
-    parser.add_argument("--mode", type = int , default = 4, help = "1: ALL GPU 2: Preferable 3: Static 4: LaLaRAND")
-    parser.add_argument("--start",type = int , default = 0 );
-    parser.add_argument("--n", type = int, default = -1, help = " -1 : ALL , other is other number")
-    parser.add_argument("--log_path", type = str, default = "Exp/RM/")
-    parser.add_argument("--list", type = str, default = "taskset_list.txt")
-    opt = parser.parse_args()
-    
-    print(opt)
-
-    fp = open(opt.list,"r")
+    fp = open(_list,"r")
     lines = fp.readlines()
     fp.close() 
 
-    f_sched = open(opt.log_path+"Sched.txt","w")
-    f_unsched = open(opt.log_path+"Unsched.txt","w")
+    f_sched = open(log_path+"Sched.txt","w")
+    f_unsched = open(log_path+"Unsched.txt","w")
 
     list_of_taskset_list = []
     taskset_list = []
@@ -108,15 +98,13 @@ if __name__ == "__main__":
     
     sched = []
     unsched = []
-    num = opt.n
     
-    if num == -1:
-        num = len(list_of_taskset_list)
+    if end == -1:
+        end = len(list_of_taskset_list)
     
-    path = opt.log_path
-    print(num)
-    for i, taskset_list in enumerate(list_of_taskset_list[opt.start:num]):
-        index = opt.start + i
+    print(end - start)
+    for i, taskset_list in enumerate(list_of_taskset_list[start:end]):
+        index = start + i
         taskset_path = os.path.join(path,"taskset_"+str(index))
         
         try:
@@ -139,10 +127,10 @@ if __name__ == "__main__":
         pids = []
 
         lalarand_pid = []
-        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,opt.mode, index))
+        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,mode, index))
        
         for task in taskset_list:
-            task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, opt.mode, index, opt.log_path)))
+            task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, mode, index, path)))
     
     
         lalarand_thread.start()
@@ -183,3 +171,35 @@ if __name__ == "__main__":
 
     print("[sched] :", len(sched))
     print("[unsched] :", len(unsched))
+
+import shutil
+
+if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser()
+
+    #parser.add_argument("--mode", type = int , default = 4, help = "1: ALL GPU 2: Preferable 3: Static 4: LaLaRAND")
+    #parser.add_argument("--start",type = int , default = 0 )
+    #parser.add_argument("--n", type = int, default = -1, help = " -1 : ALL , other is other number")
+    #parser.add_argument("--log_path", type = str, default = "Exp/RM/")
+    #parser.add_argument("--list", type = str, default = "taskset_list.txt")
+    opt = parser.parse_args()
+    
+    print(opt)
+    task_num_list = [8, 9, 10, 11, 12]
+    util_list = [0.8, 0.9, 1.0, 1.1, 1.2]
+
+    for task_num in tqdm(task_num_list):
+        for util in tqdm(util_list):
+            path = "taskset_"+str(task_num)
+            path_detail = path + "_" + str(util) + ".txt"
+
+            full_path = os.path.join(path, path_detail)
+
+            submain(1,full_path,"./Exp/RM/",0, -1)
+            submain(4,full_path,"./Exp/RM_LaLa/", 0, -1)
+
+            shutil.move("./Exp", "../TEST_LOG/Single_Core_TNUM_UTIL/"+path+"_"+str(util))
+            os.mkdir("./Exp")
+            os.mkdir("./Exp/RM")
+            os.mkdir("./Exp/RM_LaLa")
