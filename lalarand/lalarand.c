@@ -1,4 +1,4 @@
-#define DEBUG 0
+#define DEBUG 1
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -80,9 +80,12 @@ int main(int argc, char **argv){
                 snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/lala_%d.txt", index, getpid());
                 break;
             case 4:
-                snprintf(log_path, 50, "./Exp/RM_GC/taskset_%d/lala_%d.txt", index, getpid());
+                snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/lala_%d.txt", index, getpid());
                 break;
             case 5:
+                snprintf(log_path, 50, "./Exp/RM_GC/taskset_%d/lala_%d.txt", index, getpid());
+                break;
+            case 6:
                 snprintf(log_path, 50, "./Exp/RM_CG/taskset_%d/lala_%d.txt", index, getpid());
         }
     
@@ -103,7 +106,7 @@ int main(int argc, char **argv){
             // 2nd request check 
             for(node = dnn_list ->head; node !=NULL; node = node -> next) 
                 if(FD_ISSET(node->request_fd, &readfds))
-                    request_handler(node, gpu, cpu, profile_list[node->type], current_time);
+                    request_handler(node, gpu, cpu, profile_list[node->type], current_time, mode);
 
             print_queue("GPU",gpu->waiting);
             print_queue("CPU",cpu->waiting);

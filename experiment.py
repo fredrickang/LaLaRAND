@@ -92,7 +92,7 @@ def submain(mode, _list, path, start, end):
     
     for line in lines:
         token = line.split()
-        if len(token) == 1 and len(taskset_list) != 0:
+        if len(token) == 1:
             list_of_taskset_list.append(taskset_list)
             taskset_list = []
         else:
@@ -150,23 +150,22 @@ def submain(mode, _list, path, start, end):
     
         if(sum(result) != task_num):
             fp.write("unsched\n")
-            f_unsched.write(str(index) + "\n")
             unsched.append(taskset_list)
             for task in taskset_list:
                 for element in task:
                     f_unsched.write(element)
                     f_unsched.write(" ")
                 f_unsched.write("\n")
+            f_unsched.write(str(index) + "\n")
         else:
             fp.write("sched\n")
-            f_sched.write(str(index) + "\n")
             sched.append(taskset_list)
             for task in taskset_list:
                 for element in task:
                     f_sched.write(element)
                     f_sched.write(" ")
                 f_sched.write("\n")
-
+            f_sched.write(str(index) + "\n")
 
         fp.close()
 
