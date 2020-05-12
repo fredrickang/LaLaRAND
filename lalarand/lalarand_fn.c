@@ -253,18 +253,19 @@ double get_time_point(){
 
 
 //// LaLaRAND ////
-void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg, int *layer_inputs){
+void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg, int *G2C, int * C2G){
     
     tmp->gpu_exec = (int *)malloc(sizeof(int) * layers);
     tmp->cpu_exec = (int *)malloc(sizeof(int) * layers);
     tmp->cfg = (int *)malloc(sizeof(int) * layers);
-    tmp->layer_inputs = (int *)malloc(sizeof(int) * layers);
-
+    tmp->G2C = (int *)malloc(sizeof(int)* (layers-1));
+    tmp->C2G = (int *)malloc(sizeof(int)* (layers-1));
 
     memcpy(tmp->gpu_exec, gpu, sizeof(int) *layers);
     memcpy(tmp->cpu_exec, cpu, sizeof(int) *layers);
     memcpy(tmp->cfg , cfg, sizeof(int) * layers);
-    memcpy(tmp->layer_inputs, layer_inputs, sizeof(int)* layers);
+    memcpy(tmp->G2C, G2C, sizeof(int) * (layers-1));
+    memcpy(tmp->C2G, C2G, sizeof(int) * (layers-1));
 }
 
 dnn_profile ** make_profile_list(int mode){
@@ -279,22 +280,27 @@ dnn_profile ** make_profile_list(int mode){
     int yolo_gpu[24]  = {305,  37, 124,  21,  74,  17,  59,  14,  52,   9,  60,  12, 182, 39,  55,  27,  44,   5,  31,  14,  12, 101,  31,  48};
     int yolo_cpu[24] = {3287,   698,  6423,   352,  9595,   323,  6334,   175,  6590, 54,  8118,   104, 32054,  1894,  8062,   967,   101,    11, 366,    70,    54, 19150,  1530,   388};
     int yolo_cfg[24] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }; 
-    int yolo_inputs[24] =  {519168,2768896,692224,1384448,346112,692224,173056,346112,86528,173056,43264,86528,86528,173056,43264,86528,43095,43264,43264,21632,259584,259584,173056,172380};
-    
+    int yolo_data_G2C[23] = {3175,1766,1228,716,880,573,675,563,561,594,589,548,610,562,563,516,151,499,487,513,627,547,610}; 
+    int yolo_data_C2G[23] = {1709,554,904,288,543,540,306,386,569,363,494,452,524,105,472,100,72,113,79,352,488,542,493};
+
+
     int extraction_gpu[28] = {94,  28,  84,  15,  37,  53,  40, 144,  13,  30,  57,  30,  56, 30,  56,  31,  56,  37, 184,  11,  28, 132,  29, 132,  35,   9, 50,   2};
     int extraction_cpu[28] = {7068,   210, 10416,   162,   727,  7156,  1645, 28586,   113, 1020,  7878,  1011,  7860,  1009,  7853,  1009,  7860,  1864, 30857, 62, 1816, 15826, 1797, 15833, 3493, 14, 6, 1};
     int extraction_cfg[28]=  {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0 };
-    int extraction_inputs[28] = {150528,802816,200704,602112,150528,100352,200704,200704,401408,100352,50176,100352,50176,100352,50176,100352,50176,100352,100352,200704,50176,25088,50176,25088,50176,49000,1000,1000};
-    
+    int extraction_data_G2C[27] = {2038,1029,623,529,417,534,327,986,664,337,463,188,351,200,274,194,252,296,340,268,150,230,327,220,348,207,301};
+    int extraction_data_C2G[27] = {627,488,469,453,161,482,522,425,375,136,386,129,468,118,435,100,419,396,560,106,96,105,112,132,101,407,394};
+
     int resnet_gpu[29] = {113,  30,  47,  40,  18,  43,  47,  16,  41,  57,  15,  57,  54, 11,  36,  36,  13,  35,  34,   9,  44,  70,  16,  72,  75,  10, 13,  26,  49};
     int resnet_cpu[29] = {7398,  271, 4892, 4752,   65, 4770, 4726,   65, 2460, 4914,   86, 4954, 4949,   35, 2609, 5131,   40, 5116, 5102,   22, 3702, 7235, 25, 7283, 7302, 12, 11,  374, 6};
     int resnet_cfg[29] =  {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0};
-    int resnet_inputs[29] = {196608,1048576,262144,262144,262144,262144,262144,262144,262144,131072,131072,131072,131072,131072,131072,65536,65536,65536,65536,65536,65536,32768,32768,32768,32768,32768,32768,512,1000};
+    int resnet_data_G2C[28] = {2112,1228,566,650,612,624,628,697,660,541,544,618,482,535,421,436,518,404,537,594,536,565,473,483,514,474,132,1};
+    int resnet_data_C2G[28] = {870,517,548,584,546,556,542,542,491,500,459,518,544,306,356,345,220,386,341,339,112,149,87,110,131,115,226,1};
 
     int rnn_gpu[6] = {130, 113, 107,  28,  20,   3};
     int rnn_cpu[6] = {113, 139, 139,  16,   5,   4};
     int rnn_cfg[6] = {1, 1, 1, 0, 0, 0};
-    int rnn_inputs[6] = {256,1024,1024,1024,256,256};
+    int rnn_data_G2C[5] = {1518,452,573,178,426};
+    int rnn_data_C2G[5] = {308,374,355,236,236};
 
     for(int i = 0; i < 24; i++){
         yolo_gpu[i] = yolo_gpu[i]*10;
@@ -312,7 +318,6 @@ dnn_profile ** make_profile_list(int mode){
         rnn_gpu[i] = rnn_gpu[i] * 10;
         rnn_cpu[i] = rnn_cpu[i] * 10;
     }
-
 
     if (mode == 1 || mode ==2){
         for(int i = 0; i < 24; i++) yolo_cfg[i] = 1;
@@ -335,10 +340,10 @@ dnn_profile ** make_profile_list(int mode){
     }
 
 
-    make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg, yolo_inputs);
-    make_profile(profile_list[EXTRACTION], 28, extraction_gpu, extraction_cpu, extraction_cfg, extraction_inputs);
-    make_profile(profile_list[RESNET], 29, resnet_gpu, resnet_cpu, resnet_cfg, resnet_inputs);
-    make_profile(profile_list[RECURRENT], 6, rnn_gpu, rnn_cpu, rnn_cfg, rnn_inputs);
+    make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg, yolo_data_G2C, yolo_data_C2G);
+    make_profile(profile_list[EXTRACTION], 28, extraction_gpu, extraction_cpu, extraction_cfg, extraction_data_G2C, extraction_data_C2G);
+    make_profile(profile_list[RESNET], 29, resnet_gpu, resnet_cpu, resnet_cfg, resnet_data_G2C, resnet_data_C2G);
+    make_profile(profile_list[RECURRENT], 6, rnn_gpu, rnn_cpu, rnn_cfg, rnn_data_G2C, rnn_data_C2G);
 
     return profile_list;
 }
@@ -775,29 +780,21 @@ double blocking(Queue * q, dnn_queue * dnn_list,dnn_profile ** profile_list, res
     return biggest;
 }
 
-
 double data_transfer(dnn_queue * dnn_list, dnn_profile **profile_list, resource *From ,int target_id, int target_layer){
-    double d2h = 0.103;
-    double h2d = 0.031;
-
-    dnn_info * target = find_dnn_by_id(dnn_list, target_id);
-
-    dnn_profile * target_profile = profile_list[target->type];
     int go, back;
-
-    go = target_profile->layer_inputs[target_layer];
-
+    dnn_info * target = find_dnn_by_id(dnn_list, target_id);
+    go = 0;
+    
+    if( target_layer != 0 && target->assigned == From->res_id) go = (From->res_id == GPU) ? profile_list[target->type]->G2C[target_layer-1] : profile_list[target->type]->C2G[target_layer-1];
+    
     back = 0;
-    for(int i = target_layer+1 ; i < target->layers; i++) 
-        if( back < target_profile->layer_inputs[i]) 
-            back = target_profile->layer_inputs[i];
+    
+    for(int i = target_layer; i < target->layers -1; i++){
+        if(From->res_id == GPU) if(profile_list[target->type]->C2G[i] > back) back = profile_list[target->type]->C2G[i];
+        else if(profile_list[target->type]->G2C[i] > back) back = profile_list[target->type]->G2C[i];
+    }
 
-    double go_time, back_time;
-    go_time = From->res_id == GPU ? go*d2h : go*h2d;
-    back_time = From->res_id == GPU ? back*h2d : back*d2h;
-
-    //return go_time + back_time;
-    return 3000;
+    return back;
 }
 
 ///// communication ////
