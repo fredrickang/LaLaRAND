@@ -177,12 +177,87 @@ def submain(mode, _list, path, start, end):
     print("[sched] :", len(sched))
     print("[unsched] :", len(unsched))
 
-def generate_dart_cut(taskset_list):
-    rev = []
-    for i in range(len(taskset_list)):
-        rev.append(1)
-    return rev
+from operator import itemgetter
+import sys
+def avg_util(gpu, cpu, period):
+    return (sum(gpu) + sum(cpu))/(period * 2)
 
+def M(task, mode, weight):
+    gpu = task[0]
+    cpu = task[1]
+    period  = task[3]
+        
+    smallest_diff = sys.maxsize
+    smallest_fist = 0
+    smallest_secod = 0
+    smallest_index = 0
+    for index in range(len(gpu) + 1):
+        if mode == 5:
+            first = weight[0] + gpu[:index]/period
+            second = weight[1] + cpu[index:]/period
+        else: 
+            first = weight[0] + cpu[:index]/period
+            second = weight[1] + gpu[index:]/period
+        diff = abs(first - second)
+        if diff < smallest_diff:
+            smallest_diff = diff
+            smallest_index = index
+            smallest_fist = first
+            smallest_secod = second
+    return smallest_index, [smallest_fist, smallest_secod]
+
+def generate_dart_cut(taskset_list, mode):
+    rev = []
+    yolo_g = [305,  37, 124,  21,  74,  17,  59,  14,  52,   9,  60,  12, 182, 39,  55,  27,  44,   5,  31,  14,  12, 101,  31,  48]
+    yolo_c = [3287,   698,  6423,   352,  9595,   323,  6334,   175,  6590, 54,  8118,   104, 32054,  1894,  8062,   967,   101,    11, 366,    70,    54, 19150,  1530,   388]
+    
+    extrac_g = [94,  28,  84,  15,  37,  53,  40, 144,  13,  30,  57,  30,  56, 30,  56,  31,  56,  37, 184,  11,  28, 132,  29, 132,  35,   9, 50,   2]
+    extrac_c = [7068,   210, 10416,   162,   727,  7156,  1645, 28586,   113, 1020,  7878,  1011,  7860,  1009,  7853,  1009,  7860,  1864, 30857, 62, 1816, 15826, 1797, 15833, 3493, 14, 6, 1]
+    
+    resnet_g = [113,  30,  47,  40,  18,  43,  47,  16,  41,  57,  15,  57,  54, 11,  36,  36,  13,  35,  34,   9,  44,  70,  16,  72,  75,  10, 13,  26,  49]
+    resnet_c = [7398,  271, 4892, 4752,   65, 4770, 4726,   65, 2460, 4914,   86, 4954, 4949,   35, 2609, 5131,   40, 5116, 5102,   22, 3702, 7235, 25, 7283, 7302,   12,   11,  374,    6]
+    
+    rnn_g = [130, 113, 107,  28,  20,   3]
+    rnn_c = [113, 139, 139,  16,   5,   4]
+
+    new_list = []
+    for i, task in enumerate(taskset_list):
+        tmp = []
+        if task[0] == "Yolo":
+            tmp.append(yolo_g)
+            tmp.append(yolo_c)
+            tmp.append(avg_util(yolo_g, yolo_c, int(task[2])))
+
+        if task[0]== "RNN":
+            tmp.append(rnn_g)
+            tmp.append(rnn_c)
+            tmp.append(avg_util(rnn_g, rnn_c, int(task[2])))
+        
+        if task[0] == "Resnet":
+            tmp.append(resnet_g)
+            tmp.append(resnet_c)
+            tmp.append(avg_util(resnet_g,resnet_c, int(task[2])))
+        
+        if task[0] == "Extraction":
+            tmp.append(extrac_g)
+            tmp.append(extrac_c)
+            tmp.append(avg_util(extrac_g, extrac_c, int(task[2])))
+        
+        tmp.append(int(task[2]))
+        tmp.append(i)
+        new_list.append(tmp)
+
+    new_list = sorted(new_list, key=itemgetter(2))
+    
+    weight = [0,0]
+    for task in new_list:
+        index ,weigth = M(task,mode, weight)
+        task.append(index)
+    
+    new_list = sorted(new_list, key=itemgetter(-2))
+    for task in new_list:
+        rev.append(task[-1])
+    return rev
 
 import shutil
 
