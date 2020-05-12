@@ -54,6 +54,9 @@ extern int period = -1;
 extern int numofjob = -1;
 extern int priority = -1;
 
+int mode = -1;
+int cut = -2;
+
 FILE * pLogFile;
 cpu_set_t gpu_core;
 struct sched_param prior;
@@ -539,9 +542,11 @@ int main(int argc, char **argv)
     numofjob = find_int_arg(argc, argv, "-num",  -1);
     assert(numofjob != -1);
     
-    int mode = find_int_arg(argc, argv, "-mode", 1);
+    mode = find_int_arg(argc, argv, "-mode", 1);
     int index = find_int_arg(argc, argv, "-index", 0);
 
+    cut = find_int_arg(argc, argv, "-cut", -2);
+    if(mode == 5 || mode == 6) assert(cut != -2);
     
     char log_path[50];
 
@@ -553,16 +558,16 @@ int main(int argc, char **argv)
             snprintf(log_path, 50, "./Exp/RM_PR/taskset_%d/task_%d.txt", index, priority);
             break;
         case 3:
-            snprintf(log_path, 50, "./Exp/RM_DART/taskset_%d/task_%d.txt", index, priority);
-            break;
-        case 4:
             snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/task_%d.txt", index, priority);
             break;
-        case 5:
+        case 4:
             snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/task_%d.txt", index, priority);
             break;
+        case 5:
+            snprintf(log_path, 50, "./Exp/RM_GC/taskset_%d/task_%d.txt", index, priority);
+            break;
         case 6:
-            snprintf(log_path, 50, "./Exp/RM_Custom/taskset_%d/task_%d.txt", index, priority);
+            snprintf(log_path, 50, "./Exp/RM_CG/taskset_%d/task_%d.txt", index, priority);
     }
     pLogFile = fopen(log_path, "w");
 

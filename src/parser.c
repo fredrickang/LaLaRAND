@@ -1639,3 +1639,23 @@ int deadline_miss_check(struct timespec *deadline, struct timespec *current){
     }
     return 0;
 }
+
+
+typedef struct dart_msg{
+    int layer;
+    int resource;
+}dart_msg;
+
+dart_msg * make_dart_msg(int mode, int cut, int layer){
+    dart_msg *msg = (dart_msg *)malloc(sizeof(dart_msg));
+    msg->layer = layer;
+    if(mode == 5){
+        if(cut < layer)msg->resource = 1;
+        else msg->resource = 0;
+    }
+    else{
+        if(cut > layer)msg->resource = 0;
+        else msg->resource = 1;
+    }
+    return msg;
+}

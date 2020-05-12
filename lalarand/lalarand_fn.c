@@ -488,11 +488,20 @@ int check_request(dnn_queue * dnn_list, fd_set* readfds, int sync){
     return rev;
 }
 
-void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profile * profile, double current_time){
+typedef struct dart_msg{
+    int layer;
+    int resource;
+}dart_msg;
+
+void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profile * profile, double current_time, int mode){
     
     int request_layer;
-    
-    read(node -> request_fd, &request_layer, sizeof(int));
+    dart_msg msg;
+    if(mode != 5 || mode !=6) read(node -> request_fd, &request_layer, sizeof(int));
+    else{
+        read(node->request_fd, &msg, sizeof(int)*2);
+        request_layer = dart_msg.layer;
+    }
     
     //debug_print("[request_handler] : [ID] %d [layer] %d \n", node -> id, request_layer);
 
@@ -511,13 +520,18 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
         cpu -> layer  = -1;
         cpu -> scheduled = -1;
       }
-
-     if(request_layer != node -> layers){
-         node->current_layer = request_layer;
-         if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
-         else enQueue(cpu->waiting, request_layer, node -> id, node -> priority );
-      }
-      else node->current_layer = -1;
+    
+    if(request_layer != node -> layers){
+        node->current_layer = request_layer;
+        if(mode != 5 || mode != 6){
+            if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
+            else enQueue(cpu->waiting, request_layer, node -> id, node -> priority );
+        }else{
+            if(msg.resource == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
+            else enQueue(cpu->waiting, request_layer, node -> id, node -> priority );
+        }
+    }
+    else node->current_layer = -1;
 }
 
 void send_release_time(dnn_queue * dnn_list){
