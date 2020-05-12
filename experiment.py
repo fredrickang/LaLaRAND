@@ -6,7 +6,6 @@ from threading import Thread
 import subprocess 
 import os, signal
 
-
 def darknet(task_info, pids, lalarand_pid ,result, mode, index, log_path):
     task_name= task_info[0]
     task_priority = int(task_info[1])
@@ -82,8 +81,8 @@ def submain(mode, _list, path, start, end):
     lines = fp.readlines()
     fp.close() 
 
-    f_sched = open(log_path+"Sched.txt","w")
-    f_unsched = open(log_path+"Unsched.txt","w")
+    f_sched = open(path+"Sched.txt","w")
+    f_unsched = open(path+"Unsched.txt","w")
 
     list_of_taskset_list = []
     taskset_list = []
@@ -186,11 +185,13 @@ if __name__ == "__main__":
     opt = parser.parse_args()
     
     print(opt)
-    task_num_list = [8, 9, 10, 11, 12]
+    task_num_list = [10, 11, 12]
     util_list = [0.8, 0.9, 1.0, 1.1, 1.2]
 
-    for task_num in tqdm(task_num_list):
-        for util in tqdm(util_list):
+    for task_num in task_num_list:
+        for util in util_list:
+            if task_num == 10 and util <= 1.0:
+                continue
             path = "taskset_"+str(task_num)
             path_detail = path + "_" + str(util) + ".txt"
 
