@@ -1,4 +1,4 @@
-#define DEBUG 1
+#define DEBUG 0
 #define debug_print(fmt, args...) \
             do { if (DEBUG) fprintf(stderr, fmt, ##args); } while (0)
 
