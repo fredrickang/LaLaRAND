@@ -581,7 +581,7 @@ int main(int argc, char **argv)
         }
 #endif
         // CPU Affinity setting //
-
+    freopen("/tmp/junk","w",stderr);
     CPU_ZERO(&gpu_core);
     CPU_SET(2, &gpu_core);
     

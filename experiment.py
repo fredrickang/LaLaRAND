@@ -135,7 +135,7 @@ def submain(mode, _list, path, start, end):
             for task in taskset_list:
                 task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, mode, index, path, -2)))
         else:
-            cut_list = generate_dart_cut(taskset_list)
+            cut_list = generate_dart_cut(taskset_list, mode)
             for i, task in enumerate(taskset_list):
                 task_thread.append(Thread(target = darknet, args = (task, pids, lalarand_pid, result, mode, index, path , cut_list[i])))
     
@@ -193,18 +193,18 @@ def M(task, mode, weight):
     smallest_index = 0
     for index in range(len(gpu) + 1):
         if mode == 5:
-            first = weight[0] + gpu[:index]/period
-            second = weight[1] + cpu[index:]/period
+            first = weight[0] + sum(gpu[:index])/period
+            second = weight[1] + sum(cpu[index:])/period
         else: 
-            first = weight[0] + cpu[:index]/period
-            second = weight[1] + gpu[index:]/period
+            first = weight[0] + sum(cpu[:index])/period
+            second = weight[1] + sum(gpu[index:])/period
         diff = abs(first - second)
         if diff < smallest_diff:
             smallest_diff = diff
             smallest_index = index
             smallest_fist = first
             smallest_secod = second
-    return smallest_index, [smallest_fist, smallest_secod]
+    return smallest_index -1, [smallest_fist, smallest_secod]
 
 def generate_dart_cut(taskset_list, mode):
     rev = []
