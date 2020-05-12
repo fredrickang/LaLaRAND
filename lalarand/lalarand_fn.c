@@ -314,24 +314,24 @@ dnn_profile ** make_profile_list(int mode){
     }
 
 
-    if (mode == 1 || mode == 4 || mode == 6){
+    if (mode == 1 || mode ==2){
         for(int i = 0; i < 24; i++) yolo_cfg[i] = 1;
         for(int i = 0; i < 28; i++) extraction_cfg[i] = 1;
         for(int i = 0; i < 29; i++) resnet_cfg[i] = 1;
         for(int i = 0; i < 6 ; i++) rnn_cfg[i] = 1;
     }
-    if (mode == 5){
+    if (mode == 4){
         for(int i = 0; i < 24; i++) yolo_cfg[i] = 0;
         for(int i = 0; i < 28; i++) extraction_cfg[i] = 0;
         for(int i = 0; i < 29; i++) resnet_cfg[i] = 0;
         for(int i = 0; i < 6 ; i++) rnn_cfg[i] = 0;
     }
     
-    if (mode == 6){
-        for(int i = 0; i <12; i = i+2) yolo_cfg[i] = 0;
-        for(int i = 0; i <14; i = i+2) extraction_cfg[i] = 0;
-        for(int i = 0; i <14; i = i+2) resnet_cfg[i] = 0;
-        for(int i = 0; i< 3 ; i = i+2) rnn_cfg[i] = 0;
+    if (mode == 2){
+        for(int i = 0; i <12; i++) yolo_cfg[i*2] = 0;
+        for(int i = 0; i <14; i++) extraction_cfg[i*2] = 0;
+        for(int i = 0; i <14; i++) resnet_cfg[i*2] = 0;
+        for(int i = 0; i <3 ; i++) rnn_cfg[i*2] = 0;
     }
 
 

@@ -1,4 +1,4 @@
-#define DEBUG 0
+#define DEBUG 1
 #define debug_print(fd ,fmt, args...) \
             do { if (DEBUG) {fprintf(fd, fmt, ##args); fflush(fd);} } while (0)
 #include "dark_cuda.h"
@@ -125,6 +125,7 @@ void forward_network_gpu(network net, network_state state)
                 cuda_pull_array(tmp.output_gpu, tmp.output, tmp.batch * tmp.outputs);
                 state.input = tmp.output;
             }
+            cudaDeviceSynchronize();
         }
 
         debug_print(pLogFile, "[Data transfer] %8.5f\n",((double)get_time_point() - inference)/1000);
