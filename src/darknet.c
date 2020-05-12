@@ -50,12 +50,9 @@ extern void run_go(int argc, char **argv);
 extern void run_art(int argc, char **argv);
 extern void run_super(int argc, char **argv);
 
-extern int period = -1;
-extern int numofjob = -1;
-extern int priority = -1;
-
-int mode = -1;
-int cut = -2;
+int period = -1;
+int numofjob = -1;
+int priority = -1;
 
 FILE * pLogFile;
 cpu_set_t gpu_core;
@@ -64,6 +61,9 @@ struct sched_param prior;
 //DetectorParameter structure for multi-threading.
 DetectorParams *_g_detector_params;
 //!end of DetectorParameter structure init.
+
+int cut;
+int mode;
 
 void thread_test_function(int a, int b)
 {
@@ -546,7 +546,6 @@ int main(int argc, char **argv)
     int index = find_int_arg(argc, argv, "-index", 0);
 
     cut = find_int_arg(argc, argv, "-cut", -2);
-    if(mode == 5 || mode == 6) assert(cut != -2);
     
     char log_path[50];
 
@@ -561,12 +560,9 @@ int main(int argc, char **argv)
             snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/task_%d.txt", index, priority);
             break;
         case 4:
-            snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/task_%d.txt", index, priority);
-            break;
-        case 5:
             snprintf(log_path, 50, "./Exp/RM_GC/taskset_%d/task_%d.txt", index, priority);
             break;
-        case 6:
+        case 5:
             snprintf(log_path, 50, "./Exp/RM_CG/taskset_%d/task_%d.txt", index, priority);
     }
     pLogFile = fopen(log_path, "w");

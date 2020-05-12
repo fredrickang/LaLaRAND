@@ -28,6 +28,7 @@ typedef struct _DNN_INFO{
     int priority;
     int current_layer;
     int assigned;
+    int cut;
     struct _DNN_INFO * next;
 }dnn_info;
 
@@ -56,6 +57,7 @@ typedef struct _MSG_PACKET{
     DNN_TYPE type;
     int period;
     int priority;
+    int cut;
 }reg_msg;
 
 typedef struct _RESOURCE{

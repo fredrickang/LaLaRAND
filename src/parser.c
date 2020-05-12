@@ -60,6 +60,7 @@ typedef struct{
 list *read_cfg(char *filename);
 
 extern FILE * pLogFile;
+extern int cut;
 
 LAYER_TYPE string_to_layer_type(char * type)
 {
@@ -889,6 +890,7 @@ typedef struct _MSG_PACKET{
     DNN_TYPE type;
     int period;
     int priority;
+    int cut;
 }msg;
 
 network parse_network_cfg_custom(char *filename, int batch, int time_steps)
@@ -949,14 +951,14 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     dummy->layers = net.n;
     dummy->period = period;
     dummy->priority = priority;
-
+    dummy->cut = cut;
     if(strstr(filename, "yolo") != NULL) dummy->type = YOLOt;
     if(strstr(filename, "extraction") != NULL) dummy->type = EXTRACTION;
     if(strstr(filename, "resnet") != NULL) dummy->type = RESNET;
     if(strstr(filename, "rnn") != NULL) dummy->type = RECURRENT;
     
     
-    if(write(register_fd, dummy, 6*sizeof(int)) < 0){
+    if(write(register_fd, dummy, 7*sizeof(int)) < 0){
         perror("Registerating :  ");
         exit(-1);
     }
@@ -1638,24 +1640,4 @@ int deadline_miss_check(struct timespec *deadline, struct timespec *current){
         else return 0;
     }
     return 0;
-}
-
-
-typedef struct dart_msg{
-    int layer;
-    int resource;
-}dart_msg;
-
-dart_msg * make_dart_msg(int mode, int cut, int layer){
-    dart_msg *msg = (dart_msg *)malloc(sizeof(dart_msg));
-    msg->layer = layer;
-    if(mode == 5){
-        if(cut < layer)msg->resource = 1;
-        else msg->resource = 0;
-    }
-    else{
-        if(cut > layer)msg->resource = 0;
-        else msg->resource = 1;
-    }
-    return msg;
 }

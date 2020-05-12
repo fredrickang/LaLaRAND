@@ -6,7 +6,7 @@ from threading import Thread
 import subprocess 
 import os, signal
 
-def darknet(task_info, pids, lalarand_pid ,result, mode, index, log_path):
+def darknet(task_info, pids, lalarand_pid ,result, mode, index, log_path, cut):
     task_name= task_info[0]
     task_priority = int(task_info[1])
     task_period = int(task_info[2])
@@ -33,6 +33,9 @@ def darknet(task_info, pids, lalarand_pid ,result, mode, index, log_path):
     command_line.append(str(mode))
     command_line.append("-index")
     command_line.append(str(index))
+    if (mode == 6 or mode ==5):
+        command_line.append("-cut")
+        command_line.append(str(cut))
 
     sub = subprocess.Popen(command_line)
     
@@ -89,7 +92,7 @@ def submain(mode, _list, path, start, end):
     
     for line in lines:
         token = line.split()
-        if len(token) == 1:
+        if len(token) == 1 and len(taskset_list) != 0:
             list_of_taskset_list.append(taskset_list)
             taskset_list = []
         else:
@@ -127,10 +130,14 @@ def submain(mode, _list, path, start, end):
 
         lalarand_pid = []
         lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,mode, index))
-       
-        for task in taskset_list:
-            task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, mode, index, path)))
-    
+
+        if mode != 5 and mode != 6:
+            for task in taskset_list:
+                task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, mode, index, path, -2)))
+        else:
+            cut_list = generate_dart_cut(taskset_list)
+            for i, task in enumerate(taskset_list):
+                task_thread.append(Thread(target = darknet, args = (task, pids, lalarand_pid, result, mode, index, path , cut_list[i])))
     
         lalarand_thread.start()
     
@@ -171,36 +178,32 @@ def submain(mode, _list, path, start, end):
     print("[sched] :", len(sched))
     print("[unsched] :", len(unsched))
 
+def generate_dart_cut(taskset_list):
+    rev = []
+    for i in range(len(taskset_list)):
+        rev.append(1)
+    return rev
+
+
 import shutil
 
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
 
-    #parser.add_argument("--mode", type = int , default = 4, help = "1: ALL GPU 2: Preferable 3: Static 4: LaLaRAND")
-    #parser.add_argument("--start",type = int , default = 0 )
-    #parser.add_argument("--n", type = int, default = -1, help = " -1 : ALL , other is other number")
-    #parser.add_argument("--log_path", type = str, default = "Exp/RM/")
-    #parser.add_argument("--list", type = str, default = "taskset_list.txt")
+    parser.add_argument("--mode", type = int , default = 4, help = "1: ALL GPU 2: Preferable 3: LaLaRAND 4: DART")
+    parser.add_argument("--list", type = str, default = "taskset_list.txt")
+    parser.add_argument("--start",type = int , default = 0 )
+    parser.add_argument("--end", type = int, default = -1, help = " -1 : ALL , other is other number")
+    parser.add_argument("--log_path", type = str, default = "Exp/RM/")
+
     opt = parser.parse_args()
     
     print(opt)
-    task_num_list = [10, 11, 12]
-    util_list = [0.8, 0.9, 1.0, 1.1, 1.2]
 
-    for task_num in task_num_list:
-        for util in util_list:
-            if task_num == 10 and util <= 1.0:
-                continue
-            path = "taskset_"+str(task_num)
-            path_detail = path + "_" + str(util) + ".txt"
-
-            full_path = os.path.join(path, path_detail)
-
-            submain(1,full_path,"./Exp/RM/",0, -1)
-            submain(4,full_path,"./Exp/RM_LaLa/", 0, -1)
-
-            shutil.move("./Exp", "../TEST_LOG/Single_Core_TNUM_UTIL/"+path+"_"+str(util))
-            os.mkdir("./Exp")
-            os.mkdir("./Exp/RM")
-            os.mkdir("./Exp/RM_LaLa")
+    if(opt.mode != 4):
+        submain(opt.mode, opt.list, opt.log_path, opt.start, opt.end)
+    else: # dart 1. RM 2. GC 3. CG
+        submain(1, opt.list, "./Exp/RM/", opt.start, opt.end)
+        submain(5, "./Exp/RM/Unsched.txt", "./Exp/RM_GC/", 0, -1)
+        submain(6, "./Exp/RM_GC/Unsched.txt", "./Exp/RM_CG/", 0, -1)

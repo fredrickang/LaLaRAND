@@ -60,8 +60,6 @@ extern struct timespec release_time = {0, 0};
 extern int *history;
 
 extern FILE * pLogFile;
-extern int mode;
-extern int cut;
 
 int Sync = 1;
 int resource = -1;
@@ -77,49 +75,30 @@ void forward_network_gpu(network net, network_state state)
     int size = get_network_input_size(net) * net.batch;
     
     double inference, total, data;
-    dart_msg * msg;
+    
     for(i = 0; i < net.n; ++i){
         total = get_time_point();
         
         state.index = i;
         layer l = net.layers[i];
         
-        if(mode != 5 || mode != 6){
-            if(!Sync){        
+        if(!Sync){        
             
-                if( write(request_fd, &i, sizeof(int)) == -1 ){
-                    perror("request send : ");
-                    exit(-1);
-                }
+            if( write(request_fd, &i, sizeof(int)) == -1 ){
+                perror("request send : ");
+                exit(-1);
+            }
          
 
-                if( read(decision_fd, &resource, sizeof(int)) == -1){
-                    perror("decision recv : ");
-                    exit(-1);
-                }
-        
-            }else{
-                Sync = 0;
+            if( read(decision_fd, &resource, sizeof(int)) == -1){
+                perror("decision recv : ");
+                exit(-1);
             }
+        
+        }else{
+            Sync = 0;
         }
-        else{
-            msg = make_dart_msg(mode, cut, i);
-            if(!Sync){        
-            
-                if( write(request_fd, msg, sizeof(int)*2) == -1 ){
-                    perror("request send : ");
-                    exit(-1);
-                }
 
-                if( read(decision_fd, &resource, sizeof(int)) == -1){
-                    perror("decision recv : ");
-                    exit(-1);
-                }
-        
-            }else{
-                Sync = 0;
-            }
-        }    
 
         history[i] = resource; 
         inference = get_time_point();
@@ -654,60 +633,23 @@ void lala_init_gpu(network net, float *input){
     forward_network_pure_gpu(net, state);
 }
 
-typedef struct dart_msg{
-    int layer;
-    int resource;
-}dart_msg;
-
-dart_msg * make_dart_msg(int mode, int cut, int layer){
-    dart_msg *msg = (dart_msg *)malloc(sizeof(dart_msg));
-    msg->layer = layer;
-    if(mode == 5){
-        if(cut < layer)msg->resource = 1;
-        else msg->resource = 0;
-    }
-    else{
-        if(cut > layer)msg->resource = 0;
-        else msg->resource = 1;
-    }
-    return msg;
-}
 
 void synchronizeRelease(){
     int request = 0;
-    dart_msg *msg;
     if(Sync){
-        if(mode != 5 || mode !=6){
-            if( write(request_fd, &request, sizeof(int)) == -1 ){
-                perror("request send : ");
-                exit(-1);
-            }
-         
-            if( read(decision_fd, &release_time, sizeof(struct timespec)) == -1){
-                perror("release time : ");
-                exit(-1);
-            }
-        
-            if( read(decision_fd, &resource, sizeof(int)) == -1){
-                perror("decision recv : ");
-                exit(-1);
-            } 
+        if( write(request_fd, &request, sizeof(int)) == -1 ){
+            perror("request send : ");
+            exit(-1);
         }
-        else{
-            msg = make_dart_msg(mode, cut, 0);
-            if( write(request_fd, msg, sizeof(int)*2) == -1 ){
-                perror("request send : ");
-                exit(-1);
-            }
          
-            if( read(decision_fd, &release_time, sizeof(struct timespec)) == -1){
-                perror("release time : ");
-                exit(-1);
-            }
-        
-            if( read(decision_fd, &resource, sizeof(int)) == -1){
-                perror("decision recv : ");
-                exit(-1);
+        if( read(decision_fd, &release_time, sizeof(struct timespec)) == -1){
+            perror("release time : ");
+            exit(-1);
         }
+        
+        if( read(decision_fd, &resource, sizeof(int)) == -1){
+            perror("decision recv : ");
+            exit(-1);
+        } 
     }
 }

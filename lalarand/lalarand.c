@@ -80,12 +80,9 @@ int main(int argc, char **argv){
                 snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/lala_%d.txt", index, getpid());
                 break;
             case 4:
-                snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/lala_%d.txt", index, getpid());
-                break;
-            case 5:
                 snprintf(log_path, 50, "./Exp/RM_GC/taskset_%d/lala_%d.txt", index, getpid());
                 break;
-            case 6:
+            case 5:
                 snprintf(log_path, 50, "./Exp/RM_CG/taskset_%d/lala_%d.txt", index, getpid());
         }
     
