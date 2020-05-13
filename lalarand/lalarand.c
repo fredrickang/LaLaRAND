@@ -30,10 +30,11 @@
 
 int main(int argc, char **argv){
     int Sync = find_int_arg(argc, argv, "-sync", 1);
-    int mode = find_int_arg(argc, argv, "-mode", 4); // mode 1: ALL GPU // mode 2: preferable // mode 3: Static //mode 4: LaLaRAND
+    int baseline = find_int_arg(argc, argv, "-mode", 1); // mode 1: ALL GPU // mode 2: preferable // mode 3: DART 
+    int algo = find_int_arg(argc, argv, "-algo", 0);
     int index = find_int_arg(argc, argv, "-index", -1);
-
-    printf("Sync : %d Mode :%d Index :%d\n", Sync, mode, index);
+    
+    printf("Sync : %d Baseline :%d Algo :%d Index :%d\n", Sync, mode, algo, index);
 
     if(index == -1){
         puts("taskset index is not correct!");
@@ -71,6 +72,8 @@ int main(int argc, char **argv){
     if(DEBUG){
         switch (mode){
             case 1:
+                if(algo) snprintf(log_path, 50, "./Exp/ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+                else snprintf(log_path 
                 snprintf(log_path, 50, "./Exp/RM/taskset_%d/lala_%d.txt", index, getpid());
                 break;
             case 2:
@@ -116,7 +119,7 @@ int main(int argc, char **argv){
                 if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);
                 if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, cpu);
 
-                if (mode == 4){ /* only in LaLaRAND */
+                if (mode == 3){ /* only in LaLaRAND */
                     if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, cpu, gpu);
                     if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, gpu, cpu);
                 }

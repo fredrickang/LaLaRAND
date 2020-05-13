@@ -292,13 +292,13 @@ dnn_profile ** make_profile_list(int mode){
 
     int resnet_gpu[29] = {113,  30,  47,  40,  18,  43,  47,  16,  41,  57,  15,  57,  54, 11,  36,  36,  13,  35,  34,   9,  44,  70,  16,  72,  75,  10, 13,  26,  49};
     int resnet_cpu[29] = {7398,  271, 4892, 4752,   65, 4770, 4726,   65, 2460, 4914,   86, 4954, 4949,   35, 2609, 5131,   40, 5116, 5102,   22, 3702, 7235, 25, 7283, 7302, 12, 11,  374, 6};
-    int resnet_cfg[29] =  {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0};
+    int resnet_cfg[29] =  {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0};
     int resnet_data_G2C[28] = {2112,1228,566,650,612,624,628,697,660,541,544,618,482,535,421,436,518,404,537,594,536,565,473,483,514,474,132,1};
     int resnet_data_C2G[28] = {870,517,548,584,546,556,542,542,491,500,459,518,544,306,356,345,220,386,341,339,112,149,87,110,131,115,226,1};
 
     int rnn_gpu[6] = {130, 113, 107,  28,  20,   3};
     int rnn_cpu[6] = {113, 139, 139,  16,   5,   4};
-    int rnn_cfg[6] = {1, 1, 1, 0, 0, 0};
+    int rnn_cfg[6] = {0, 1, 1, 0, 0, 1};
     int rnn_data_G2C[5] = {1518,452,573,178,426};
     int rnn_data_C2G[5] = {308,374,355,236,236};
 
@@ -319,7 +319,7 @@ dnn_profile ** make_profile_list(int mode){
         rnn_cpu[i] = rnn_cpu[i] * 10;
     }
 
-    if (mode == 1 || mode ==2){
+    if (mode == 1){
         for(int i = 0; i < 24; i++) yolo_cfg[i] = 1;
         for(int i = 0; i < 28; i++) extraction_cfg[i] = 1;
         for(int i = 0; i < 29; i++) resnet_cfg[i] = 1;
@@ -331,15 +331,15 @@ dnn_profile ** make_profile_list(int mode){
         for(int i = 0; i < 29; i++) resnet_cfg[i] = 0;
         for(int i = 0; i < 6 ; i++) rnn_cfg[i] = 0;
     }
-    
+   /* 
     if (mode == 2){
         for(int i = 0; i <12; i++) yolo_cfg[i*2] = 0;
         for(int i = 0; i <14; i++) extraction_cfg[i*2] = 0;
         for(int i = 0; i <14; i++) resnet_cfg[i*2] = 0;
         for(int i = 0; i <3 ; i++) rnn_cfg[i*2] = 0;
     }
-
-
+    */
+    
     make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg, yolo_data_G2C, yolo_data_C2G);
     make_profile(profile_list[EXTRACTION], 28, extraction_gpu, extraction_cpu, extraction_cfg, extraction_data_G2C, extraction_data_C2G);
     make_profile(profile_list[RESNET], 29, resnet_gpu, resnet_cpu, resnet_cfg, resnet_data_G2C, resnet_data_C2G);
