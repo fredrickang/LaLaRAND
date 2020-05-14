@@ -534,6 +534,8 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
+    int algo = find_int_arg(argc, argv, "-algo", 0);
+
     period = find_int_arg(argc, argv, "-period", 300);
 
     priority = find_int_arg(argc, argv, "-priority", -1);
@@ -542,7 +544,7 @@ int main(int argc, char **argv)
     numofjob = find_int_arg(argc, argv, "-num",  -1);
     assert(numofjob != -1);
     
-    mode = find_int_arg(argc, argv, "-mode", 1);
+    mode = find_int_arg(argc, argv, "-baseline", 1);
     int index = find_int_arg(argc, argv, "-index", 0);
 
     cut = find_int_arg(argc, argv, "-cut", -2);
@@ -550,23 +552,25 @@ int main(int argc, char **argv)
     char log_path[50];
 
     switch (mode){
-        case 1:
-            snprintf(log_path, 50, "./Exp/RM/taskset_%d/task_%d.txt", index, priority);
-            break;
-        case 2:
-            snprintf(log_path, 50, "./Exp/RM_PR/taskset_%d/task_%d.txt", index, priority);
-            break;
-        case 3:
-            snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/task_%d.txt", index, priority);
-            break;
-        case 4:
-            snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/task_%d.txt", index, priority);
-            break;
-        case 5:
-            snprintf(log_path, 50, "./Exp/RM_GC/taskset_%d/task_%d.txt", index, priority);
-            break;
-        case 6:
-            snprintf(log_path, 50, "./Exp/RM_CG/taskset_%d/task_%d.txt", index, priority);
+            case 1:
+                if(algo) snprintf(log_path, 50, "./Exp/ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+                else snprintf(log_path, 50, "./Exp/ALL/takset_%d/lala_%d.txt", index, getpid());
+                break;
+            case 2:
+                if(algo) snprintf(log_path, 50, "./Exp/PR_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+                else snprintf(log_path, 50, "./Exp/PR/taskset_%d/lala_%d.txt", index, getpid());
+                break;
+            case 3:
+                if(algo) snprintf(log_path, 50, "./Exp/DART_ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+                else snprintf(log_path, 50, "./Exp/DART_ALL/taskset_%d/lala_%d.txt", index, getpid());
+                break;
+            case 4:
+                if(algo) snprintf(log_path, 50, "./Exp/DART_GC_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+                else snprintf(log_path, 50, "./Exp/DART_GC/taskset_%d/lala_%d.txt", index, getpid());
+                break;
+            case 5:
+                if(algo) snprintf(log_path, 50, "./Exp/DART_CG_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+                else snprintf(log_path, 50, "./Exp/DART_CG/taskset_%d/lala_%d.txt", index, getpid());
     }
     pLogFile = fopen(log_path, "w");
 

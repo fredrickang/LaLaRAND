@@ -53,7 +53,7 @@ int main(int argc, char **argv){
     CPU_SET(0, &mask);
     sched_setaffinity(0, sizeof(mask), &mask);
     
-    dnn_profile ** profile_list = make_profile_list(mode);
+    dnn_profile ** profile_list = make_profile_list(baseline);
 
     dnn_queue * dnn_list = createDNNQueue();
 
@@ -70,26 +70,26 @@ int main(int argc, char **argv){
     
     char log_path[50];
     if(DEBUG){
-        switch (mode){
+        switch (baseline){
             case 1:
                 if(algo) snprintf(log_path, 50, "./Exp/ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-                else snprintf(log_path 
-                snprintf(log_path, 50, "./Exp/RM/taskset_%d/lala_%d.txt", index, getpid());
+                else snprintf(log_path, 50, "./Exp/ALL/takset_%d/lala_%d.txt", index, getpid());
                 break;
             case 2:
-                snprintf(log_path, 50, "./Exp/RM_PR/taskset_%d/lala_%d.txt", index, getpid());
+                if(algo) snprintf(log_path, 50, "./Exp/PR_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+                else snprintf(log_path, 50, "./Exp/PR/taskset_%d/lala_%d.txt", index, getpid());
                 break;
             case 3:
-                snprintf(log_path, 50, "./Exp/RM_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+                if(algo) snprintf(log_path, 50, "./Exp/DART_ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+                else snprintf(log_path, 50, "./Exp/DART_ALL/taskset_%d/lala_%d.txt", index, getpid());
                 break;
             case 4:
-                snprintf(log_path, 50, "./Exp/RM_CPU/taskset_%d/lala_%d.txt", index, getpid());
+                if(algo) snprintf(log_path, 50, "./Exp/DART_GC_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+                else snprintf(log_path, 50, "./Exp/DART_GC/taskset_%d/lala_%d.txt", index, getpid());
                 break;
             case 5:
-                snprintf(log_path, 50, "./Exp/RM_GC/taskset_%d/lala_%d.txt", index, getpid());
-                break;
-            case 6:
-                snprintf(log_path, 50, "./Exp/RM_CG/taskset_%d/lala_%d.txt", index, getpid());
+                if(algo) snprintf(log_path, 50, "./Exp/DART_CG_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+                else snprintf(log_path, 50, "./Exp/DART_CG/taskset_%d/lala_%d.txt", index, getpid());
         }
     
         freopen(log_path,"w", stderr);
@@ -109,7 +109,7 @@ int main(int argc, char **argv){
             // 2nd request check 
             for(node = dnn_list ->head; node !=NULL; node = node -> next) 
                 if(FD_ISSET(node->request_fd, &readfds))
-                    request_handler(node, gpu, cpu, profile_list[node->type], current_time, mode);
+                    request_handler(node, gpu, cpu, profile_list[node->type], current_time, baseline);
 
             print_queue("GPU",gpu->waiting);
             print_queue("CPU",cpu->waiting);
@@ -119,7 +119,7 @@ int main(int argc, char **argv){
                 if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);
                 if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, cpu);
 
-                if (mode == 3){ /* only in LaLaRAND */
+                if (algo){ /* only in LaLaRAND */
                     if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, cpu, gpu);
                     if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, gpu, cpu);
                 }

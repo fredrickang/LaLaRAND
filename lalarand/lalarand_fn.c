@@ -268,7 +268,7 @@ void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg, i
     memcpy(tmp->C2G, C2G, sizeof(int) * (layers-1));
 }
 
-dnn_profile ** make_profile_list(int mode){
+dnn_profile ** make_profile_list(int baseline){
     // mode 1: ALL GPU // mode 2: preferable // mode 3: Static //mode 4: LaLaRAND
 
     dnn_profile ** profile_list = (dnn_profile **)malloc(sizeof(dnn_profile *)*4);
@@ -319,26 +319,12 @@ dnn_profile ** make_profile_list(int mode){
         rnn_cpu[i] = rnn_cpu[i] * 10;
     }
 
-    if (mode == 1){
+    if (baseline == 1 || baseline == 3){
         for(int i = 0; i < 24; i++) yolo_cfg[i] = 1;
         for(int i = 0; i < 28; i++) extraction_cfg[i] = 1;
         for(int i = 0; i < 29; i++) resnet_cfg[i] = 1;
         for(int i = 0; i < 6 ; i++) rnn_cfg[i] = 1;
     }
-    if (mode == 4){
-        for(int i = 0; i < 24; i++) yolo_cfg[i] = 0;
-        for(int i = 0; i < 28; i++) extraction_cfg[i] = 0;
-        for(int i = 0; i < 29; i++) resnet_cfg[i] = 0;
-        for(int i = 0; i < 6 ; i++) rnn_cfg[i] = 0;
-    }
-   /* 
-    if (mode == 2){
-        for(int i = 0; i <12; i++) yolo_cfg[i*2] = 0;
-        for(int i = 0; i <14; i++) extraction_cfg[i*2] = 0;
-        for(int i = 0; i <14; i++) resnet_cfg[i*2] = 0;
-        for(int i = 0; i <3 ; i++) rnn_cfg[i*2] = 0;
-    }
-    */
     
     make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg, yolo_data_G2C, yolo_data_C2G);
     make_profile(profile_list[EXTRACTION], 28, extraction_gpu, extraction_cpu, extraction_cfg, extraction_data_G2C, extraction_data_C2G);
@@ -520,12 +506,12 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
 
      if(request_layer != node -> layers){
         node->current_layer = request_layer;
-        if(mode != 5 && mode != 6){
+        if(mode != 4 && mode != 5){
             if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
             else enQueue(cpu->waiting, request_layer, node -> id, node -> priority );
         }
         else{
-            if(mode == 5){
+            if(mode == 4){
                 if(request_layer <= node -> cut) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
                 else enQueue(cpu->waiting, request_layer, node -> id, node -> priority );
             }else{
