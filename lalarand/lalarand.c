@@ -104,13 +104,13 @@ int main(int argc, char **argv){
             current_time = get_time_point();
             // 1st registration check
             if(FD_ISSET(reg_fd, &readfds)) {
-                check_registration(dnn_list, reg_fd);
+                check_registration(dnn_list, reg_fd, baseline);
                 print_list("REGIST",dnn_list);
             }
             // 2nd request check 
             for(node = dnn_list ->head; node !=NULL; node = node -> next) 
                 if(FD_ISSET(node->request_fd, &readfds))
-                    request_handler(node, gpu, cpu, profile_list[node->type], current_time, baseline);
+                    request_handler(node, gpu, cpu, profile_list[node->type], current_time);
 
             print_queue("GPU",gpu->waiting);
             print_queue("CPU",cpu->waiting);

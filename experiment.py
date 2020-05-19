@@ -155,7 +155,7 @@ def submain(baseline, algo, input_list, log_path, start, end):
             thread.join()
     
         if(sum(result) != task_num):
-            print("Unsched");
+            print("Unsched")
             fp.write("unsched\n")
             unsched.append(taskset_list)
             for task in taskset_list:
@@ -165,7 +165,7 @@ def submain(baseline, algo, input_list, log_path, start, end):
                 f_unsched.write("\n")
             f_unsched.write(str(index) + "\n")
         else:
-            print("Sched");
+            print("Sched")
             fp.write("sched\n")
             sched.append(taskset_list)
             for task in taskset_list:
@@ -259,7 +259,7 @@ def generate_dart_cut(taskset_list, mode):
     
     weight = [0,0]
     for task in new_list:
-        index ,weigth = M(task,mode, weight)
+        index ,weight = M(task,mode, weight)
         task.append(index)
     
     new_list = sorted(new_list, key=itemgetter(-2))

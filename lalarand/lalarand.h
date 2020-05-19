@@ -30,6 +30,7 @@ typedef struct _DNN_INFO{
     int current_layer;
     int assigned;
     int cut;
+    int * default_cfg;
     struct _DNN_INFO * next;
 }dnn_info;
 
