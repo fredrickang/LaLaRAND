@@ -593,7 +593,7 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
     
     int prefer, non_prefer; 
 
-    //debug_print( "==============[MIGRATION]==============\n");
+    debug_print( "==============[MIGRATION]==============\n");
     for(QNode * tmp = q->front; tmp != NULL; tmp = tmp -> next){
         node = find_dnn_by_id(dnn_list, tmp -> id);
         slack = node->deadline - current_time - workload_left(profile_list[node->type],tmp -> layer, node->layers);
@@ -601,10 +601,10 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
         prefer = (From -> res_id ==GPU) ? profile_list[node->type] -> gpu_exec[tmp->layer] : profile_list[node->type] -> cpu_exec[tmp->layer];
         non_prefer = (From -> res_id == GPU) ? profile_list[node->type] -> cpu_exec[tmp->layer] : profile_list[node->type] -> gpu_exec[tmp->layer];
         
-        //debug_print( "[ID] : %d\n", tmp -> id);
-        //debug_print( "[Slack] : %f\n",slack);
-        //debug_print( "[Prefer] : %d\n",prefer);
-        //debug_print( "[Non_prefer] : %d\n", non_prefer);
+        debug_print( "[ID] : %d\n", tmp -> id);
+        debug_print( "[Slack] : %f\n",slack);
+        debug_print( "[Prefer] : %d\n",prefer);
+        debug_print( "[Non_prefer] : %d\n", non_prefer);
         
         if( slack > non_prefer - prefer ){ /* first condidtion */
             
@@ -612,24 +612,24 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
             blocked = blocking(q, dnn_list, profile_list, From, tmp->id);
             data_trans = data_transfer(dnn_list , profile_list, From, tmp->id, tmp->layer);
             
-            //debug_print( "[Futer_wait] : %f\n", future_wait);
-            //debug_print( "[Blocked] : %f\n", blocked);
-            //debug_print( "[data_trans] : %f\n", data_trans);
+            debug_print( "[Futer_wait] : %f\n", future_wait);
+            debug_print( "[Blocked] : %f\n", blocked);
+            debug_print( "[data_trans] : %f\n", data_trans);
 
             if ( future_wait + prefer > blocked + data_trans + non_prefer ){
                 
-                limits = limit(q,dnn_list, profile_list, current_time, From, tmp->id);
+//                limits = limit(q,dnn_list, profile_list, current_time, From, tmp->id);
                 
                 //debug_print("[Limits] : %f\n", limits);
-
-                if( limits > non_prefer){
-                    if( slack < smallest ){
-                        target_id = tmp -> id;
-                        target_layer = tmp -> layer;
-                        smallest = slack;
-                    }
+                //if( limits > non_prefer){
+                
+                if( slack <= smallest ){
+                    target_id = tmp -> id;
+                    target_layer = tmp -> layer;
+                    smallest = slack;
                 }
-                //debug_print( "[Smallest] : %f\n", smallest);
+                //}
+                debug_print( "[Smallest] : %f\n", smallest);
             }
         }
     }

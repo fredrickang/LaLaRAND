@@ -1,4 +1,4 @@
-#define DEBUG 1
+#define DEBUG 0
 #define debug_print(fd ,fmt, args...) \
             do { if (DEBUG) {fprintf(fd, fmt, ##args); fflush(fd);} } while (0)
 #include "dark_cuda.h"
@@ -128,7 +128,7 @@ void forward_network_gpu(network net, network_state state)
             cudaDeviceSynchronize();
         }
 
-        debug_print(pLogFile, "[Data transfer] %8.5f\n",((double)get_time_point() - inference)/1000);
+//        debug_print(pLogFile, "[Data transfer] %8.5f\n",((double)get_time_point() - inference)/1000);
 
         // inference
         if (resource == CPU) {
@@ -145,11 +145,11 @@ void forward_network_gpu(network net, network_state state)
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
         
-        //debug_print(pLogFile,"[%d] Layer %3d Resource %d Inference %8.5f ", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
+        debug_print(pLogFile,"[%d] Layer %3d Resource %d Inference %8.5f ", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
         state.input = resource ? l.output_gpu : l.output; 
         before = resource;                
 
-        //debug_print(pLogFile, "Total %8.5f\n",((double)get_time_point() - total)/1000);
+        debug_print(pLogFile, "Total %8.5f\n",((double)get_time_point() - total)/1000);
     }   
 }
 

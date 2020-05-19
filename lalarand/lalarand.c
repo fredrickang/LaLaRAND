@@ -30,11 +30,11 @@
 
 int main(int argc, char **argv){
     int Sync = find_int_arg(argc, argv, "-sync", 1);
-    int baseline = find_int_arg(argc, argv, "-mode", 1); // mode 1: ALL GPU // mode 2: preferable // mode 3: DART 
+    int baseline = find_int_arg(argc, argv, "-baseline", 1); // mode 1: ALL GPU // mode 2: preferable // mode 3: DART 
     int algo = find_int_arg(argc, argv, "-algo", 0);
     int index = find_int_arg(argc, argv, "-index", -1);
     
-    printf("Sync : %d Baseline :%d Algo :%d Index :%d\n", Sync, mode, algo, index);
+    printf("Sync : %d Baseline :%d Algo :%d Index :%d\n", Sync, baseline, algo, index);
 
     if(index == -1){
         puts("taskset index is not correct!");
@@ -68,12 +68,12 @@ int main(int argc, char **argv){
     fd_set readfds;
     dnn_info *node;
     
-    char log_path[50];
+    char log_path[60];
     if(DEBUG){
         switch (baseline){
             case 1:
-                if(algo) snprintf(log_path, 50, "./Exp/ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-                else snprintf(log_path, 50, "./Exp/ALL/takset_%d/lala_%d.txt", index, getpid());
+                if(algo) snprintf(log_path, 60, "./Exp/ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+                else snprintf(log_path, 60, "./Exp/ALL/taskset_%d/lala_%d.txt", index, getpid());
                 break;
             case 2:
                 if(algo) snprintf(log_path, 50, "./Exp/PR_LaLa/taskset_%d/lala_%d.txt", index, getpid());
@@ -95,6 +95,7 @@ int main(int argc, char **argv){
         freopen(log_path,"w", stderr);
     }
 
+    
     do{
         gpu_target = -1;
         cpu_target = -1;

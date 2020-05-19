@@ -549,30 +549,32 @@ int main(int argc, char **argv)
 
     cut = find_int_arg(argc, argv, "-cut", -2);
     
-    char log_path[50];
+    char log_path[60];
 
     switch (mode){
             case 1:
-                if(algo) snprintf(log_path, 50, "./Exp/ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-                else snprintf(log_path, 50, "./Exp/ALL/takset_%d/lala_%d.txt", index, getpid());
+                if(algo) snprintf(log_path, 60, "./Exp/ALL_LaLa/taskset_%d/task_%d.txt", index, priority);
+                else snprintf(log_path, 60, "./Exp/ALL/taskset_%d/task_%d.txt", index, priority);
                 break;
             case 2:
-                if(algo) snprintf(log_path, 50, "./Exp/PR_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-                else snprintf(log_path, 50, "./Exp/PR/taskset_%d/lala_%d.txt", index, getpid());
+                if(algo) snprintf(log_path, 50, "./Exp/PR_LaLa/taskset_%d/task_%d.txt", index, priority);
+                else snprintf(log_path, 50, "./Exp/PR/taskset_%d/task_%d.txt", index, priority);
                 break;
             case 3:
-                if(algo) snprintf(log_path, 50, "./Exp/DART_ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-                else snprintf(log_path, 50, "./Exp/DART_ALL/taskset_%d/lala_%d.txt", index, getpid());
+                if(algo) snprintf(log_path, 50, "./Exp/DART_ALL_LaLa/taskset_%d/task_%d.txt", index, priority);
+                else snprintf(log_path, 50, "./Exp/DART_ALL/taskset_%d/task_%d.txt", index, priority);
                 break;
             case 4:
-                if(algo) snprintf(log_path, 50, "./Exp/DART_GC_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-                else snprintf(log_path, 50, "./Exp/DART_GC/taskset_%d/lala_%d.txt", index, getpid());
+                if(algo) snprintf(log_path, 50, "./Exp/DART_GC_LaLa/taskset_%d/task_%d.txt", index, priority);
+                else snprintf(log_path, 50, "./Exp/DART_GC/taskset_%d/task_%d.txt", index, priority);
                 break;
             case 5:
-                if(algo) snprintf(log_path, 50, "./Exp/DART_CG_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-                else snprintf(log_path, 50, "./Exp/DART_CG/taskset_%d/lala_%d.txt", index, getpid());
+                if(algo) snprintf(log_path, 50, "./Exp/DART_CG_LaLa/taskset_%d/task_%d.txt", index, priority);
+                else snprintf(log_path, 50, "./Exp/DART_CG/taskset_%d/task_%d.txt", index, priority);
     }
     pLogFile = fopen(log_path, "w");
+    
+    freopen("/tmp/trash","w",stderr);
 
     fprintf(pLogFile, "[%d] Priority : %d , Period : %d\n", getpid(), priority, period);
     fflush(pLogFile);

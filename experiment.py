@@ -70,12 +70,12 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, log_pa
 
 
 
-def lalarand(task_num, lalarand_pid ,mode, algo,index):
+def lalarand(task_num, lalarand_pid ,baseline, algo, index):
     command_line = ["./lalarand/lalarand"]
     command_line.append("-sync")
     command_line.append(str(task_num))
-    command_line.append("-mode")
-    command_line.append(str(mode))
+    command_line.append("-baseline")
+    command_line.append(str(baseline))
     command_line.append("-index")
     command_line.append(str(index))
     command_line.append("-algo")
@@ -146,7 +146,7 @@ def submain(baseline, algo, input_list, log_path, start, end):
                 task_thread.append(Thread(target = darknet, args = (task, pids, lalarand_pid, result, baseline, algo, index, log_path , cut_list[i])))
     
         lalarand_thread.start()
-    
+        
         for thread in task_thread:
             thread.start()
         
@@ -155,6 +155,7 @@ def submain(baseline, algo, input_list, log_path, start, end):
             thread.join()
     
         if(sum(result) != task_num):
+            print("Unsched");
             fp.write("unsched\n")
             unsched.append(taskset_list)
             for task in taskset_list:
@@ -164,6 +165,7 @@ def submain(baseline, algo, input_list, log_path, start, end):
                 f_unsched.write("\n")
             f_unsched.write(str(index) + "\n")
         else:
+            print("Sched");
             fp.write("sched\n")
             sched.append(taskset_list)
             for task in taskset_list:
@@ -198,7 +200,7 @@ def M(task, mode, weight):
     smallest_secod = 0
     smallest_index = 0
     for index in range(len(gpu) + 1):
-        if mode == 5:
+        if mode == 4:
             first = weight[0] + sum(gpu[:index])/period
             second = weight[1] + sum(cpu[index:])/period
         else: 
@@ -271,12 +273,12 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--baseline", type = int , default = 4, help = "1: ALL GPU 2: Preferable 3: DART_ALL 4: DART_GC 5: DART_CG")
+    parser.add_argument("--baseline", type = int , default = 1, help = "1: ALL GPU 2: Preferable 3: DART")
     parser.add_argument("--algo", type = int , default = 0, help = "Algorithm")
     parser.add_argument("--list", type = str, default = "taskset_list.txt")
     parser.add_argument("--start",type = int , default = 0 )
     parser.add_argument("--end", type = int, default = -1, help = " -1 : ALL , other is other number")
-    parser.add_argument("--log_path", type = str, default = "Exp/RM/")
+    parser.add_argument("--log_path", type = str, default = "./Exp/ALL/")
 
     opt = parser.parse_args()
     
@@ -285,11 +287,11 @@ if __name__ == "__main__":
     if(opt.baseline == 1 or opt.baseline == 2):
         submain(opt.baseline, opt.algo, opt.list, opt.log_path, opt.start, opt.end)
     else: # dart 1. ALL 2. GC 3. CG
-        if(algo):
-            submain(3, opt.algo , opt.list, "./Exp/DART_ALL_LaLa/", opt.start, opt.end)
-            submain(4, opt.algo , "./Exp/DART_ALL_LaLa/Unsched.txt", "./Exp/DART_GC_LaLa/", 0, -1)
+        if(opt.algo):
+#            submain(3, opt.algo , opt.list, "./Exp/DART_ALL_LaLa/", opt.start, opt.end)
+            submain(4, opt.algo , "./Exp/ALL_LaLa/Unsched.txt", "./Exp/DART_GC_LaLa/", 0, -1)
             submain(5, opt.algo , "./Exp/DART_GC_LaLa/Unsched.txt", "./Exp/DART_CG_LaLa/", 0, -1)
         else:
-            submain(3, opt.algo , opt.list, "./Exp/DART_ALL/", opt.start, opt.end)
-            submain(4, opt.algo , "./Exp/DART_ALL/Unsched.txt", "./Exp/DART_GC/", 0, -1)
+#            submain(3, opt.algo , opt.list, "./Exp/DART_ALL/", opt.start, opt.end)
+            submain(4, opt.algo , "./Exp/ALL/Unsched.txt", "./Exp/DART_GC/", 0, -1)
             submain(5, opt.algo , "./Exp/DART_GC/Unsched.txt", "./Exp/DART_CG/", 0, -1)
