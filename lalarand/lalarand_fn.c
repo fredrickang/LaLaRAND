@@ -269,8 +269,6 @@ void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg, i
 }
 
 dnn_profile ** make_profile_list(int baseline){
-    // mode 1: ALL GPU // mode 2: preferable // mode 3: Static //mode 4: LaLaRAND
-
     dnn_profile ** profile_list = (dnn_profile **)malloc(sizeof(dnn_profile *)*4);
 
     for(int i =0; i < 4; i++)
@@ -364,7 +362,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg, int baseline){
             for(int i = 0; i < dnn->cut; i++) dnn->default_cfg[i] = 1;
         }
         if (baseline == 5){
-            memset(dnn->default_cfg, 1, sieof(int)*dnn->layers);
+            memset(dnn->default_cfg, 1, sizeof(int)*dnn->layers);
             for(int i  =0; i< dnn->cut; i++) dnn->default_cfg[i] = 0;
         }
     }
@@ -376,6 +374,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg, int baseline){
     debug_print("[Layers] %3d\n", dnn-> layers);
     debug_print("[Type]   %s\n", get_dnn_name(dnn->type));
     debug_print("[Period] %3d\n", dnn->period);
+    debug_print("[Cut]    %3d\n", dnn->cut);
     char req_fd_name[30];
     char dec_fd_name[30];
 
@@ -629,16 +628,15 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
                 
                 limits = limit(q,dnn_list, profile_list, current_time, From, tmp->id);
                 
-                //debug_print("[Limits] : %f\n", limits);
-                if( limits > non_prefer){
-                
+                debug_print("[Limits] : %f\n", limits);
+                if( limits > non_prefer+ blocked+ data_trans ){
                     if( slack <= smallest ){
                         target_id = tmp -> id;
                         target_layer = tmp -> layer;
                         smallest = slack;
                     }
+                    debug_print( "[Smallest] : %f\n", smallest);
                 }
-                debug_print( "[Smallest] : %f\n", smallest);
             }
         }
     }
@@ -678,15 +676,18 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
 
     dnn_info * current = find_dnn_by_id(dnn_list, From->id);
     dnn_info * target = find_dnn_by_id(dnn_list, target_id);
-    double current_wait = From->res_id == GPU ? profile_list[current->type]->gpu_exec[From->layer] - (current_time - From->scheduled) : profile_list[current->type]->cpu_exec[From->layer] - (current_time - From->scheduled);
+    double current_wait = (From->res_id == GPU) ? profile_list[current->type]->gpu_exec[From->layer] - (current_time - From->scheduled) : profile_list[current->type]->cpu_exec[From->layer] - (current_time - From->scheduled);
 
     waited += current_wait;
 
     if(target->priority > current->priority){
         for(int i = From->layer+1 ; i < current->layers ; i++){
             if(current->cut == -2){
-                if (profile_list[current->type]->cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];
-                else break;
+                if (profile_list[current->type]->cfg[i] == From->res_id) {
+                    waited += (From->res_id == GPU) ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];
+                }else{
+                    break;
+                }
             }
             else{
                 if(current->default_cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];
@@ -699,8 +700,11 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
         dnn_info * dnn = find_dnn_by_id(dnn_list,tmp->id);
         for(int i = tmp->layer; i < dnn->layers ; i ++){
             if(current->cut == -2){
-                if(profile_list[dnn->type]->cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[dnn->type]->gpu_exec[i] : profile_list[dnn->type]->cpu_exec[i];
-                else break;
+                if(profile_list[dnn->type]->cfg[i] == From->res_id) {
+                    waited += From->res_id == GPU ? profile_list[dnn->type]->gpu_exec[i] : profile_list[dnn->type]->cpu_exec[i];
+                }else{
+                    break;
+                }
             }
             else{
                 if(dnn->default_cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[dnn->type]->gpu_exec[i] : profile_list[dnn->type]->cpu_exec[i];
@@ -725,7 +729,9 @@ double limit(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doubl
 
     if(target->priority > current -> priority){
         for(int i = From -> layer + 1;  i < current->layers; i ++){
-            if(profile_list[current->type] -> cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];
+            if(profile_list[current->type] -> cfg[i] == From->res_id){
+                waited += From->res_id == GPU ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];
+            }
             else{
                 islimit = 0;
                 break;
@@ -738,7 +744,9 @@ double limit(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doubl
             dnn_info * dnn = find_dnn_by_id(dnn_list, tmp->id);
             for(int i  = tmp->layer; i < dnn->layers; i++){
                 if(islimit){
-                    if(profile_list[dnn->type] -> cfg[i] == From -> res_id) waited += From->res_id == GPU ? profile_list[dnn->type]->gpu_exec[i] : profile_list[dnn->type]->cpu_exec[i];
+                    if(profile_list[dnn->type] -> cfg[i] == From -> res_id){
+                        waited += From->res_id == GPU ? profile_list[dnn->type]->gpu_exec[i] : profile_list[dnn->type]->cpu_exec[i];
+                    }
                     else{
                         islimit = 0;
                         break;
@@ -797,11 +805,14 @@ double data_transfer(dnn_queue * dnn_list, dnn_profile **profile_list, resource 
     back = 0;
     
     for(int i = target_layer; i < target->layers -1; i++){
-        if(From->res_id == GPU) if(profile_list[target->type]->C2G[i] > back) back = profile_list[target->type]->C2G[i];
-        else if(profile_list[target->type]->G2C[i] > back) back = profile_list[target->type]->G2C[i];
+        if(From->res_id == GPU) {
+            if(profile_list[target->type]->C2G[i] > back) back = profile_list[target->type]->C2G[i];
+        }
+        else{
+            if(profile_list[target->type]->G2C[i] > back) back = profile_list[target->type]->G2C[i];
+        }
     }
-
-    return back;
+    return go + back;
 }
 
 ///// communication ////

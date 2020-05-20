@@ -142,6 +142,7 @@ def submain(baseline, algo, input_list, log_path, start, end):
                 task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, baseline, algo,index, log_path, -2)))
         else:
             cut_list = generate_dart_cut(taskset_list, baseline)
+            print(cut_list)
             for i, task in enumerate(taskset_list):
                 task_thread.append(Thread(target = darknet, args = (task, pids, lalarand_pid, result, baseline, algo, index, log_path , cut_list[i])))
     
@@ -255,14 +256,16 @@ def generate_dart_cut(taskset_list, mode):
         tmp.append(i)
         new_list.append(tmp)
 
-    new_list = sorted(new_list, key=itemgetter(2))
-    
+    new_list = sorted(new_list, key=itemgetter(2), reverse = True)
+    for task in new_list:
+        print(task[2],task[-2])
     weight = [0,0]
     for task in new_list:
         index ,weight = M(task,mode, weight)
         task.append(index)
     
     new_list = sorted(new_list, key=itemgetter(-2))
+
     for task in new_list:
         rev.append(task[-1])
     return rev
