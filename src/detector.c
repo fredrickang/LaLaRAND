@@ -31,6 +31,17 @@ extern cpu_set_t gpu_core;
 
 extern FILE * pLogFile;
 
+extern double * exec_logs;
+extern double * msg_logs;
+extern double * total_logs;
+extern double * data_logs;
+extern double * resource_logs;
+extern double * response_logs;
+
+extern int current_job;
+
+extern int * history;
+
 void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int dont_show, int calc_map, int mjpeg_port, int show_imgs)
 {
     list *options = read_data_cfg(datacfg);
@@ -1497,7 +1508,6 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     float hier_thresh, int dont_show, int ext_output, int save_labels, char *outfile, int letter_box, int quantized, float ms_period)
 {
 
-
     list *options = read_data_cfg(datacfg);
     char *name_list = option_find_str(options, "names", "data/names.list");
     int names_size = 0;
@@ -1515,9 +1525,17 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         load_weights(&net, weightfile);
     }
 
+    exec_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    msg_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    total_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    data_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    resource_logs = (double *)malloc(sizeof(double) *net.n*numofjob);
 
-  // Our approach should not use layer fusion  
-  // fuse_conv_batchnorm(net);
+    response_logs = (double *)malloc(sizeof(double) * numofjob);
+
+
+    // Our approach should not use layer fusion  
+    // fuse_conv_batchnorm(net);
     calculate_binary_weights(net);
     if (net.layers[net.n - 1].classes != names_size) {
         printf(" Error: in the file %s number of names %d that isn't equal to classes=%d in the file %s \n",
@@ -1575,10 +1593,11 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     sched_yield();
 
     for (k =0; k< numofjob; k++){
+        current_job = k;
         //t_period = get_time_point();
         ///// IMAGE PREPROCESSING /////
-        fprintf(pLogFile,"=====================%d JOB %d=====================\n",pid, k);
-        fflush(pLogFile);
+        //fprintf(pLogFile,"=====================%d JOB %d=====================\n",pid, k);
+        //fflush(pLogFile);
         layer l = net.layers[net.n - 1];
 
         float *X = sized.data;
@@ -1591,21 +1610,26 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         int miss;
         clock_gettime(CLOCK_MONOTONIC, &current_time);
         
-        get_response_time(&release_time, &current_time);
+        get_response_time(&release_time, &current_time,k);
 
         timespec_add(&release_time, &period_time);  
         
         miss = deadline_miss_check(&release_time, &current_time);
-        if(miss){
-            fprintf(pLogFile,"============ %d task %d job miss  ==============\n", getpid(), k);
-            fflush(pLogFile);
-            free_network(net);
-            exit(-1);
-        }
-        if( write(request_fd,&net.n, sizeof(int)) == -1){
+
+        if( write(request_fd, &net.n, sizeof(int)) == -1){
             perror("Request :");
             exit(-1);
         }
+        
+        
+        if(miss){
+            //fprintf(pLogFile,"============ %d task %d job miss  ==============\n", getpid(), k);
+            //fflush(pLogFile);
+            
+            free_network(net);
+            exit(-1);
+        }
+        
         
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }

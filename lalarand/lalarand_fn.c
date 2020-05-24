@@ -1,6 +1,6 @@
 #define DEBUG 0
 #define debug_print(fmt, args...) \
-            do { if (DEBUG) fprintf(stderr, fmt, ##args); } while (0)
+            do { if (DEBUG) fprintf(stderr, fmt, ##args); fflush(stderr); } while (0)
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -275,28 +275,28 @@ dnn_profile ** make_profile_list(int baseline){
         profile_list[i] = (dnn_profile *)malloc(sizeof(dnn_profile));
 
 
-    int yolo_gpu[24]  = {305,  37, 124,  21,  74,  17,  59,  14,  52,   9,  60,  12, 182, 39,  55,  27,  44,   5,  31,  14,  12, 101,  31,  48};
-    int yolo_cpu[24] = {3287,   698,  6423,   352,  9595,   323,  6334,   175,  6590, 54,  8118,   104, 32054,  1894,  8062,   967,   101,    11, 366,    70,    54, 19150,  1530,   388};
+    int yolo_gpu[24]  = {269,  26, 110,  15,  70,  11,  53,   8,  47,   5,  54,   8, 174, 34,  52,  21,  35,   3,  24,   9,   8,  98,  26,  39};
+    int yolo_cpu[24] = {3044,   694,  6184,   349,  9144,   178,  5689,    92,  5897, 45,  7616,    98, 29892,  1658,  7425,   833,    97,     8, 220,    63,    47, 18005,  1303,   385};
     int yolo_cfg[24] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }; 
     int yolo_data_G2C[23] = {3175,1766,1228,716,880,573,675,563,561,594,589,548,610,562,563,516,151,499,487,513,627,547,610}; 
     int yolo_data_C2G[23] = {1709,554,904,288,543,540,306,386,569,363,494,452,524,105,472,100,72,113,79,352,488,542,493};
 
 
-    int extraction_gpu[28] = {94,  28,  84,  15,  37,  53,  40, 144,  13,  30,  57,  30,  56, 30,  56,  31,  56,  37, 184,  11,  28, 132,  29, 132,  35,   9, 50,   2};
-    int extraction_cpu[28] = {7068,   210, 10416,   162,   727,  7156,  1645, 28586,   113, 1020,  7878,  1011,  7860,  1009,  7853,  1009,  7860,  1864, 30857, 62, 1816, 15826, 1797, 15833, 3493, 14, 6, 1};
+    int extraction_gpu[28] = {88,  14,  79,  11,  26,  48,  35, 136,   9,  25,  53,  24,  52, 25,  52,  25,  52,  32, 176,   6,  24, 125,  25, 125,  32,   5, 45,   1};
+    int extraction_cpu[28] = {6300,   205,  9728,   157,   576,  6676,  1497, 27518,   105, 869,  7634,   865,  7641,   864,  7653,   867,  7614,  1715, 29842,    54,  1690, 14631,  1629, 14340,  3134,    10,     3, 1};
     int extraction_cfg[28]=  {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0 };
     int extraction_data_G2C[27] = {2038,1029,623,529,417,534,327,986,664,337,463,188,351,200,274,194,252,296,340,268,150,230,327,220,348,207,301};
     int extraction_data_C2G[27] = {627,488,469,453,161,482,522,425,375,136,386,129,468,118,435,100,419,396,560,106,96,105,112,132,101,407,394};
 
-    int resnet_gpu[29] = {113,  30,  47,  40,  18,  43,  47,  16,  41,  57,  15,  57,  54, 11,  36,  36,  13,  35,  34,   9,  44,  70,  16,  72,  75,  10, 13,  26,  49};
-    int resnet_cpu[29] = {7398,  271, 4892, 4752,   65, 4770, 4726,   65, 2460, 4914,   86, 4954, 4949,   35, 2609, 5131,   40, 5116, 5102,   22, 3702, 7235, 25, 7283, 7302, 12, 11,  374, 6};
+    int resnet_gpu[29] = {107,  17,  42,  36,  11,  38,  36,  11,  37,  50,  11,  51,  50, 8,  33,  32,  10,  31,  30,   7,  40,  66,  11,  66,  69,   6, 9,  21,  44};
+    int resnet_cpu[29] = {7088,  267, 4462, 4455,   57, 4467, 4442,   57, 2236, 4588,   71, 4627, 4647,   29, 2417, 4789,   33, 4772, 4768,   15, 3525, 6870, 17, 6889, 6947,    7,    6,  351,    5};
     int resnet_cfg[29] =  {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0};
     int resnet_data_G2C[28] = {2112,1228,566,650,612,624,628,697,660,541,544,618,482,535,421,436,518,404,537,594,536,565,473,483,514,474,132,1};
     int resnet_data_C2G[28] = {870,517,548,584,546,556,542,542,491,500,459,518,544,306,356,345,220,386,341,339,112,149,87,110,131,115,226,1};
 
-    int rnn_gpu[6] = {130, 113, 107,  28,  20,   3};
-    int rnn_cpu[6] = {113, 139, 139,  16,   5,   4};
-    int rnn_cfg[6] = {0, 1, 1, 0, 0, 1};
+    int rnn_gpu[6] = {110, 102,  94,  24,  17, 1};
+    int rnn_cpu[6] = {105, 132, 132, 10, 2, 1};
+    int rnn_cfg[6] = {0, 1, 1, 0, 0, 0};
     int rnn_data_G2C[5] = {1518,452,573,178,426};
     int rnn_data_C2G[5] = {308,374,355,236,236};
 
@@ -332,12 +332,12 @@ dnn_profile ** make_profile_list(int baseline){
     return profile_list;
 }
 
-void check_registration(dnn_queue * dnn_list, int reg_fd, int baseline){
+void check_registration(dnn_queue * dnn_list, int reg_fd, resource * gpu, resource *cpu, int baseline){
     reg_msg * msg = (reg_msg *)malloc(sizeof(reg_msg));
         
     while( read(reg_fd, msg, 7*sizeof(int)) > 0){
         if(msg -> regist == 1) regist(dnn_list, msg, baseline); 
-        else de_regist(dnn_list, msg);
+        else de_regist(dnn_list, msg, gpu, cpu);
     }
 }
 
@@ -458,16 +458,24 @@ void re_assign_priority(dnn_queue * dnn_list, resource * gpu , resource * cpu){
 }
 
 
-void de_regist(dnn_queue * dnn_list, reg_msg * msg){
+void de_regist(dnn_queue * dnn_list, reg_msg * msg, resource * gpu, resource *cpu){
     // find dnn info by pid;
     // delete dnn 
     // send signal to go 
-    int pid;
+    int pid, target_id;
     dnn_info * target = find_dnn_by_pid(dnn_list, msg -> pid);
+    target_id = target->id;
     pid = target -> pid;
     close_channels(target);
     deleteDNN(dnn_list, target);
+    
+    
+    if (gpu-> id == target_id) gpu->state = IDLE;
+    if (cpu-> id == target_id) cpu->state = IDLE;
+
+
     debug_print("================== %d DNN has been de registered ===================\n", pid); 
+
 }
 
 int check_request(dnn_queue * dnn_list, fd_set* readfds, int sync){
@@ -499,7 +507,7 @@ void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profil
     
     read(node -> request_fd, &request_layer, sizeof(int));
     
-    //debug_print("[request_handler] : [ID] %d [layer] %d \n", node -> id, request_layer);
+    debug_print("[request_handler] : [ID] %d [layer] %d \n", node -> id, request_layer);
 
     if(request_layer == 0) update_deadline(node, current_time);
 
@@ -601,7 +609,7 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
     
     int prefer, non_prefer; 
 
-    debug_print( "==============[MIGRATION]==============\n");
+    //debug_print( "==============[MIGRATION]==============\n");
     for(QNode * tmp = q->front; tmp != NULL; tmp = tmp -> next){
         node = find_dnn_by_id(dnn_list, tmp -> id);
         slack = node->deadline - current_time - workload_left(profile_list[node->type],tmp -> layer, node->layers);
@@ -609,10 +617,10 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
         prefer = (From -> res_id ==GPU) ? profile_list[node->type] -> gpu_exec[tmp->layer] : profile_list[node->type] -> cpu_exec[tmp->layer];
         non_prefer = (From -> res_id == GPU) ? profile_list[node->type] -> cpu_exec[tmp->layer] : profile_list[node->type] -> gpu_exec[tmp->layer];
         
-        debug_print( "[ID] : %d\n", tmp -> id);
-        debug_print( "[Slack] : %f\n",slack);
-        debug_print( "[Prefer] : %d\n",prefer);
-        debug_print( "[Non_prefer] : %d\n", non_prefer);
+        //debug_print( "[ID] : %d\n", tmp -> id);
+        //debug_print( "[Slack] : %f\n",slack);
+        //debug_print( "[Prefer] : %d\n",prefer);
+        //debug_print( "[Non_prefer] : %d\n", non_prefer);
         
         if( slack > non_prefer - prefer ){ /* first condidtion */
             
@@ -620,22 +628,22 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
             blocked = blocking(q, dnn_list, profile_list, From, tmp->id);
             data_trans = data_transfer(dnn_list , profile_list, From, tmp->id, tmp->layer);
             
-            debug_print( "[Futer_wait] : %f\n", future_wait);
-            debug_print( "[Blocked] : %f\n", blocked);
-            debug_print( "[data_trans] : %f\n", data_trans);
+            //debug_print( "[Futer_wait] : %f\n", future_wait);
+            //debug_print( "[Blocked] : %f\n", blocked);
+            //debug_print( "[data_trans] : %f\n", data_trans);
 
             if ( future_wait + prefer > blocked + data_trans + non_prefer ){
                 
                 limits = limit(q,dnn_list, profile_list, current_time, From, tmp->id);
                 
-                debug_print("[Limits] : %f\n", limits);
+                //debug_print("[Limits] : %f\n", limits);
                 if( limits > non_prefer+ blocked+ data_trans ){
                     if( slack <= smallest ){
                         target_id = tmp -> id;
                         target_layer = tmp -> layer;
                         smallest = slack;
                     }
-                    debug_print( "[Smallest] : %f\n", smallest);
+                    //debug_print( "[Smallest] : %f\n", smallest);
                 }
             }
         }
@@ -717,6 +725,8 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
 }
 
 double limit(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * From , int target_id){
+    //debug_print("==================== Limit ====================\n ");
+    
     double waited = 0;
     dnn_info * current = find_dnn_by_id(dnn_list, From->id);
     dnn_info * target = find_dnn_by_id(dnn_list, target_id);
@@ -724,20 +734,27 @@ double limit(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doubl
     double current_wait = From->res_id == GPU ? profile_list[current->type]->gpu_exec[From->layer] - (current_time - From->scheduled) : profile_list[current->type] -> cpu_exec[From->layer] - (current_time - From->scheduled);
 
     waited += current_wait;
-
+    
     int islimit = 1;
-
+    
+    //debug_print(" [current_DNN] :%s\n", get_dnn_name(current->type));
+    //debug_print(" [Waited] :%f\n", waited);
     if(target->priority > current -> priority){
         for(int i = From -> layer + 1;  i < current->layers; i ++){
+            //debug_print(" [Layer] : %d\n",i);
+            //debug_print(" [Assigned] : %d\n", profile_list[current->type] ->cfg[i]);
             if(profile_list[current->type] -> cfg[i] == From->res_id){
                 waited += From->res_id == GPU ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];
             }
             else{
+                //debug_print(" Limit has been reached\n");
                 islimit = 0;
                 break;
             }
+            //debug_print(" [Waited] :%f\n", waited);
         }
     }
+    
 
     if(islimit){
         for(QNode * tmp = q->front; tmp->priority < target->priority ; tmp = tmp->next){

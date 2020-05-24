@@ -22,7 +22,6 @@ QNode * find_node_by_id(Queue *q, int id);
 void print_queue(char * name, Queue * q);
 void print_list(char * name, dnn_queue * dnn_list);
 void re_assign_priority(dnn_queue * dnn_list, resource * gpu, resource * cpu);
-int isEmpty(Queue * q);
 
 
 ///// Utils ////
@@ -55,6 +54,6 @@ int open_channel(char * pipe_name,int mode);
 void close_channel(char * pipe_name);
 void close_channels(dnn_info * dnn);
 double data_transfer(dnn_queue * dnn_list ,dnn_profile ** profile_list, resource *From, int target_id, int target_layer);
-
+int sacrifice(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * From, resource * To);
 
 #endif

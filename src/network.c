@@ -50,6 +50,17 @@
 extern int register_fd;
 extern int lalarand_pid;
 extern int * history;
+
+extern double * msg_logs;
+extern double * exec_logs;
+extern double * total_logs;
+extern double * data_logs;
+extern double * resource_logs;
+extern double * response_logs;
+extern int numofjob;
+
+extern FILE * pLogFile;
+
 int max_abs(int src, int max_val)
 {
     if (abs(src) > abs(max_val)) src = (src > 0) ? max_val : -max_val;
@@ -1186,6 +1197,19 @@ typedef struct _MSG{
 
 void free_network(network net)
 {
+    
+    for(int i = 0; i < numofjob; i++){
+        fprintf(pLogFile,"===== %d job ====\n", i);
+        for(int j = 0; j < net.n ; j++){
+            int idx = i*net.n + j;
+            fprintf(pLogFile, "layer %3d resource %f msg %f data %f exec %f total %f\n",j,resource_logs[idx], msg_logs[idx], data_logs[idx], exec_logs[idx], total_logs[idx]);
+        }
+        fprintf(pLogFile,"Response : %f\n", response_logs[i]);
+    }
+    fflush(pLogFile);
+
+    
+    
     int i;
     for (i = 0; i < net.n; ++i) {
         free_layer(net.layers[i]);

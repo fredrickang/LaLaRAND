@@ -61,6 +61,14 @@ extern int *history;
 
 extern FILE * pLogFile;
 
+extern double * exec_logs;
+extern double * data_logs;
+extern double * msg_logs;
+extern double * total_logs;
+extern double * resource_logs;
+
+extern int current_job;
+
 int Sync = 1;
 int resource = -1;
 
@@ -74,14 +82,18 @@ void forward_network_gpu(network net, network_state state)
 
     int size = get_network_input_size(net) * net.batch;
     
-    double inference, total, data;
+    double inference, total, data, msg;
     
     for(i = 0; i < net.n; ++i){
+
+        int idx = current_job * net.n + i;
+
         total = get_time_point();
         
         state.index = i;
         layer l = net.layers[i];
         
+        msg = get_time_point(); 
         if(!Sync){        
             
             if( write(request_fd, &i, sizeof(int)) == -1 ){
@@ -89,20 +101,22 @@ void forward_network_gpu(network net, network_state state)
                 exit(-1);
             }
          
-
             if( read(decision_fd, &resource, sizeof(int)) == -1){
                 perror("decision recv : ");
                 exit(-1);
+        
             }
+            
+            msg_logs[idx] = ((double)get_time_point() - msg);
         
         }else{
             Sync = 0;
         }
-
+        
 
         history[i] = resource; 
-        inference = get_time_point();
-        
+        resource_logs[idx] = resource;
+
         if(l.delta_gpu && state.train){
             fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
         }   
@@ -128,9 +142,12 @@ void forward_network_gpu(network net, network_state state)
             cudaDeviceSynchronize();
         }
 
-//        debug_print(pLogFile, "[Data transfer] %8.5f\n",((double)get_time_point() - inference)/1000);
-
+        data_logs[idx] = ((double)get_time_point() - data);
+//      debug_print(pLogFile, "[Data transfer] %8.5f\n",((double)get_time_point() - inference)/1000);
+        
         // inference
+        inference = get_time_point();
+
         if (resource == CPU) {
             l.forward(l,state);
         }else if(resource == GPU){
@@ -145,9 +162,14 @@ void forward_network_gpu(network net, network_state state)
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
         
+        exec_logs[idx] = ((double)get_time_point() - inference);
+
+        
         debug_print(pLogFile,"[%d] Layer %3d Resource %d Inference %8.5f ", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
         state.input = resource ? l.output_gpu : l.output; 
         before = resource;                
+        
+        total_logs[idx] = ((double)get_time_point() - total);
 
         debug_print(pLogFile, "Total %8.5f\n",((double)get_time_point() - total)/1000);
     }   
@@ -637,6 +659,8 @@ void lala_init_gpu(network net, float *input){
 
 void synchronizeRelease(){
     int request = 0;
+    double _time = get_time_point();
+
     if(Sync){
         if( write(request_fd, &request, sizeof(int)) == -1 ){
             perror("request send : ");
@@ -653,4 +677,5 @@ void synchronizeRelease(){
             exit(-1);
         } 
     }
+    msg_logs[0] = ((double)get_time_point() - _time);
 }

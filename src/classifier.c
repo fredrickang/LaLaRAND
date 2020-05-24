@@ -34,6 +34,18 @@ float validate_classifier_single(char *datacfg, char *filename, char *weightfile
 
 extern FILE * pLogFile;
 
+extern double * exec_logs;
+extern double * msg_logs;
+extern double * total_logs;
+extern double * data_logs;
+extern double * resource_logs;
+
+extern double * response_logs;
+
+extern int current_job;
+
+extern int * history;
+
 float *get_regression_values(char **labels, int n)
 {
     float* v = (float*)calloc(n, sizeof(float));
@@ -1258,6 +1270,14 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     }
     set_batch_network(&net, 1);
     srand(2222222);
+    
+    exec_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    msg_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    total_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    data_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    resource_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+
+    response_logs = (double *)malloc(sizeof(double) * numofjob);
 
     //fuse_conv_batchnorm(net);
     calculate_binary_weights(net);
@@ -1317,9 +1337,9 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     sched_yield();
 
     for (int k =0; k < numofjob; k++){
-
-        fprintf(pLogFile,"=====================%d JOB %d=====================\n", pid, k);
-        fflush(pLogFile);
+        current_job = k;
+//        fprintf(pLogFile,"=====================%d JOB %d=====================\n", pid, k);
+//        fflush(pLogFile);
 
         //image r = resize_min(im, size);
         //resize_network(&net, r.w, r.h);
@@ -1342,21 +1362,24 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
         int miss;
         clock_gettime(CLOCK_MONOTONIC, &current_time);
 
-        get_response_time(&release_time, &current_time);
+        get_response_time(&release_time, &current_time, k);
 
         timespec_add(&release_time, &period_time);
 
         miss = deadline_miss_check(&release_time,&current_time);
         if(miss){
-            fprintf(pLogFile,"============ %d task %d job miss  ==============\n", getpid(), i);
-            fflush(pLogFile);
+//            fprintf(pLogFile,"============ %d task %d job miss  ==============\n", getpid(), i);
+//            fflush(pLogFile);
+            
             free_network(net);
             exit(-1);
         }
+
         if( write(request_fd,&net.n, sizeof(int)) == -1){
             perror("Request :");
             exit(-1);
         }
+        
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
     free_network(net);

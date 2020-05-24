@@ -14,7 +14,7 @@ void save_weights_double(network net, char *filename);
 void load_weights(network *net, char *filename);
 void load_weights_upto(network *net, char *filename, int cutoff);
 int deadline_miss_check(struct timespec *deadline, struct timespec *current);
-void get_response_time(struct timespec *start, struct timespec * end);
+void get_response_time(struct timespec *start, struct timespec * end, int job);
 #ifdef __cplusplus
 }
 #endif

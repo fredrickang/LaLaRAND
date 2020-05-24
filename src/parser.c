@@ -61,6 +61,7 @@ list *read_cfg(char *filename);
 
 extern FILE * pLogFile;
 extern int cut;
+extern double * response_logs;
 
 LAYER_TYPE string_to_layer_type(char * type)
 {
@@ -1616,7 +1617,7 @@ network *load_network(char *cfg, char *weights, int clear)
     return net;
 }
 
-void get_response_time(struct timespec *start, struct timespec *stop){
+void get_response_time(struct timespec *start, struct timespec *stop, int job){
     struct timespec result;
     if ((stop->tv_nsec - start->tv_nsec) < 0) {
         result.tv_sec = stop->tv_sec - start->tv_sec - 1;
@@ -1627,8 +1628,7 @@ void get_response_time(struct timespec *start, struct timespec *stop){
     }
 
     double millisec = result.tv_sec * 1000 + result.tv_nsec / 1000000 ; 
-    fprintf(pLogFile,"[RESPONSE] %f milli-sec\n",millisec);
-    fflush(pLogFile);
+    response_logs[job] = millisec;
 }   
 
 // miss : 1 unmiss : 0

@@ -119,14 +119,13 @@ int main(int argc, char **argv){
                 if(Sync) update_deadline_all(dnn_list, current_time);
                 
                 if(algo){
-                    if ( (cpu -> state == IDLE) && (isEmpty(cpu->waiting)) && (!isEmpty(gpu->waiting)) ){
+                    if ( (cpu -> state == IDLE) && (cpu->waiting->count == 0) && (gpu->waiting->count != 0) ){
                         cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, gpu, cpu);
                         if (cpu -> state == IDLE){
                             cpu_target = sacrifice(gpu->waiting, dnn_list, profile_list, current_time, gpu, cpu);
                         }
                     }
-
-                    if ( (gpu -> state = IDLE) && (isEmpty(gpu->waiting) && (!isEmpty(cpu->waiting))) ){
+                    if ( (gpu -> state == IDLE) && (gpu->waiting->count == 0) && (cpu->waiting->count != 0) ){
                         gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, cpu, gpu);
                         if (gpu-> state == IDLE) {
                             gpu_target = sacrifice(cpu->waiting, dnn_list, profile_list, current_time, cpu, gpu);

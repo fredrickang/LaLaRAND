@@ -102,9 +102,8 @@ int main(int argc, char **argv){
         fd_head = make_fdset(&readfds, reg_fd, dnn_list);
         if(select(fd_head +1, &readfds, NULL, NULL, NULL)){
             current_time = get_time_point();
-            // 1st registration check
             if(FD_ISSET(reg_fd, &readfds)) {
-                check_registration(dnn_list, reg_fd, baseline);
+                check_registration(dnn_list, reg_fd, gpu, cpu,baseline);
                 print_list("REGIST",dnn_list);
             }
             // 2nd request check 

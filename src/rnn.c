@@ -11,6 +11,15 @@ extern FILE * pLogFile;
 extern cpu_set_t gpu_core;
 extern int request_fd;
 
+extern double * exec_logs;
+extern double * msg_logs;
+extern double * total_logs;
+extern double * data_logs;
+extern double * resource_logs;
+extern double * response_logs;
+extern int current_job;
+extern int * history;
+
 typedef struct {
     float *x;
     float *y;
@@ -492,6 +501,16 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
 
     network net = parse_network_cfg_custom(cfgfile, 1, 1);  // batch=1, time_steps=1
     
+    exec_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    msg_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    total_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    data_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    
+    resource_logs = (double *)malloc(sizeof(double) *net.n*numofjob);
+
+    response_logs = (double *)malloc(sizeof(double) * numofjob);
+    
+
     if(weightfile){
         load_weights(&net, weightfile);
     }
@@ -534,8 +553,9 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
 
     int pid = getpid();
     for(i = 0; i < numofjob; ++i){
-        fprintf(pLogFile,"=====================%d JOB %d====================\n",pid,i);
-        fflush(pLogFile);
+        current_job = i;
+        //fprintf(pLogFile,"=====================%d JOB %d====================\n",pid,i);
+        //fflush(pLogFile);
         input[c] = 1;
         float *out = network_predict(net, input);
         input[c] = 0;
@@ -549,15 +569,16 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
         
         clock_gettime(CLOCK_MONOTONIC, &current_time);
     
-        get_response_time(&release_time, &current_time);
+        get_response_time(&release_time, &current_time, i);
 
         timespec_add(&release_time, &period_time);
 
         
         miss = deadline_miss_check(&release_time,&current_time);
         if(miss){
-            fprintf(pLogFile,"============ %d task %d job miss  ==============\n", getpid(), i);
-            fflush(pLogFile);
+            //fprintf(pLogFile,"============ %d task %d job miss  ==============\n", getpid(), i);
+            //fflush(pLogFile);
+            
             free_network(net);
             exit(-1);
         }
@@ -566,6 +587,7 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
                 perror("Request :");
                 exit(-1);
         }
+        
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
     //printf("\n");

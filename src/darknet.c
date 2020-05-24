@@ -65,6 +65,15 @@ DetectorParams *_g_detector_params;
 int cut;
 int mode;
 
+double * exec_logs;
+double * msg_logs;
+double * total_logs;
+double * data_logs;
+double * response_logs;
+double * resource_logs;
+
+int current_job;
+
 void thread_test_function(int a, int b)
 {
     printf("this is a : %d\n, this is b : %d\n");

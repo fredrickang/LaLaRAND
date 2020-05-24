@@ -1,6 +1,6 @@
 #define DEBUG 0
 #define debug_print(fmt, args...) \
-            do { if (DEBUG) fprintf(stderr, fmt, ##args); } while (0)
+            do { if (DEBUG) fprintf(stderr, fmt, ##args); fflush(stderr); } while (0)
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -223,11 +223,6 @@ void print_queue(char * name, Queue * q){
     debug_print("\n");
 }
 
-int isEmpty(Queue *q){
-    if (q->count == 0) return 1;
-    return 0;
-}
-
 ///// Utils ////
 void del_arg(int argc, char **argv, int index)
 {
@@ -352,18 +347,18 @@ void regist(dnn_queue * dnn_list, reg_msg * msg, int baseline, dnn_profile ** pr
     dnn -> current_layer = -1;
     dnn -> assigned = 1;
     dnn->default_cfg = (int *)malloc(sizeof(int)*dnn->layers);
+    
+    if (baseline == 1 || baseline == 5) for(int i =0; i < dnn->layers; i++) dnn->default_cfg[i] = 1;
 
-    if (baseline == 1) memset(dnn->default_cfg, 1, sizeof(int) * dnn->layers);
     if (baseline == 2) dnn->default_cfg = profile_list[dnn->type]->cfg;
+    
     if (baseline == 4) {
         memset(dnn->default_cfg, 0, sizeof(int) * dnn->layers);
         for (int i = 0; i < msg->cut; i ++) dnn->default_cfg[i] =1;
     }
-    if (baseline == 5) {
-        memset(dnn-> default_cfg, 1, sizeof(int)* dnn->layers);
-        for(int i = 0; i < msg->cut; i ++) dnn->default_cfg[i] = 0;
-
-    }
+    
+    if (baseline == 5) for(int i = 0; i < msg->cut; i ++) dnn->default_cfg[i] = 0;
+    
     
     debug_print("======== REGISTRATION ========\n");
     debug_print("[ID]     %3d\n", dnn-> id);
@@ -580,7 +575,6 @@ double workload_left(dnn_info * dnn, dnn_profile * profile, int current_layer, i
 }
 
 int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * From, resource * To){
-    
     if(q->count == 0)
         return -1;
     
@@ -596,7 +590,7 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
     for(QNode * tmp = q->front; tmp != NULL; tmp = tmp -> next){
         node = find_dnn_by_id(dnn_list, tmp -> id);
         if(profile_list[node->type]->cpu_exec[tmp->layer]/profile_list[node->type]->gpu_exec[tmp->layer] < 15.00){
-            slack = node->deadline - current_time - workload_left(profile_list[node->type],tmp -> layer, node->layers);
+            slack = node->deadline - current_time - workload_left(node, profile_list[node->type],tmp -> layer, node->layers);
         
             prefer = (From -> res_id == GPU) ? profile_list[node->type] -> gpu_exec[tmp->layer] : profile_list[node->type] -> cpu_exec[tmp->layer];
             non_prefer = (From -> res_id == GPU) ? profile_list[node->type] -> cpu_exec[tmp->layer] : profile_list[node->type] -> gpu_exec[tmp->layer];
@@ -660,7 +654,6 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
 
         debug_print("Migration : [ID] %d [Layer] %d \n",target_id, target_layer);
     }
-
     return target_id; 
 }
 
@@ -699,7 +692,7 @@ double limit(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doubl
 
     int islimit = 1;
 
-    if (From -> state == IDLE){
+    if (From -> state != IDLE){
         dnn_info * current = find_dnn_by_id(dnn_list, From->id);
         double current_wait = From->res_id == GPU ? profile_list[current->type]->gpu_exec[From->layer] - (current_time - From->scheduled) : profile_list[current->type] -> cpu_exec[From->layer] - (current_time - From->scheduled);
 
@@ -796,43 +789,86 @@ double data_transfer(dnn_queue * dnn_list, dnn_profile **profile_list, resource 
 
 int sacrifice(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * From, resource * To){
     dnn_info * node;
+    double slack;
+    int prefer, non_prefer;
+    debug_print( "====== Sacrifice ======\n");    
+    QNode * tmp = q->front;
+    node = find_dnn_by_id(dnn_list, tmp->id);
+    if(profile_list[node->type] -> cpu_exec[tmp->layer]/profile_list[node->type]->gpu_exec[tmp->layer] < 15.00){
+        slack = node->deadline - current_time - workload_left(node, profile_list[node->type], tmp -> layer, node->layers);
+        prefer = (From -> res_id == GPU) ? profile_list[node->type] -> gpu_exec[tmp->layer] : profile_list[node->type] -> cpu_exec[tmp->layer];
+        non_prefer = (From -> res_id == GPU) ? profile_list[node->type] -> cpu_exec[tmp->layer] : profile_list[node->type] -> gpu_exec[tmp->layer];
+    
+        if( slack > non_prefer - prefer ){ /* first condidtion */
+                
+            debug_print( "[ID] : %d\n", tmp -> id);
+            debug_print( "[Slack] : %f\n",slack);
+            debug_print( "[Prefer] : %d\n",prefer);
+            debug_print( "[Non_prefer] : %d\n", non_prefer);
+
+
+            To -> state = BUSY;
+            To -> id = node->id;
+            To -> layer = tmp->layer;
+            To -> scheduled = current_time;
+        
+            QNode * target = q->front;
+            if (target ->id == node->id){
+                q->front = q->front->next;
+                free(target);
+            }
+            return node->id; 
+        }
+    
+    }
+    
+    return -1;
+    /*
     for(QNode * tmp = q->front; tmp != NULL; tmp = tmp -> next){
         node = find_dnn_by_id(dnn_list, tmp -> id);
         if(profile_list[node->type]->cpu_exec[tmp->layer]/profile_list[node->type]->gpu_exec[tmp->layer] < 15.00){
-            slack = node->deadline - current_time - workload_left(profile_list[node->type],tmp -> layer, node->layers);
+            slack = node->deadline - current_time - workload_left(node, profile_list[node->type],tmp -> layer, node->layers);
         
             prefer = (From -> res_id == GPU) ? profile_list[node->type] -> gpu_exec[tmp->layer] : profile_list[node->type] -> cpu_exec[tmp->layer];
             non_prefer = (From -> res_id == GPU) ? profile_list[node->type] -> cpu_exec[tmp->layer] : profile_list[node->type] -> gpu_exec[tmp->layer];
     
-            if( slack > non_prefer - prefer ){ /* first condidtion */
+            if( slack > non_prefer - prefer ){ 
+                
+                debug_print( "[ID] : %d\n", tmp -> id);
+                debug_print( "[Slack] : %f\n",slack);
+                debug_print( "[Prefer] : %d\n",prefer);
+                debug_print( "[Non_prefer] : %d\n", non_prefer);
+
+
                 To -> state = BUSY;
                 To -> id = node->id;
                 To -> layer = tmp->layer;
                 To -> scheduled = current_time;
         
-                QNode * tmp = q->front;
+                QNode * target = q->front;
                 QNode * prev;
-                if (tmp ->id == target_id){
+                if (target ->id == node->id){
                     q->front = q->front->next;
-                    free(tmp);
+                    free(target);
                 }
                 else{
-                    while(tmp != NULL && tmp->id != target_id){
-                        prev = tmp;
-                        tmp = tmp->next;
+                    while(target != NULL && target->id != node->id){
+                        prev = target;
+                        target = target->next;
                     }
 
-                    prev->next = tmp->next;
-                    free(tmp);
+                    prev->next = target->next;
+                    free(target);
                 }
     
                 q -> count --;
 
-                return target_id;
+                return node->id;
             }
         }
     }
     return -1;
+*/
 }
 
 
