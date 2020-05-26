@@ -44,7 +44,7 @@ int main(int argc, char **argv){
 
     struct sched_param high;
     memset( &high, 0, sizeof(high));
-    high.sched_priority = 50;
+    high.sched_priority = 80;
     
     if(sched_setscheduler(getpid(), SCHED_FIFO, &high) == -1) perror("SCHED_FIFO :");
     // cpu affininty setting 

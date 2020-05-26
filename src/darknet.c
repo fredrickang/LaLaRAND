@@ -600,7 +600,7 @@ int main(int argc, char **argv)
     CPU_SET(2, &gpu_core);
     
     memset(&prior, 0, sizeof(prior)); 
-    prior.sched_priority = 50;
+    prior.sched_priority = 80;
 
     if(sched_setscheduler(0, SCHED_FIFO, &prior) == -1) perror("SCHED_FIFO : ");
     

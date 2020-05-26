@@ -792,6 +792,7 @@ int sacrifice(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
     double slack;
     int prefer, non_prefer;
     debug_print( "====== Sacrifice ======\n");    
+    /*
     QNode * tmp = q->front;
     node = find_dnn_by_id(dnn_list, tmp->id);
     if(profile_list[node->type] -> cpu_exec[tmp->layer]/profile_list[node->type]->gpu_exec[tmp->layer] < 15.00){
@@ -799,7 +800,7 @@ int sacrifice(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
         prefer = (From -> res_id == GPU) ? profile_list[node->type] -> gpu_exec[tmp->layer] : profile_list[node->type] -> cpu_exec[tmp->layer];
         non_prefer = (From -> res_id == GPU) ? profile_list[node->type] -> cpu_exec[tmp->layer] : profile_list[node->type] -> gpu_exec[tmp->layer];
     
-        if( slack > non_prefer - prefer ){ /* first condidtion */
+        if( slack > non_prefer - prefer ){ 
                 
             debug_print( "[ID] : %d\n", tmp -> id);
             debug_print( "[Slack] : %f\n",slack);
@@ -823,7 +824,8 @@ int sacrifice(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
     }
     
     return -1;
-    /*
+    */
+    
     for(QNode * tmp = q->front; tmp != NULL; tmp = tmp -> next){
         node = find_dnn_by_id(dnn_list, tmp -> id);
         if(profile_list[node->type]->cpu_exec[tmp->layer]/profile_list[node->type]->gpu_exec[tmp->layer] < 15.00){
@@ -868,7 +870,6 @@ int sacrifice(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
         }
     }
     return -1;
-*/
 }
 
 
