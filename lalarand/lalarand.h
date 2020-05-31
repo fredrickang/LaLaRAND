@@ -62,6 +62,11 @@ typedef struct _MSG_PACKET{
     int cut;
 }reg_msg;
 
+typedef struct _REQUEST_MSG{
+    int request_layer;
+    int request_type;
+}req_msg;
+
 typedef struct _RESOURCE{
     int res_id;
     STATE state;

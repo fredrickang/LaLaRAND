@@ -22,8 +22,8 @@
 #include "lalarand.h"
 #include "lalarand_fn.h"
 
+#define MEM 2
 #define GPU 1
-
 #define CPU 0
 
 #define REGISTRATION "/tmp/lalarand_registration"
@@ -33,7 +33,8 @@ int main(int argc, char **argv){
     int baseline = find_int_arg(argc, argv, "-baseline", 1); // mode 1: ALL GPU // mode 2: preferable // mode 3: DART 
     int algo = find_int_arg(argc, argv, "-algo", 0);
     int index = find_int_arg(argc, argv, "-index", -1);
-    
+    int hiding = find_int_arg(argc,argv, "-hiding", 0);
+
     printf("Sync : %d Baseline :%d Algo :%d Index :%d\n", Sync, baseline, algo, index);
 
     if(index == -1){
@@ -41,65 +42,32 @@ int main(int argc, char **argv){
         exit(-1);
     }
 
-
-    struct sched_param high;
-    memset( &high, 0, sizeof(high));
-    high.sched_priority = 50;
+    set_priority(50); 
+    set_affinity(0);
     
-    if(sched_setscheduler(getpid(), SCHED_FIFO, &high) == -1) perror("SCHED_FIFO :");
-    // cpu affininty setting 
-    cpu_set_t mask;
-    CPU_ZERO(&mask);
-    CPU_SET(0, &mask);
-    sched_setaffinity(0, sizeof(mask), &mask);
-    
-    dnn_profile ** profile_list = make_profile_list(baseline);
-
+    dnn_profile ** profile_list = make_profile_list(baseline);\
     dnn_queue * dnn_list = createDNNQueue();
-
     resource * gpu = createResource(GPU);
     resource * cpu = createResource(CPU);
+    resource * mem = createResource(MEM);
 
     int reg_fd = open_channel(REGISTRATION, O_RDONLY | O_NONBLOCK);
     
     double current_time;
-    int gpu_target, cpu_target;
+    int gpu_target, cpu_target, mem_target;
     int fd_head;
     fd_set readfds;
     dnn_info *node;
     
-    char log_path[60];
-    if(DEBUG){
-        switch (baseline){
-            case 1:
-                if(algo) snprintf(log_path, 60, "./Exp/ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-                else snprintf(log_path, 60, "./Exp/ALL/taskset_%d/lala_%d.txt", index, getpid());
-                break;
-            case 2:
-                if(algo) snprintf(log_path, 50, "./Exp/PR_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-                else snprintf(log_path, 50, "./Exp/PR/taskset_%d/lala_%d.txt", index, getpid());
-                break;
-            case 3:
-                if(algo) snprintf(log_path, 50, "./Exp/DART_ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-                else snprintf(log_path, 50, "./Exp/DART_ALL/taskset_%d/lala_%d.txt", index, getpid());
-                break;
-            case 4:
-                if(algo) snprintf(log_path, 50, "./Exp/DART_GC_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-                else snprintf(log_path, 50, "./Exp/DART_GC/taskset_%d/lala_%d.txt", index, getpid());
-                break;
-            case 5:
-                if(algo) snprintf(log_path, 50, "./Exp/DART_CG_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-                else snprintf(log_path, 50, "./Exp/DART_CG/taskset_%d/lala_%d.txt", index, getpid());
-        }
-    
-        freopen(log_path,"w", stderr);
-    }
-
+    if(DEBUG) logging(baseline, algo, index);
     
     do{
         gpu_target = -1;
         cpu_target = -1;
+        mem_target = -1;
+
         fd_head = make_fdset(&readfds, reg_fd, dnn_list);
+    
         if(select(fd_head +1, &readfds, NULL, NULL, NULL)){
             current_time = get_time_point();
             if(FD_ISSET(reg_fd, &readfds)) {
@@ -109,24 +77,34 @@ int main(int argc, char **argv){
             // 2nd request check 
             for(node = dnn_list ->head; node !=NULL; node = node -> next) 
                 if(FD_ISSET(node->request_fd, &readfds))
-                    request_handler(node, gpu, cpu, profile_list[node->type], current_time);
+                    request_handler(hiding, node, gpu, cpu, mem, profile_list[node->type], current_time);
 
             print_queue("GPU",gpu->waiting);
             print_queue("CPU",cpu->waiting);
+
             if(!(gpu->waiting->count + cpu->waiting->count < Sync)){
                 if(Sync) update_deadline_all(dnn_list, current_time);
 
-                if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);
-                if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, cpu);
-                
-                if(algo){
-                    if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, cpu, gpu);
-                    if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, gpu, cpu);
+                if(hiding){
+                    if(mem -> state == IDLE) mem_target = deQueue(mem->waiting, current_time, mem);
+                    if(gpu -> state == IDLE) gpu_target = deQueue_hiding(gpu->waiting, current_time, gpu, mem);
+                    if(cpu -> state == IDLE) cpu_target = deQueue_hiding(cpu->waiting, current_time, cpu, mem);
                 }
+                else{
+                    if(gpu -> state == IDLE) gpu_target = deQueue(gpu->waiting, current_time, gpu);
+                    if(cpu -> state == IDLE) cpu_target = deQueue(cpu->waiting, current_time, cpu);
+                }
+
+                if(algo){
+                    if(gpu -> state == IDLE) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, cpu, gpu);
+                    if(cpu -> state == IDLE) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, gpu, cpu);
+                }
+
                 if(Sync) send_release_time(dnn_list);
 
                 if(gpu_target != -1) decision_handler(gpu_target, dnn_list, GPU);
                 if(cpu_target != -1) decision_handler(cpu_target, dnn_list, CPU);
+                if(mem_target != -1) decision_handler(mem_target, dnn_list, MEM);
                 Sync = 0;
             }
         }

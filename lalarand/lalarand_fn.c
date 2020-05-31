@@ -19,9 +19,53 @@
 #include <float.h>
 
 #include "lalarand_fn.h"
+
+#define MEM 2
 #define GPU 1
 #define CPU 0
 
+void set_priority(int priority){
+    struct sched_param prior;
+    memset(&prior, 0, sizeof(prior));
+    prior.sched_priority = priority;
+    
+    if(sched_setscheduler(getpid(), SCHED_FIFO, &prior) == -1) perror("SCHED_FIFO :");
+}
+
+void set_affinity(int core){
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    CPU_SET(core, &mask);
+    sched_setaffinity(0, sizeof(mask), &mask);
+}
+
+
+void logging(int baseline, int algo, int index){
+    char log_path[60];
+    switch (baseline){
+        case 1:
+            if(algo) snprintf(log_path, 60, "./Exp/ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+            else snprintf(log_path, 60, "./Exp/ALL/taskset_%d/lala_%d.txt", index, getpid());
+            break;
+        case 2:
+            if(algo) snprintf(log_path, 50, "./Exp/PR_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+            else snprintf(log_path, 50, "./Exp/PR/taskset_%d/lala_%d.txt", index, getpid());
+            break;
+        case 3:
+            if(algo) snprintf(log_path, 50, "./Exp/DART_ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+            else snprintf(log_path, 50, "./Exp/DART_ALL/taskset_%d/lala_%d.txt", index, getpid());
+            break;
+        case 4:
+            if(algo) snprintf(log_path, 50, "./Exp/DART_GC_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+            else snprintf(log_path, 50, "./Exp/DART_GC/taskset_%d/lala_%d.txt", index, getpid());
+            break;
+        case 5:
+            if(algo) snprintf(log_path, 50, "./Exp/DART_CG_LaLa/taskset_%d/lala_%d.txt", index, getpid());
+            else snprintf(log_path, 50, "./Exp/DART_CG/taskset_%d/lala_%d.txt", index, getpid());
+    }
+    
+    freopen(log_path,"w", stderr);
+}
 
 ///// dnn queue ////
 
@@ -158,6 +202,34 @@ void enQueue(Queue *q, int layer, int id, int priority){
 
 }
 
+
+int deQueue_hiding(Queue * q, double current_time, resource * res, resource * mem){
+    // if there is nothing to de queue
+    if (q -> front == NULL){
+        return -1;
+    }
+    
+    QNode * target = q->front;
+    if(mem->id != target->id){
+        q->front = target->next;
+
+        int target_id = target->id;
+        int target_layer = target->layer;
+
+        res -> state = BUSY;
+        res -> id  = target_id;  
+        res -> layer = target_layer;
+        res -> scheduled = current_time;
+    
+        q -> count --;
+        free(target);
+        debug_print("Dequeue : [ID] %d [layer] %d \n", target_id, target_layer);
+        return target_id;
+    }
+    return -1;
+}  
+
+
 int deQueue_algo(Queue *q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res){
     // if there is nothing to de queue
     if (q -> front == NULL){
@@ -208,7 +280,7 @@ int deQueue_algo(Queue *q, dnn_queue * dnn_list, dnn_profile ** profile_list, do
 
 
 
-int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res){
+int deQueue(Queue * q, double current_time, resource * res){
     // if there is nothing to de queue
     if (q -> front == NULL){
         return -1;
@@ -552,42 +624,56 @@ int check_request(dnn_queue * dnn_list, fd_set* readfds, int sync){
     return rev;
 }
 
-void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profile * profile, double current_time){
+void request_handler(int hiding, dnn_info * node, resource * gpu, resource * cpu, resource * mem, dnn_profile * profile, double current_time){
     
-    int request_layer;
+    req_msg msg;
+
+    read(node -> request_fd, &msg, sizeof(int)*2);
     
-    read(node -> request_fd, &request_layer, sizeof(int));
-    
-    debug_print("[request_handler] : [ID] %d [layer] %d \n", node -> id, request_layer);
+    int request_layer = msg.request_layer;
+    int request_type = msg.request_type;
 
     if(request_layer == 0) update_deadline(node, current_time);
+
+    if(hiding){
+        if( mem -> state == BUSY && mem -> id == node->id){
+            mem -> state = IDLE;
+            mem -> id = -1;
+            mem -> layer = -1;
+            mem -> scheduled = -1;
+        }
+    }
 
     if( gpu -> state == BUSY && gpu -> id == node->id){
         gpu -> state = IDLE;
         gpu -> id = -1;
         gpu -> layer = -1;
         gpu -> scheduled = -1;
-      }
+    }
 
     if( cpu -> state == BUSY && cpu -> id == node->id){
         cpu -> state = IDLE;
         cpu -> id = -1;
         cpu -> layer  = -1;
         cpu -> scheduled = -1;
-      }
+    }
 
-     if(request_layer != node -> layers){
+    if(request_layer != node -> layers){
         node->current_layer = request_layer;
         if(node->cut == -2){
-            if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
-            else enQueue(cpu->waiting, request_layer, node -> id, node -> priority );
+            if(request_type != 1){
+                if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
+                else enQueue(cpu->waiting, request_layer, node -> id, node -> priority);        
+                
+                if(hiding && request_layer != 0 && profile->cfg[request_layer] != node->assigned) enQueue(mem->waiting, request_layer, node->id, node->priority);       
+            }
         }
         else{
-            if(node->default_cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node -> id, node -> priority );
+            if(node->default_cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node -> id, node -> priority);
             else enQueue(cpu->waiting, request_layer, node ->  id, node -> priority);
         }
-      }
-      else node->current_layer = -1;
+    }
+    else node->current_layer = -1;
 }
 
 void send_release_time(dnn_queue * dnn_list){
@@ -607,14 +693,15 @@ void decision_handler(int target_id, dnn_queue * dnn_list, int decision){
     CPU_ZERO(&core);
     if(decision == GPU) CPU_SET(2, &core);
     if(decision == CPU) CPU_SET(4, &core);
-    
+    if(decision == MEM) CPU_SET(2, &core);
     dnn_info * target = find_dnn_by_id(dnn_list, target_id);
+    
     
     if(target->assigned != decision){
         sched_setaffinity(target->pid, sizeof(cpu_set_t), &core);
-        target->assigned = decision;
+        if(decisoin != MEM) target->assigned = decision;
     }
-
+    
     if( write(target->decision_fd,&decision,sizeof(int)) < 0){
         perror("decision_handler");  
     }

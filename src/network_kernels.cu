@@ -72,14 +72,36 @@ extern int current_job;
 int Sync = 1;
 int resource = -1;
 
+typedef struct _REQUEST_MSG{
+    int request_layer;
+    int request_type;
+}req_msg;
+
+int communciate(int request, int type){
+    int decision;
+
+    req_msg msg;
+    msg.requets_layer = request;
+    msg.request_type = type;
+
+    if( write(request_fd, &msg, sizeof(int)*2) == -1){
+        perror("Request Send :");
+        exit(-1);
+    }
+    if( read(decision_fd, &decision, sizeof(int))== -1){
+        perror("Decision Recv :");
+        exit(-1);
+    }
+    return decision;
+}
+
+
 void forward_network_gpu(network net, network_state state)
 {
 //    cudaDeviceSynchronize();
     state.workspace = net.workspace;
     state.workspace_cpu = net.workspace_cpu;
     int i;
-    int before = 1;
-
     int size = get_network_input_size(net) * net.batch;
     
     double inference, total, data, msg;
@@ -93,45 +115,21 @@ void forward_network_gpu(network net, network_state state)
         state.index = i;
         layer l = net.layers[i];
         
-        msg = get_time_point(); 
-        if(!Sync){        
-            
-            if( write(request_fd, &i, sizeof(int)) == -1 ){
-                perror("request send : ");
-                exit(-1);
-            }
-         
-            if( read(decision_fd, &resource, sizeof(int)) == -1){
-                perror("decision recv : ");
-                exit(-1);
-        
-            }
-            
-            msg_logs[idx] = ((double)get_time_point() - msg);
-        
+        /* Layer Level Messaging Start */
+        if(!Sync){       
+            msg = get_time_point();
+            resource = communciate(i,0);
+            msg_logs[idx] = ((double)get_time_point() - msg);  
         }else{
             Sync = 0;
         }
-        
+        /* Layer Level Messaging End */
 
-        history[i] = resource; 
-        resource_logs[idx] = resource;
-
-        if(l.delta_gpu && state.train){
-            fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
-        }   
-        
-        
-        if( i == 0 ){
-            if(resource == GPU) state.input = net.input_state_gpu;
-            else state.input = net.input_pinned_cpu;
-        }
-        
+        /* Data transfer Handling Start */
         data = get_time_point();
-        //Vanilla version
-        if( i > 0 && before != resource ){
+        if(resource == 2){
             layer tmp  = net.layers[i-1];
-            if( resource == GPU ){
+            if(histroy[i-1] == CPU){
                 cuda_push_array(tmp.output_gpu, tmp.output, tmp.batch * tmp.outputs);
                 state.input = tmp.output_gpu;
             }
@@ -140,15 +138,25 @@ void forward_network_gpu(network net, network_state state)
                 state.input = tmp.output;
             }
             cudaDeviceSynchronize();
+            resource = communciate(i,1);
         }
-       
-
         data_logs[idx] = ((double)get_time_point() - data);
-//      debug_print(pLogFile, "[Data transfer] %8.5f\n",((double)get_time_point() - inference)/1000);
-        
-        // inference
-        inference = get_time_point();
+        /* Data transfer Handling End */
 
+        history[i] = resource; 
+        resource_logs[idx] = resource;
+
+        if(l.delta_gpu && state.train){
+            fill_ongpu(l.outputs * l.batch, 0, l.delta_gpu, 1);
+        }   
+
+        if( i == 0 ){
+            if(resource == GPU) state.input = net.input_state_gpu;
+            else state.input = net.input_pinned_cpu;
+
+        }
+        inference = get_time_point();        
+        /* Layer Level Execution Start */
         if (resource == CPU) {
             l.forward(l,state);
         }else if(resource == GPU){
@@ -159,20 +167,15 @@ void forward_network_gpu(network net, network_state state)
             printf("resource config wrong\n");
             exit(-1);
         }
-        
         if(net.wait_stream)
             cudaStreamSynchronize(get_cuda_stream());
         
+        /* Layer Level Execution End */
         exec_logs[idx] = ((double)get_time_point() - inference);
-
         
-        debug_print(stderr,"[%d] Layer %3d Resource %d Inference %8.5f \n", getpid(), i, resource, ((double)get_time_point() - inference)/1000);
-        state.input = resource ? l.output_gpu : l.output; 
-        before = resource;                
+        state.input = resource ? l.output_gpu : l.output;                 
         
         total_logs[idx] = ((double)get_time_point() - total);
-
-        //debug_print(pLogFile, "Total %8.5f\n",((double)get_time_point() - total)/1000);
     }   
 }
 

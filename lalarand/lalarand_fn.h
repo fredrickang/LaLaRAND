@@ -2,6 +2,11 @@
 #define _LALARAND_FN_H_
 #include "lalarand.h"
 
+
+void logging(int baseline, int algo, int index);
+void set_priority(int priority);
+void set_affinity(int core);
+
 ///// dnn queue ////
 dnn_queue * createDNNQueue();
 void enDNNQueue(dnn_queue * dnn_list, dnn_info* dnn);
@@ -12,11 +17,11 @@ void setDNNpriority(dnn_queue * dnn_list);
 resource * createResource(int res_id);
 
 //// waiting queue ////
-QNode* newNode (int layer, int id, int period);
+QNode* newNode (int layer, int id, int priority);
 Queue * createQueue();
-void enQueue(Queue *q, int layer, int id, int period);
+void enQueue(Queue *q, int layer, int id, int priority);
 int deQueue_algo(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res);
-int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res);
+int deQueue(Queue * q, double current_time, resource * res);
 dnn_info * find_dnn_by_id(dnn_queue * dnn_list, int id);
 dnn_info * find_dnn_by_pid(dnn_queue * dnn_list, int pid);
 QNode * find_node_by_id(Queue *q, int id);
@@ -40,7 +45,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg,int baseline);
 void de_regist(dnn_queue * dnn_list, reg_msg *msg, resource * gpu, resource * cpu);
 int check_request(dnn_queue * dnn_list, fd_set *readfds, int sync);
 int migration(Queue * q, dnn_queue * dnn_list, dnn_profile** profile_list, double current_time, resource * From, resource * To);
-void request_handler(dnn_info * node, resource * gpu, resource * cpu, dnn_profile * profile, double current_time);
+void request_handler(int hiding, dnn_info * node, resource * gpu, resource * cpu, resource * mem, dnn_profile * profile, double current_time);
 void decision_handler(int target_id, dnn_queue * dnn_list, int decision);
 void update_deadline(dnn_info * dnn, double current_time);
 void update_deadline_all(dnn_queue * dnn_list, double current_time);
