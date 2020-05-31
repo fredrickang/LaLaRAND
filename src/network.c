@@ -1197,7 +1197,7 @@ typedef struct _MSG{
 
 void free_network(network net)
 {
-    
+   
     for(int i = 0; i < numofjob; i++){
         fprintf(pLogFile,"===== %d job ====\n", i);
         for(int j = 0; j < net.n ; j++){
@@ -1208,8 +1208,13 @@ void free_network(network net)
     }
     fflush(pLogFile);
 
+   /* 
+    struct sched_param restore;
+    memset(&restore, 0 , sizeof(restore));
+    restore.sched_priority = 1;
     
-    
+    if(sched_setscheduler(0, SCHED_FIFO, &restore) == -1) perror("SCHED_FIFO :");
+    */
     int i;
     for (i = 0; i < net.n; ++i) {
         free_layer(net.layers[i]);

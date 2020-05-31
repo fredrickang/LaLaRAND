@@ -131,6 +131,8 @@ int main(int argc, char **argv){
                             gpu_target = sacrifice(cpu->waiting, dnn_list, profile_list, current_time, cpu, gpu);
                         }
                     }
+                    if( gpu -> state == IDLE) gpu_target = deQueue_algo(gpu->waiting, dnn_list, profile_list, current_time, gpu);
+                    if( cpu -> state == IDLE) cpu_target = deQueue_algo(cpu->waiting, dnn_list, profile_list, current_time, cpu);
                 }
                 
                 if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);

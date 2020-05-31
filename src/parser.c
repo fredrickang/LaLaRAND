@@ -1145,6 +1145,9 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
             net.w, net.h);
     }
 
+
+    //cudaMallocManaged(&net.global_um, max_outputs * sizeof(float),cudaMemAttachGlobal);
+
     return net;
 }
 

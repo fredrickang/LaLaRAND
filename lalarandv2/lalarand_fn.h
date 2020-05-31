@@ -16,6 +16,7 @@ QNode* newNode (int layer, int id, int period);
 Queue * createQueue();
 void enQueue(Queue *q, int layer, int id, int period);
 int deQueue(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res);
+int deQueue_algo(Queue *q , dnn_queue *dnn_list, dnn_profile ** profile_list, double current_time, resource *res);
 dnn_info * find_dnn_by_id(dnn_queue * dnn_list, int id);
 dnn_info * find_dnn_by_pid(dnn_queue * dnn_list, int pid);
 QNode * find_node_by_id(Queue *q, int id);

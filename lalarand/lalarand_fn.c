@@ -602,6 +602,7 @@ void send_release_time(dnn_queue * dnn_list){
 }
 
 void decision_handler(int target_id, dnn_queue * dnn_list, int decision){
+    
     cpu_set_t core;
     CPU_ZERO(&core);
     if(decision == GPU) CPU_SET(2, &core);
@@ -662,7 +663,6 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
 
     //debug_print( "==============[MIGRATION]==============\n");
     for(QNode * tmp = q->front; tmp != NULL; tmp = tmp -> next){
-        if(tmp->layer != 0){
         node = find_dnn_by_id(dnn_list, tmp -> id);
         slack = node->deadline - current_time - workload_left(profile_list[node->type],tmp -> layer, node->layers);
         
@@ -698,7 +698,6 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
                     //debug_print( "[Smallest] : %f\n", smallest);
                 }
             }
-        }
         }
     }
 

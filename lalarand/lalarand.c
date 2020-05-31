@@ -44,7 +44,7 @@ int main(int argc, char **argv){
 
     struct sched_param high;
     memset( &high, 0, sizeof(high));
-    high.sched_priority = 80;
+    high.sched_priority = 50;
     
     if(sched_setscheduler(getpid(), SCHED_FIFO, &high) == -1) perror("SCHED_FIFO :");
     // cpu affininty setting 
@@ -92,7 +92,7 @@ int main(int argc, char **argv){
                 else snprintf(log_path, 50, "./Exp/DART_CG/taskset_%d/lala_%d.txt", index, getpid());
         }
     
-//        freopen(log_path,"w", stderr);
+        freopen(log_path,"w", stderr);
     }
 
     
@@ -116,15 +116,12 @@ int main(int argc, char **argv){
             if(!(gpu->waiting->count + cpu->waiting->count < Sync)){
                 if(Sync) update_deadline_all(dnn_list, current_time);
 
-                if(algo == 0){
                 if( gpu -> state == IDLE ) gpu_target = deQueue(gpu->waiting, dnn_list, profile_list, current_time, gpu);
                 if( cpu -> state == IDLE ) cpu_target = deQueue(cpu->waiting, dnn_list, profile_list, current_time, cpu);
-                }
-                else{
-                if( gpu->state == IDLE) gpu_target = deQueue_algo(gpu->waiting, dnn_list, profile_list, current_time, gpu);
-                if( cpu->state == IDLE) cpu_target = deQueue_algo(cpu->waiting , dnn_list, profile_list, current_time, cpu);
-                if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, cpu, gpu);
-                if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, gpu, cpu);
+                
+                if(algo){
+                    if( gpu -> state == IDLE ) gpu_target = migration(cpu->waiting, dnn_list, profile_list, current_time, cpu, gpu);
+                    if( cpu -> state == IDLE ) cpu_target = migration(gpu->waiting, dnn_list, profile_list, current_time, gpu, cpu);
                 }
                 if(Sync) send_release_time(dnn_list);
 

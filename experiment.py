@@ -47,6 +47,7 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, log_pa
     
     sub.wait()
     if sub.returncode != 0:
+        '''
         for pid in lalarand_pid:
             try:
                 os.kill(pid, 0)
@@ -62,6 +63,7 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, log_pa
                 pass
             else:
                 os.kill(pid,signal.SIGKILL)
+       '''
         result.append(-1)
         
     else:

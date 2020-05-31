@@ -584,6 +584,9 @@ typedef enum {
 
 // network.h
 typedef struct network {
+    
+    float * global_um;
+
     int quantized;
     int t_idx; 
     int n;
