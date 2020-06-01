@@ -45,7 +45,7 @@ int main(int argc, char **argv){
     set_priority(50); 
     set_affinity(0);
     
-    dnn_profile ** profile_list = make_profile_list(baseline);\
+    dnn_profile ** profile_list = make_profile_list(baseline);
     dnn_queue * dnn_list = createDNNQueue();
     resource * gpu = createResource(GPU);
     resource * cpu = createResource(CPU);
@@ -59,7 +59,7 @@ int main(int argc, char **argv){
     fd_set readfds;
     dnn_info *node;
     
-    if(DEBUG) logging(baseline, algo, index);
+    if(DEBUG)logging(baseline, algo, index);
     
     do{
         gpu_target = -1;
@@ -81,7 +81,7 @@ int main(int argc, char **argv){
 
             print_queue("GPU",gpu->waiting);
             print_queue("CPU",cpu->waiting);
-
+            print_queue("MEM",mem->waiting);
             if(!(gpu->waiting->count + cpu->waiting->count < Sync)){
                 if(Sync) update_deadline_all(dnn_list, current_time);
 

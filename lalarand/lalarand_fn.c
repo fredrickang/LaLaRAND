@@ -77,6 +77,26 @@ dnn_queue * createDNNQueue(){
     return tmp;
 }
 
+void deleteNode(Queue * q, QNode * del){
+    QNode * tmp, *prev;
+
+    if(q->front == del){
+        q->front = del->next;
+        free(del);
+        q->count --;
+        return;
+    }
+    tmp = q->front;
+    while( tmp !=del){
+        prev = tmp;
+        tmp = tmp->next;
+    }
+    prev->next = del->next;
+    free(del);
+    q->count --;
+    return;
+}
+
 
 void deleteDNN(dnn_queue * dnn_list, dnn_info * del){ 
     dnn_info * tmp , *prev;
@@ -208,24 +228,35 @@ int deQueue_hiding(Queue * q, double current_time, resource * res, resource * me
     if (q -> front == NULL){
         return -1;
     }
-    
     QNode * target = q->front;
-    if(mem->id != target->id){
-        q->front = target->next;
-
-        int target_id = target->id;
-        int target_layer = target->layer;
-
-        res -> state = BUSY;
-        res -> id  = target_id;  
-        res -> layer = target_layer;
-        res -> scheduled = current_time;
-    
-        q -> count --;
-        free(target);
-        debug_print("Dequeue : [ID] %d [layer] %d \n", target_id, target_layer);
-        return target_id;
+    while(target !=NULL){
+        if( target->id !=mem->id && (find_node_by_id(mem->waiting, target->id) == 0)){
+            break;
+        }
+        target = target->next;
     }
+
+    if(target == NULL) return -1;
+    /*
+    QNode * target = q->front;
+    if( target->id != mem->id && (find_node_by_id(mem->waiting, target->id) ==0) ){
+    */
+    int target_id = target->id;
+    int target_layer = target->layer;
+
+    deleteNode(q, target);
+
+    res -> state = BUSY;
+    res -> id  = target_id;  
+    res -> layer = target_layer;
+    res -> scheduled = current_time;
+    
+    
+    if(res->res_id == GPU) debug_print("GPU Dequeue: [ID] %d [layer] %d \n", target_id, target_layer);
+    if(res->res_id == CPU) debug_print("CPU Dequeue: [ID] %d [layer] %d \n", target_id, target_layer);
+    if(res->res_id == MEM) debug_print("MEM Dequeue: [ID] %d [layer] %d \n", target_id, target_layer);
+    return target_id;
+    
     return -1;
 }  
 
@@ -277,9 +308,6 @@ int deQueue_algo(Queue *q, dnn_queue * dnn_list, dnn_profile ** profile_list, do
 
 }
 
-
-
-
 int deQueue(Queue * q, double current_time, resource * res){
     // if there is nothing to de queue
     if (q -> front == NULL){
@@ -299,9 +327,24 @@ int deQueue(Queue * q, double current_time, resource * res){
     
     q -> count --;
     free(target);
-    debug_print("Dequeue : [ID] %d [layer] %d \n", target_id, target_layer);
+    
+    if(res->res_id == GPU) debug_print("GPU Dequeue: [ID] %d [layer] %d \n", target_id, target_layer);
+    if(res->res_id == CPU) debug_print("CPU Dequeue: [ID] %d [layer] %d \n", target_id, target_layer);
+    if(res->res_id == MEM) debug_print("MEM Dequeue: [ID] %d [layer] %d \n", target_id, target_layer);
+
     return target_id;
 }  
+
+int find_node_by_id(Queue *q , int id){
+    QNode * current = q->front;
+    while(current !=NULL){
+        if(current->id == id){
+            return 1;
+        }
+        current = current -> next;
+    }
+    return 0;
+}
 
 dnn_info * find_dnn_by_id(dnn_queue * dnn_list, int id){
     dnn_info * node = dnn_list -> head;
@@ -635,7 +678,7 @@ void request_handler(int hiding, dnn_info * node, resource * gpu, resource * cpu
 
     if(request_layer == 0) update_deadline(node, current_time);
 
-    if(hiding){
+    if(hiding && request_type == 1){
         if( mem -> state == BUSY && mem -> id == node->id){
             mem -> state = IDLE;
             mem -> id = -1;
@@ -693,13 +736,13 @@ void decision_handler(int target_id, dnn_queue * dnn_list, int decision){
     CPU_ZERO(&core);
     if(decision == GPU) CPU_SET(2, &core);
     if(decision == CPU) CPU_SET(4, &core);
-    if(decision == MEM) CPU_SET(2, &core);
+    if(decision == MEM) CPU_SET(3, &core);
     dnn_info * target = find_dnn_by_id(dnn_list, target_id);
     
     
     if(target->assigned != decision){
         sched_setaffinity(target->pid, sizeof(cpu_set_t), &core);
-        if(decisoin != MEM) target->assigned = decision;
+        if(decision != MEM) target->assigned = decision;
     }
     
     if( write(target->decision_fd,&decision,sizeof(int)) < 0){

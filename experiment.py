@@ -5,6 +5,14 @@ import argparse
 from threading import Thread
 import subprocess 
 import os, signal
+import time
+
+def clearing_mem():
+    command_line = []
+    command_line.append("sh")
+    command_line.append("clear_mem.sh")
+    sub = subprocess.Popen(command_line)
+
 
 def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, log_path, cut):
     task_name= task_info[0]
@@ -63,17 +71,16 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, log_pa
                 pass
             else:
                 os.kill(pid,signal.SIGKILL)
-       '''
+        '''
         result.append(-1)
-        
     else:
         result.append(1) 
 
 
 
 
-def lalarand(task_num, lalarand_pid ,baseline, algo, index):
-    command_line = ["./lalarand/lalarand"]
+def lalarand(task_num, lalarand_pid ,baseline, algo, hiding,index):
+    command_line =["./lalarand/lalarand"]
     command_line.append("-sync")
     command_line.append(str(task_num))
     command_line.append("-baseline")
@@ -82,11 +89,13 @@ def lalarand(task_num, lalarand_pid ,baseline, algo, index):
     command_line.append(str(index))
     command_line.append("-algo")
     command_line.append(str(algo))
+    command_line.append("-hiding")
+    command_line.append(str(hiding))
 
     sub = subprocess.Popen(command_line)
     lalarand_pid.append(sub.pid)
 
-def submain(baseline, algo, input_list, log_path, start, end):
+def submain(baseline, algo, hiding,input_list, log_path, start, end):
 
     fp = open(input_list, "r")
     lines = fp.readlines()
@@ -137,7 +146,7 @@ def submain(baseline, algo, input_list, log_path, start, end):
         pids = []
 
         lalarand_pid = []
-        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,baseline, algo, index))
+        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,baseline, algo,hiding ,index))
 
         if baseline != 4 and baseline != 5:
             for task in taskset_list:
@@ -148,7 +157,7 @@ def submain(baseline, algo, input_list, log_path, start, end):
                 task_thread.append(Thread(target = darknet, args = (task, pids, lalarand_pid, result, baseline, algo, index, log_path , cut_list[i])))
     
         lalarand_thread.start()
-        
+       
         for thread in task_thread:
             thread.start()
         
@@ -285,13 +294,14 @@ if __name__ == "__main__":
     parser.add_argument("--start",type = int , default = 0 )
     parser.add_argument("--end", type = int, default = -1, help = " -1 : ALL , other is other number")
     parser.add_argument("--log_path", type = str, default = "./Exp/ALL/")
+    parser.add_argument("--hiding", type = int, default = 0);
 
     opt = parser.parse_args()
     
     print(opt)
 
     if(opt.baseline == 1 or opt.baseline == 2):
-        submain(opt.baseline, opt.algo, opt.list, opt.log_path, opt.start, opt.end)
+        submain(opt.baseline, opt.algo, opt.hiding, opt.list, opt.log_path, opt.start, opt.end)
     else: # dart 1. ALL 2. GC 3. CG
         if(opt.algo):
 #            submain(3, opt.algo , opt.list, "./Exp/DART_ALL_LaLa/", opt.start, opt.end)

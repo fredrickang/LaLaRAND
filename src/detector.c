@@ -1504,6 +1504,11 @@ void timespec_add(struct timespec *release_time, struct timespec *period)
     
 }
 
+typedef struct _msg{
+    int request_layer;
+    int request_type;
+}msg;
+
 void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh,
     float hier_thresh, int dont_show, int ext_output, int save_labels, char *outfile, int letter_box, int quantized, float ms_period)
 {
@@ -1615,13 +1620,11 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         timespec_add(&release_time, &period_time);  
         
         miss = deadline_miss_check(&release_time, &current_time);
-
-        if( write(request_fd, &net.n, sizeof(int)) == -1){
-            perror("Request :");
-            exit(-1);
-        }
         
-        
+        msg req;
+        req.request_layer = net.n;
+        req.request_type = 0 ;
+       
         if(miss){
             //fprintf(pLogFile,"============ %d task %d job miss  ==============\n", getpid(), k);
             //fflush(pLogFile);
@@ -1629,7 +1632,10 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
             free_network(net);
             exit(-1);
         }
-        
+        if( write(request_fd, &req, 2*sizeof(int)) == -1){
+            perror("Request :");
+            exit(-1);
+        }
         
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }

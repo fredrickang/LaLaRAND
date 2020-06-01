@@ -485,6 +485,11 @@ void vec_char_rnn(char *cfgfile, char *weightfile, char *seed)
     }
 }
 
+typedef struct _msg{
+    int request_layer;
+    int request_type;
+}msg;
+
 void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float temp, int rseed, char *token_file, float ms_period)
 {
     
@@ -583,7 +588,10 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
             exit(-1);
         }
         
-        if( write(request_fd,&net.n, sizeof(int)) == -1){
+        msg req;
+        req.request_layer = net.n;
+        req.request_type =0;
+        if( write(request_fd,&req, 2*sizeof(int)) == -1){
                 perror("Request :");
                 exit(-1);
         }

@@ -1258,6 +1258,11 @@ void demo_classifier(char *datacfg, char *cfgfile, char *weightfile, int cam_ind
     }
 #endif
 }
+typedef struct _msg{
+    int request_layer;
+    int request_type;
+}msg;
+
 void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *filename, int quantized ,float ms_period, int top)
 {
     network net;
@@ -1367,6 +1372,11 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
         timespec_add(&release_time, &period_time);
 
         miss = deadline_miss_check(&release_time,&current_time);
+        
+        msg req;
+        req.request_layer = net.n;
+        req.request_type = 0;
+
         if(miss){
 //            fprintf(pLogFile,"============ %d task %d job miss  ==============\n", getpid(), i);
 //            fflush(pLogFile);
@@ -1374,12 +1384,10 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
             free_network(net);
             exit(-1);
         }
-
-        if( write(request_fd,&net.n, sizeof(int)) == -1){
+        if( write(request_fd,&req, 2*sizeof(int)) == -1){
             perror("Request :");
             exit(-1);
-        }
-        
+        } 
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &release_time, NULL);
     }
     free_network(net);

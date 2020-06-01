@@ -81,7 +81,7 @@ int communciate(int request, int type){
     int decision;
 
     req_msg msg;
-    msg.requets_layer = request;
+    msg.request_layer = request;
     msg.request_type = type;
 
     if( write(request_fd, &msg, sizeof(int)*2) == -1){
@@ -127,9 +127,11 @@ void forward_network_gpu(network net, network_state state)
 
         /* Data transfer Handling Start */
         data = get_time_point();
+
         if(resource == 2){
             layer tmp  = net.layers[i-1];
-            if(histroy[i-1] == CPU){
+        
+            if(history[i-1] == CPU){
                 cuda_push_array(tmp.output_gpu, tmp.output, tmp.batch * tmp.outputs);
                 state.input = tmp.output_gpu;
             }
@@ -137,10 +139,26 @@ void forward_network_gpu(network net, network_state state)
                 cuda_pull_array(tmp.output_gpu, tmp.output, tmp.batch * tmp.outputs);
                 state.input = tmp.output;
             }
-            cudaDeviceSynchronize();
+            cudaStreamSynchronize(get_cuda_stream());
+            data_logs[idx] = ((double)get_time_point() -data);
             resource = communciate(i,1);
+        }else{
+            if(i != 0 && history[i-1] != resource){
+                layer tmp  = net.layers[i-1];
+        
+                if(history[i-1] == CPU){
+                    cuda_push_array(tmp.output_gpu, tmp.output, tmp.batch * tmp.outputs);
+                    state.input = tmp.output_gpu;
+                }
+                else{
+                    cuda_pull_array(tmp.output_gpu, tmp.output, tmp.batch * tmp.outputs);
+                    state.input = tmp.output;
+                }
+                cudaStreamSynchronize(get_cuda_stream());
+            }
+           data_logs[idx] = ((double)get_time_point() -data);
         }
-        data_logs[idx] = ((double)get_time_point() - data);
+
         /* Data transfer Handling End */
 
         history[i] = resource; 
@@ -155,6 +173,7 @@ void forward_network_gpu(network net, network_state state)
             else state.input = net.input_pinned_cpu;
 
         }
+
         inference = get_time_point();        
         /* Layer Level Execution Start */
         if (resource == CPU) {
@@ -163,8 +182,8 @@ void forward_network_gpu(network net, network_state state)
             l.forward_gpu(l, state);
             cudaDeviceSynchronize();
         }
-        else{
-            printf("resource config wrong\n");
+        else{           
+            printf("layer %d, pid %d resource %d config wrong\n",i, getpid(), resource);
             exit(-1);
         }
         if(net.wait_stream)
@@ -663,11 +682,13 @@ void lala_init_gpu(network net, float *input){
 
 
 void synchronizeRelease(){
-    int request = 0;
+    req_msg msg;
+    msg.request_layer = 0;
+    msg.request_type = 0;
     double _time = get_time_point();
 
     if(Sync){
-        if( write(request_fd, &request, sizeof(int)) == -1 ){
+        if( write(request_fd, &msg, sizeof(int)*2) == -1 ){
             perror("request send : ");
             exit(-1);
         }
