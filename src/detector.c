@@ -37,6 +37,7 @@ extern double * total_logs;
 extern double * data_logs;
 extern double * resource_logs;
 extern double * response_logs;
+extern double * msg2_logs;
 
 extern int current_job;
 
@@ -1532,6 +1533,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
 
     exec_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
     msg_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    msg2_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
     total_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
     data_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
     resource_logs = (double *)malloc(sizeof(double) *net.n*numofjob);

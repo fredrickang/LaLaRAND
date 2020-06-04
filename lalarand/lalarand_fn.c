@@ -228,6 +228,7 @@ int deQueue_hiding(Queue * q, double current_time, resource * res, resource * me
     if (q -> front == NULL){
         return -1;
     }
+    /*
     QNode * target = q->front;
     while(target !=NULL){
         if( target->id !=mem->id && (find_node_by_id(mem->waiting, target->id) == 0)){
@@ -237,26 +238,27 @@ int deQueue_hiding(Queue * q, double current_time, resource * res, resource * me
     }
 
     if(target == NULL) return -1;
-    /*
+    */
     QNode * target = q->front;
     if( target->id != mem->id && (find_node_by_id(mem->waiting, target->id) ==0) ){
-    */
-    int target_id = target->id;
-    int target_layer = target->layer;
+    
+        int target_id = target->id;
+        int target_layer = target->layer;
 
-    deleteNode(q, target);
+        deleteNode(q, target);
 
-    res -> state = BUSY;
-    res -> id  = target_id;  
-    res -> layer = target_layer;
-    res -> scheduled = current_time;
+        res -> state = BUSY;
+        res -> id  = target_id;  
+        res -> layer = target_layer;
+        res -> scheduled = current_time;
     
     
-    if(res->res_id == GPU) debug_print("GPU Dequeue: [ID] %d [layer] %d \n", target_id, target_layer);
-    if(res->res_id == CPU) debug_print("CPU Dequeue: [ID] %d [layer] %d \n", target_id, target_layer);
-    if(res->res_id == MEM) debug_print("MEM Dequeue: [ID] %d [layer] %d \n", target_id, target_layer);
-    return target_id;
-    
+        if(res->res_id == GPU) debug_print("GPU Dequeue: [ID] %d [layer] %d \n", target_id, target_layer);
+        if(res->res_id == CPU) debug_print("CPU Dequeue: [ID] %d [layer] %d \n", target_id, target_layer);
+        if(res->res_id == MEM) debug_print("MEM Dequeue: [ID] %d [layer] %d \n", target_id, target_layer);
+        
+        return target_id;
+    } 
     return -1;
 }  
 
@@ -306,6 +308,34 @@ int deQueue_algo(Queue *q, dnn_queue * dnn_list, dnn_profile ** profile_list, do
     debug_print("Dequeue : [ID] %d [layer] %d \n", target_id, target_layer);
     return target_id;
 
+}
+
+int deQueue_mem(Queue *q, double current_time, resource *mem, resource * gpu, resource * cpu){
+    if(q->front == NULL){
+        return -1;
+    }
+    QNode * target = q->front;
+    q->front = target->next;
+
+    int target_id = -1;
+    int target_layer = -1;
+    resource *To = (find_node_by_id(gpu->waiting, target->id) == 1) ? gpu : cpu;
+    
+    if(To->state == BUSY || To->waiting->front->id != target->id){
+        target_id = target->id;
+        target_layer = target->layer;
+
+        mem -> state = BUSY;
+        mem -> id = target_id;
+        mem -> layer = target_layer;
+        mem -> scheduled = current_time;
+        debug_print("Hiding ON: [ID] %d [layer] %d\n", target_id, target_layer);
+        return target_id;
+    }
+    q->count --;
+    free(target);
+    
+    return -1;
 }
 
 int deQueue(Queue * q, double current_time, resource * res){
@@ -672,10 +702,10 @@ void request_handler(int hiding, dnn_info * node, resource * gpu, resource * cpu
     req_msg msg;
 
     read(node -> request_fd, &msg, sizeof(int)*2);
-    
     int request_layer = msg.request_layer;
     int request_type = msg.request_type;
-
+     
+    debug_print("[Request handler] ID: %d , layer : %d type : %d\n", node->id, request_layer, request_type);
     if(request_layer == 0) update_deadline(node, current_time);
 
     if(hiding && request_type == 1){
@@ -744,7 +774,7 @@ void decision_handler(int target_id, dnn_queue * dnn_list, int decision){
         sched_setaffinity(target->pid, sizeof(cpu_set_t), &core);
         if(decision != MEM) target->assigned = decision;
     }
-    
+    debug_print("[Decision handler] ID : %d Decision : %d\n", target_id, decision); 
     if( write(target->decision_fd,&decision,sizeof(int)) < 0){
         perror("decision_handler");  
     }

@@ -57,6 +57,8 @@ extern double * total_logs;
 extern double * data_logs;
 extern double * resource_logs;
 extern double * response_logs;
+extern double * msg2_logs;
+
 extern int numofjob;
 
 extern FILE * pLogFile;
@@ -1202,9 +1204,9 @@ void free_network(network net)
         fprintf(pLogFile,"===== %d job ====\n", i);
         for(int j = 0; j < net.n ; j++){
             int idx = i*net.n + j;
-            fprintf(pLogFile, "layer %3d resource %f msg %f data %f exec %f total %f\n",j,resource_logs[idx], msg_logs[idx], data_logs[idx], exec_logs[idx], total_logs[idx]);
+            fprintf(pLogFile, "layer %3d resource %1.0f msg %4.0f data %4.0f msg2 %4.0f exec %4.0f total %4.0f\n",j,resource_logs[idx], msg_logs[idx], data_logs[idx], msg2_logs[idx], exec_logs[idx], total_logs[idx]);
         }
-        fprintf(pLogFile,"Response : %f\n", response_logs[i]);
+        fprintf(pLogFile,"Response : %.3f\n", response_logs[i]/1000);
     }
     fflush(pLogFile);
 

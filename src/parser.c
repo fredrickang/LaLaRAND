@@ -1630,7 +1630,7 @@ void get_response_time(struct timespec *start, struct timespec *stop, int job){
         result.tv_nsec = stop->tv_nsec - start->tv_nsec;
     }
 
-    double millisec = result.tv_sec * 1000 + result.tv_nsec / 1000000 ; 
+    double millisec = result.tv_sec * 1000000 + result.tv_nsec / 1000 ; 
     response_logs[job] = millisec;
 }   
 

@@ -21,6 +21,7 @@ QNode* newNode (int layer, int id, int priority);
 Queue * createQueue();
 void enQueue(Queue *q, int layer, int id, int priority);
 int deQueue_hiding(Queue *q, double current_time, resource *res, resource * mem);
+int deQueue_mem(Queue *q, double current_time, resource * mem, resource *gpu, resource * cpu);
 int deQueue_algo(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, double current_time, resource * res);
 int deQueue(Queue * q, double current_time, resource * res);
 dnn_info * find_dnn_by_id(dnn_queue * dnn_list, int id);

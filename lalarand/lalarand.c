@@ -86,7 +86,7 @@ int main(int argc, char **argv){
                 if(Sync) update_deadline_all(dnn_list, current_time);
 
                 if(hiding){
-                    if(mem -> state == IDLE) mem_target = deQueue(mem->waiting, current_time, mem);
+                    if(mem -> state == IDLE) mem_target = deQueue_mem(mem->waiting, current_time, mem, gpu, cpu);
                     if(gpu -> state == IDLE) gpu_target = deQueue_hiding(gpu->waiting, current_time, gpu, mem);
                     if(cpu -> state == IDLE) cpu_target = deQueue_hiding(cpu->waiting, current_time, cpu, mem);
                 }

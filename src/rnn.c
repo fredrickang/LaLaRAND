@@ -17,6 +17,8 @@ extern double * total_logs;
 extern double * data_logs;
 extern double * resource_logs;
 extern double * response_logs;
+extern double * msg2_logs;
+
 extern int current_job;
 extern int * history;
 
@@ -508,6 +510,7 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
     
     exec_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
     msg_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    msg2_logs = (double *)malloc(sizeof(double) *net.n*numofjob);
     total_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
     data_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
     
@@ -535,15 +538,13 @@ void periodic_rnn(char *cfgfile, char *weightfile, int num, char *seed, float te
        fill_cpu(inputs, 0, input, 1);
      */
     
-    /*
     for(i = 0; i < len-1; ++i){
         c = seed[i];
         input[c] = 1;
-        network_predict(net, input);
+        lala_init_cpu(net, input);
         input[c] = 0;
         //print_symbol(c, tokens);
     }
-    */
 
     if(len) c = seed[len-1];
     //print_symbol(c, tokens);

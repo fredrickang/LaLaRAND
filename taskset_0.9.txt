@@ -1,0 +1,191 @@
+Resnet 5 150 20 
+Yolo 7 200 15
+Extraction 8 200 15
+Extraction 1 100 30
+Extraction 2 100 30
+Resnet 3 100 30
+Extraction 9 250 12
+Resnet 10 300 10
+Resnet 4 100 30
+Resnet 6 150 20 
+1
+Extraction 4 100 15
+Resnet 5 150 10
+RNN 7 250 6
+RNN 8 250 6
+RNN 1 50 30
+Yolo 2 50 30
+Resnet 3 50 30
+Extraction 6 150 10
+1
+Extraction 2 100 15
+Yolo 3 100 15
+Extraction 4 100 15
+Extraction 1 50 30
+Yolo 5 150 10
+Yolo 6 250 6
+Yolo 7 250 6
+Extraction 8 300 5
+1
+Extraction 3 150 20
+RNN 4 150 20
+Yolo 1 50 60
+Extraction 5 150 20
+Yolo 7 250 12
+Resnet 6 200 15
+Extraction 8 250 12
+Yolo 2 50 60
+1
+RNN 1 50 30
+Resnet 2 50 30
+Yolo 3 50 30
+Extraction 6 150 10
+RNN 4 100 15
+Yolo 5 100 15
+RNN 7 150 10
+Extraction 8 250 6
+1
+RNN 7 250 6
+Extraction 1 50 30
+Yolo 2 50 30
+Resnet 8 250 6
+Yolo 3 100 15
+Resnet 5 150 10
+Extraction 6 150 10
+RNN 4 100 15
+1
+Yolo 1 50 60
+RNN 7 250 12
+Resnet 2 50 60
+RNN 3 50 60
+Extraction 4 100 30
+Yolo 5 100 30
+Yolo 8 300 10
+RNN 6 200 15
+1
+Resnet 6 300 5
+Yolo 1 50 30
+Extraction 5 250 6
+Yolo 2 50 30
+Yolo 3 100 15
+RNN 7 300 5
+Yolo 8 300 5
+Yolo 4 150 10
+1
+RNN 6 200 15
+Yolo 4 150 20
+Yolo 3 100 30
+Extraction 1 50 60
+Yolo 7 250 12
+Extraction 8 300 10
+Resnet 2 50 60
+Resnet 5 150 20
+1
+Extraction 3 100 30
+Resnet 5 150 20
+RNN 4 100 30
+Yolo 7 250 12
+RNN 8 300 10
+RNN 6 200 15
+Yolo 1 50 60
+Yolo 2 50 60
+1
+Yolo 3 100 3
+Resnet 4 100 3
+Yolo 5 100 3
+RNN 1 50 6
+Extraction 6 150 2
+Yolo 8 300 1
+Extraction 2 50 6
+Resnet 7 150 2
+1
+Extraction 3 100 15
+Yolo 7 300 5
+Extraction 1 50 30
+Extraction 4 100 15
+RNN 5 150 10
+Resnet 2 50 30
+RNN 6 250 6
+Resnet 8 300 5
+1
+Yolo 8 250 12
+Yolo 1 50 60
+Extraction 2 50 60
+Yolo 5 200 15
+Extraction 3 150 20
+RNN 6 200 15
+RNN 7 200 15
+Resnet 4 150 20
+1
+Resnet 3 100 15
+RNN 8 300 5
+Extraction 1 50 30
+RNN 6 250 6
+Yolo 2 50 30
+RNN 5 150 10
+Yolo 4 100 15
+Resnet 7 250 6
+1
+Extraction 5 200 3
+Extraction 3 100 6
+Extraction 6 200 3
+Extraction 1 50 12
+Extraction 8 300 2
+RNN 4 100 6
+Resnet 2 50 12
+Extraction 7 200 3
+1
+Resnet 5 150 4
+Extraction 6 150 4
+Resnet 1 50 12
+Extraction 7 200 3
+RNN 3 100 6
+Yolo 8 200 3
+Extraction 2 50 12
+Resnet 4 100 6
+1
+RNN 1 50 60
+Yolo 4 100 30
+Extraction 8 250 12
+Yolo 5 100 30
+Resnet 2 50 60
+RNN 6 150 20
+Yolo 3 50 60
+RNN 7 200 15
+1
+Yolo 8 300 10
+Resnet 4 100 30
+Resnet 1 50 60
+Resnet 2 50 60
+Resnet 3 50 60
+RNN 5 100 30
+Extraction 7 250 12
+Resnet 6 200 15
+1
+Yolo 1 50 12
+Resnet 6 300 2
+Extraction 3 100 6
+Yolo 2 50 12
+RNN 7 300 2
+Resnet 8 300 2
+Yolo 4 200 3
+Resnet 5 200 3
+1
+Yolo 8 300 10
+Yolo 6 250 12
+Resnet 7 250 12
+Resnet 3 150 20
+Extraction 1 50 60
+Extraction 4 200 15
+Extraction 2 50 60
+RNN 5 200 15
+1
+Resnet 1 50 60
+RNN 7 250 12
+Yolo 2 50 60
+Yolo 3 100 30
+Yolo 4 100 30
+Yolo 5 150 20
+Yolo 8 250 12
+Resnet 6 200 15
+1

@@ -71,6 +71,7 @@ double * total_logs;
 double * data_logs;
 double * response_logs;
 double * resource_logs;
+double * msg2_logs;
 
 int current_job;
 
