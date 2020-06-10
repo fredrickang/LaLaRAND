@@ -499,18 +499,22 @@ dnn_profile ** make_profile_list(int baseline){
     for(int i = 0; i < 24; i++){
         yolo_gpu[i] = yolo_gpu[i]*10;
         yolo_cpu[i] = yolo_cpu[i]*10;
+        yolo_cfg[i] = (yolo_cpu[i]/yolo_gpu[i] < 10.0) ? 0 : 1; 
     }
     for(int i =0; i < 28; i++){
         extraction_gpu[i] = extraction_gpu[i]* 10;
         extraction_cpu[i] = extraction_cpu[i]* 10;
+        extraction_cfg[i] = (extraction_cpu[i]/extraction_gpu[i] < 10.0) ? 0 : 1;
     }
     for(int i =0; i < 29; i++){
         resnet_gpu[i] = resnet_gpu[i] * 10;
         resnet_cpu[i] = resnet_cpu[i] * 10;
+        resnet_cfg[i] = (resnet_cpu[i]/resnet_gpu[i] < 10.0) ? 0 : 1;
     }
     for(int i =0; i < 6; i++){
         rnn_gpu[i] = rnn_gpu[i] * 10;
         rnn_cpu[i] = rnn_cpu[i] * 10;
+        rnn_cfg[i] = (rnn_cpu[i]/rnn_gpu[i] < 10.0) ? 0 : 1;
     }
 
     if (baseline == 1 || baseline == 3){
@@ -519,7 +523,7 @@ dnn_profile ** make_profile_list(int baseline){
         for(int i = 0; i < 29; i++) resnet_cfg[i] = 1;
         for(int i = 0; i < 6 ; i++) rnn_cfg[i] = 1;
     }
-    
+
     make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg, yolo_data_G2C, yolo_data_C2G);
     make_profile(profile_list[EXTRACTION], 28, extraction_gpu, extraction_cpu, extraction_cfg, extraction_data_G2C, extraction_data_C2G);
     make_profile(profile_list[RESNET], 29, resnet_gpu, resnet_cpu, resnet_cfg, resnet_data_G2C, resnet_data_C2G);
