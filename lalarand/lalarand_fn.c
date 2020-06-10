@@ -701,7 +701,7 @@ int check_request(dnn_queue * dnn_list, fd_set* readfds, int sync){
     return rev;
 }
 
-void request_handler(int hiding, dnn_info * node, resource * gpu, resource * cpu, resource * mem, dnn_profile * profile, double current_time){
+void request_handler(int hiding, dnn_info * node, resource * gpu, resource * cpu, resource * mem, resource * RR, dnn_profile * profile, double current_time){
     
     req_msg msg;
 
@@ -739,8 +739,11 @@ void request_handler(int hiding, dnn_info * node, resource * gpu, resource * cpu
         node->current_layer = request_layer;
         if(node->cut == -2){
             if(request_type != 1){
-                if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
-                else enQueue(cpu->waiting, request_layer, node -> id, node -> priority);        
+                if(profile->cpu_exec[request_layer] > 10000) enQueue(RR->waiting, request_layer, node->id, node->priority);
+                else {
+                    if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
+                    else enQueue(cpu->waiting, request_layer, node -> id, node -> priority);        
+                }
                 
                 if(hiding && request_layer != 0 && profile->cfg[request_layer] != node->assigned) enQueue(mem->waiting, request_layer, node->id, node->priority);       
             }

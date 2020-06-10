@@ -50,6 +50,8 @@ int main(int argc, char **argv){
     resource * gpu = createResource(GPU);
     resource * cpu = createResource(CPU);
     resource * mem = createResource(MEM);
+    
+    resource * RR = createResource(GPU);
 
     int reg_fd = open_channel(REGISTRATION, O_RDONLY | O_NONBLOCK);
     
@@ -77,7 +79,7 @@ int main(int argc, char **argv){
             // 2nd request check 
             for(node = dnn_list ->head; node !=NULL; node = node -> next) 
                 if(FD_ISSET(node->request_fd, &readfds))
-                    request_handler(hiding, node, gpu, cpu, mem, profile_list[node->type], current_time);
+                    request_handler(hiding, node, gpu, cpu, mem, RR, profile_list[node->type], current_time);
 
             print_queue("GPU",gpu->waiting);
             print_queue("CPU",cpu->waiting);
@@ -91,6 +93,7 @@ int main(int argc, char **argv){
                     if(cpu -> state == IDLE) cpu_target = deQueue_hiding(cpu->waiting, current_time, cpu, mem);
                 }
                 else{
+                    if(gpu -> state == IDLE) gpu_target = deQueue(RR->waiting, current_time, gpu);
                     if(gpu -> state == IDLE) gpu_target = deQueue(gpu->waiting, current_time, gpu);
                     if(cpu -> state == IDLE) cpu_target = deQueue(cpu->waiting, current_time, cpu);
                 }

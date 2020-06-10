@@ -47,7 +47,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg,int baseline);
 void de_regist(dnn_queue * dnn_list, reg_msg *msg, resource * gpu, resource * cpu);
 int check_request(dnn_queue * dnn_list, fd_set *readfds, int sync);
 int migration(Queue * q, dnn_queue * dnn_list, dnn_profile** profile_list, double current_time, resource * From, resource * To);
-void request_handler(int hiding, dnn_info * node, resource * gpu, resource * cpu, resource * mem, dnn_profile * profile, double current_time);
+void request_handler(int hiding, dnn_info * node, resource * gpu, resource * cpu, resource * mem, resource * RR, dnn_profile * profile, double current_time);
 void decision_handler(int target_id, dnn_queue * dnn_list, int decision);
 void update_deadline(dnn_info * dnn, double current_time);
 void update_deadline_all(dnn_queue * dnn_list, double current_time);
