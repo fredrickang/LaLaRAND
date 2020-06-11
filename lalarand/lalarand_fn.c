@@ -463,7 +463,7 @@ void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg, i
     memcpy(tmp->C2G, C2G, sizeof(int) * (layers-1));
 }
 
-dnn_profile ** make_profile_list(int baseline){
+dnn_profile ** make_profile_list(int baseline, int algo, int ratio){
     dnn_profile ** profile_list = (dnn_profile **)malloc(sizeof(dnn_profile *)*4);
 
     for(int i =0; i < 4; i++)
@@ -499,22 +499,22 @@ dnn_profile ** make_profile_list(int baseline){
     for(int i = 0; i < 24; i++){
         yolo_gpu[i] = yolo_gpu[i]*10;
         yolo_cpu[i] = yolo_cpu[i]*10;
-        yolo_cfg[i] = (yolo_cpu[i]/yolo_gpu[i] < 10.0) ? 0 : 1; 
+        yolo_cfg[i] = (yolo_cpu[i]/yolo_gpu[i] < ratio) ? 0 : 1; 
     }
     for(int i =0; i < 28; i++){
         extraction_gpu[i] = extraction_gpu[i]* 10;
         extraction_cpu[i] = extraction_cpu[i]* 10;
-        extraction_cfg[i] = (extraction_cpu[i]/extraction_gpu[i] < 10.0) ? 0 : 1;
+        extraction_cfg[i] = (extraction_cpu[i]/extraction_gpu[i] < ratio) ? 0 : 1;
     }
     for(int i =0; i < 29; i++){
         resnet_gpu[i] = resnet_gpu[i] * 10;
         resnet_cpu[i] = resnet_cpu[i] * 10;
-        resnet_cfg[i] = (resnet_cpu[i]/resnet_gpu[i] < 10.0) ? 0 : 1;
+        resnet_cfg[i] = (resnet_cpu[i]/resnet_gpu[i] < ratio) ? 0 : 1;
     }
     for(int i =0; i < 6; i++){
         rnn_gpu[i] = rnn_gpu[i] * 10;
         rnn_cpu[i] = rnn_cpu[i] * 10;
-        rnn_cfg[i] = (rnn_cpu[i]/rnn_gpu[i] < 10.0) ? 0 : 1;
+        rnn_cfg[i] = (rnn_cpu[i]/rnn_gpu[i] < ratio) ? 0 : 1;
     }
 
     if (baseline == 1 || baseline == 3){
@@ -522,6 +522,25 @@ dnn_profile ** make_profile_list(int baseline){
         for(int i = 0; i < 28; i++) extraction_cfg[i] = 1;
         for(int i = 0; i < 29; i++) resnet_cfg[i] = 1;
         for(int i = 0; i < 6 ; i++) rnn_cfg[i] = 1;
+    }
+    
+    if(algo){
+        for(int i = 0; i < 24; i++) {
+            if(yolo_cpu[i]/yolo_gpu[i] >50.0 || i == 0 )yolo_cfg[i] = 1;
+            else yolo_cfg[i] = 0;
+        }
+        for(int i = 0; i < 28; i++){
+            if(extraction_cpu[i]/extraction_gpu[i] > 50.0 || i == 0)extraction_cfg[i] = 1;
+            else extraction_cfg[i] = 0;
+        }
+        for(int i = 0; i < 29; i++){
+            if(resnet_cpu[i]/resnet_gpu[i] > 50.0 || i == 0)resnet_cfg[i] = 1;
+            else resnet_cfg[i] = 0;
+        }
+        for(int i = 0; i < 6 ; i++){
+            if(rnn_cpu[i]/rnn_gpu[i] > 50.0 || i == 0)rnn_cfg[i] = 1;
+            else rnn_cfg[i] = 0;
+        }
     }
 
     make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg, yolo_data_G2C, yolo_data_C2G);
@@ -701,7 +720,7 @@ int check_request(dnn_queue * dnn_list, fd_set* readfds, int sync){
     return rev;
 }
 
-void request_handler(int hiding, dnn_info * node, resource * gpu, resource * cpu, resource * mem, resource * RR, dnn_profile * profile, double current_time){
+void request_handler(int hiding, dnn_info * node, resource * gpu, resource * cpu, resource * mem, dnn_profile * profile, double current_time){
     
     req_msg msg;
 
@@ -739,11 +758,8 @@ void request_handler(int hiding, dnn_info * node, resource * gpu, resource * cpu
         node->current_layer = request_layer;
         if(node->cut == -2){
             if(request_type != 1){
-                if(profile->cpu_exec[request_layer] > 10000) enQueue(RR->waiting, request_layer, node->id, node->priority);
-                else {
-                    if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
-                    else enQueue(cpu->waiting, request_layer, node -> id, node -> priority);        
-                }
+                if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
+                else enQueue(cpu->waiting, request_layer, node -> id, node -> priority);        
                 
                 if(hiding && request_layer != 0 && profile->cfg[request_layer] != node->assigned) enQueue(mem->waiting, request_layer, node->id, node->priority);       
             }
@@ -824,6 +840,7 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
     dnn_info * node;
     int target_id = -1;
     int target_layer = -1;
+    double ratio;
     double smallest = DBL_MAX;
     
     int prefer, non_prefer; 
@@ -857,10 +874,11 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
                 
                 //debug_print("[Limits] : %f\n", limits);
                 if( limits > non_prefer+ blocked+ data_trans ){
-                    if( slack <= smallest ){
+                    ratio = non_prefer/prefer;
+                    if(ratio < smallest){
                         target_id = tmp -> id;
                         target_layer = tmp -> layer;
-                        smallest = slack;
+                        smallest = ratio;
                     }
                     //debug_print( "[Smallest] : %f\n", smallest);
                 }
