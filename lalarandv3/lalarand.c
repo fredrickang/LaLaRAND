@@ -78,7 +78,7 @@ int main(int argc, char **argv){
             // 2nd request check 
             for(dnn = dnn_list ->head; dnn !=NULL; dnn = dnn -> next) 
                 if(FD_ISSET(dnn->request_fd, &readfds))
-                    request_handler(hiding, dnn, gpu, cpu, mem, profile_list[node->type], current_time);
+                    request_handler(hiding, algo, dnn_list, dnn, gpu, cpu, mem, profile_list, current_time);
             
             print_queue("GPU", gpu->waiting);
             print_queue("CPU", cpu->waiting);

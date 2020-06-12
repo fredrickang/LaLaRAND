@@ -1,0 +1,6 @@
+classifier
+periodic
+./cfg/imagenet1k.data
+./cfg/lenet.cfg
+./weights/alexnet.weights
+./coco/100.part

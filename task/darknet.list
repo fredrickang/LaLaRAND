@@ -1,0 +1,6 @@
+classifier
+periodic
+./cfg/imagenet1k.data
+./cfg/darknet.cfg
+./weights/darknet.weights
+./coco/100.part

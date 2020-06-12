@@ -28,6 +28,10 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, log_pa
         task_name = "./task/resnet18.list"
     if task_name == "Extraction":
         task_name = "./task/extraction.list"
+    if task_name == "Darknet":
+        task_name = "./task/darknet.list"
+    if task_name == "Alexnet":
+        task_name = "./task/alexnet.list"
     command_line = ["./darknet"]
     command_line.append("-task")
     command_line.append(task_name)
@@ -80,7 +84,7 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, log_pa
 
 
 def lalarand(task_num, lalarand_pid ,baseline, algo, hiding,index):
-    command_line =["./lalarand/lalarand"]
+    command_line =["./lalarandv3/lalarand"]
     command_line.append("-sync")
     command_line.append(str(task_num))
     command_line.append("-baseline")
@@ -146,7 +150,7 @@ def submain(baseline, algo, hiding,input_list, log_path, start, end):
         pids = []
 
         lalarand_pid = []
-        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,baseline, algo,hiding ,index))
+        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,baseline, algo, hiding ,index))
 
         if baseline != 4 and baseline != 5:
             for task in taskset_list:

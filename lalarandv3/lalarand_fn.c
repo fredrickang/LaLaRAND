@@ -683,7 +683,7 @@ dnn_info * find_highest_alive_dnn(dnn_queue * dnn_list){
 void cfg_handler(dnn_info * dnn, dnn_profile * profile, int type){
     if(type == 1){
         for(int i = 0; i < dnn->layers; i++){
-            if(profile->cpu_exec[i]/profile->gpu_exec[i] < 10.0) dnn->default_cfg[i] = 0;
+            if(profile->cpu_exec[i]/profile->gpu_exec[i] < 15.0) dnn->default_cfg[i] = 0;
             else dnn->default_cfg[i] = 1;
         }
     }
@@ -972,7 +972,7 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
     for(QNode *tmp = q->front; tmp->priority < target->priority; tmp = tmp->next){
         dnn_info * dnn = find_dnn_by_id(dnn_list,tmp->id);
         for(int i = tmp->layer; i < dnn->layers ; i ++){
-            if(nn->default_cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[dnn->type]->gpu_exec[i] : profile_list[dnn->type]->cpu_exec[i];
+            if(dnn->default_cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[dnn->type]->gpu_exec[i] : profile_list[dnn->type]->cpu_exec[i];
             else break;
         }
     }
