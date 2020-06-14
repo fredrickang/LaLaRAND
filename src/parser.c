@@ -881,7 +881,7 @@ network parse_network_cfg(char *filename)
 }
 
 typedef enum {
-    YOLOt, EXTRACTION, RESNET, RECURRENT
+    YOLOt, EXTRACTION, RESNET, RECURRENT, ALEXNET, DARKNET, LENET
 }DNN_TYPE;
 
 typedef struct _MSG_PACKET{
@@ -957,7 +957,9 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     if(strstr(filename, "extraction") != NULL) dummy->type = EXTRACTION;
     if(strstr(filename, "resnet") != NULL) dummy->type = RESNET;
     if(strstr(filename, "rnn") != NULL) dummy->type = RECURRENT;
-    
+    if(strstr(filename, "alexnet") != NULL) dummy->type = ALEXNET;
+    if(strstr(filename, "darknet") != NULL) dummy->type = DARKNET;
+    if(strstr(filename, "lenet") != NULL) dummy->type = LENET;
     
     if(write(register_fd, dummy, 7*sizeof(int)) < 0){
         perror("Registerating :  ");

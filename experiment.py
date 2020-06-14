@@ -32,6 +32,9 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, log_pa
         task_name = "./task/darknet.list"
     if task_name == "Alexnet":
         task_name = "./task/alexnet.list"
+    if task_name == "LeNet":
+        task_name = "./task/lenet.list"
+
     command_line = ["./darknet"]
     command_line.append("-task")
     command_line.append(task_name)
@@ -298,7 +301,7 @@ if __name__ == "__main__":
     parser.add_argument("--start",type = int , default = 0 )
     parser.add_argument("--end", type = int, default = -1, help = " -1 : ALL , other is other number")
     parser.add_argument("--log_path", type = str, default = "./Exp/ALL/")
-    parser.add_argument("--hiding", type = int, default = 0);
+    parser.add_argument("--hiding", type = int, default = 0)
 
     opt = parser.parse_args()
     

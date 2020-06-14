@@ -6,7 +6,7 @@ typedef enum{
 }STATE;
 
 typedef enum {
-    YOLOt, EXTRACTION, RESNET, RECURRENT 
+    YOLOt, EXTRACTION, RESNET, RECURRENT, ALEXNET, DARKNET, LENET
 }DNN_TYPE;
 
 typedef struct _DNN_PROFILE{
