@@ -87,7 +87,7 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, log_pa
 
 
 def lalarand(task_num, lalarand_pid ,baseline, algo, hiding,index):
-    command_line =["./lalarandv3/lalarand"]
+    command_line =["./lalarand/lalarand"]
     command_line.append("-sync")
     command_line.append(str(task_num))
     command_line.append("-baseline")

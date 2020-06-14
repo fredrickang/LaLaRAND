@@ -584,7 +584,7 @@ int main(int argc, char **argv)
     }
     pLogFile = fopen(log_path, "w");
     
-    //freopen("/tmp/trash","w",stderr);
+    freopen("/tmp/trash","w",stderr);
 
     fprintf(pLogFile, "[%d] Priority : %d , Period : %d\n", getpid(), priority, period);
     fflush(pLogFile);
