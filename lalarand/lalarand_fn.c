@@ -503,10 +503,14 @@ dnn_profile ** make_profile_list(int baseline, int algo, int ratio){
     int darknet_gpu[17] = {1338,156,551,125,353,115,356,60,308,62,429,81,1261,296,71,473,25};
     int darknet_cpu[17] = {11472,3839,33940,1433,16889,1662,16572,394,20146,182,37191,332,57375,14358,44,69,28};
     int darknet_cfg[17] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1};
+    int darknet_data_G2C[16] = {1788,769,536,721,461,475,855,421,1609,390,1524,504,782,436,364,425};
+    int darknet_data_C2G[16] = {488,177,281,118,163,85,126,71,109,66,97,57,109,58,50,55};
 
     int lenet_gpu[9] = {300,81,514,90,604,27,312,71,18};
     int lenet_cpu[9] = {807,112,4274,131,2443,1,18,4,1};
     int lenet_cfg[9] = {1,1,1,1,1,0,0,0,0};
+    int lenet_data_G2C = {483,468,398,392,338,403,282,419};
+    int lenet_data_C2G = {110,56,129,75,99,44,66,58};
 
     for(int i = 0; i < 24; i++){
         yolo_gpu[i] = yolo_gpu[i]*10;
@@ -563,8 +567,8 @@ dnn_profile ** make_profile_list(int baseline, int algo, int ratio){
     make_profile(profile_list[RESNET], 29, resnet_gpu, resnet_cpu, resnet_cfg, resnet_data_G2C, resnet_data_C2G);
     make_profile(profile_list[RECURRENT], 6, rnn_gpu, rnn_cpu, rnn_cfg, rnn_data_G2C, rnn_data_C2G);
     make_profile(profile_list[ALEXNET], 14, alexnet_gpu, alexnet_cpu, alexnet_cfg, yolo_data_G2C, yolo_data_C2G);
-    make_profile(profile_list[DARKNET], 17, darknet_gpu, darknet_cpu, darknet_cfg, yolo_data_G2C, yolo_data_C2G);
-    make_profile(profile_list[LENET], 9, lenet_gpu, lenet_cpu, lenet_cfg, yolo_data_G2C, yolo_data_G2C);
+    make_profile(profile_list[DARKNET], 17, darknet_gpu, darknet_cpu, darknet_cfg, darknet_data_G2C, darknet_data_C2G);
+    make_profile(profile_list[LENET], 9, lenet_gpu, lenet_cpu, lenet_cfg, lenet_data_G2C, lenet_data_G2C);
     return profile_list;
 }
 
