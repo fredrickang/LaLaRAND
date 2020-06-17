@@ -602,20 +602,18 @@ void regist(dnn_queue * dnn_list, reg_msg * msg, int baseline){
     dnn -> priority = msg -> priority;
     dnn -> current_layer = -1;
     dnn -> assigned = 1;
-    dnn -> cut = msg->cut;
+    dnn -> default_cfg = (int *)malloc(sizeof(int)*dnn->layers);
     
-    if (dnn->cut != -2){
-        dnn->default_cfg = (int *)malloc(sizeof(int)*dnn->layers);
-        if (baseline == 4){
-            memset(dnn->default_cfg, 0, sizeof(int)*dnn->layers);
-            for(int i = 0; i < dnn->cut; i++) dnn->default_cfg[i] = 1;
-        }
-        if (baseline == 5){
-            memset(dnn->default_cfg, 1, sizeof(int)*dnn->layers);
-            for(int i  =0; i< dnn->cut; i++) dnn->default_cfg[i] = 0;
-        }
+    if (baseline == 1 || baseline == 5) for(int i =0; i < dnn->layers; i++) dnn->default_cfg[i] = 1;
+
+    if (baseline == 2) dnn->default_cfg = profile_list[dnn->type]->cfg;
+    
+    if (baseline == 4) {
+        memset(dnn->default_cfg, 0, sizeof(int) * dnn->layers);
+        for (int i = 0; i < msg->cut; i ++) dnn->default_cfg[i] =1;
     }
     
+    if (baseline == 5) for(int i = 0; i < msg->cut; i ++) dnn->default_cfg[i] = 0;
     
     debug_print("======== REGISTRATION ========\n");
     debug_print("[ID]     %3d\n", dnn-> id);
@@ -623,7 +621,6 @@ void regist(dnn_queue * dnn_list, reg_msg * msg, int baseline){
     debug_print("[Layers] %3d\n", dnn-> layers);
     debug_print("[Type]   %s\n", get_dnn_name(dnn->type));
     debug_print("[Period] %3d\n", dnn->period);
-    debug_print("[Cut]    %3d\n", dnn->cut);
     char req_fd_name[30];
     char dec_fd_name[30];
 
@@ -786,17 +783,11 @@ void request_handler(int hiding, dnn_info * node, resource * gpu, resource * cpu
 
     if(request_layer != node -> layers){
         node->current_layer = request_layer;
-        if(node->cut == -2){
-            if(request_type != 1){
-                if(profile->cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node ->  id, node -> priority);
-                else enQueue(cpu->waiting, request_layer, node -> id, node -> priority);        
-                
-                if(hiding && request_layer != 0 && profile->cfg[request_layer] != node->assigned) enQueue(mem->waiting, request_layer, node->id, node->priority);       
-            }
-        }
-        else{
+        if(request_type != 1){
             if(node->default_cfg[request_layer] == GPU) enQueue(gpu->waiting, request_layer, node -> id, node -> priority);
-            else enQueue(cpu->waiting, request_layer, node ->  id, node -> priority);
+            else enQueue(cpu->waiting, request_layer, node ->  id, node -> priority);        
+                
+            if(hiding && request_layer != 0 && node->default_cfg[request_layer] != node->assigned) enQueue(mem->waiting, request_layer, node->id, node->priority);       
         }
     }
     else node->current_layer = -1;
@@ -878,7 +869,7 @@ int migration(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, doub
     //debug_print( "==============[MIGRATION]==============\n");
     for(QNode * tmp = q->front; tmp != NULL; tmp = tmp -> next){
         node = find_dnn_by_id(dnn_list, tmp -> id);
-        slack = node->deadline - current_time - workload_left(profile_list[node->type],tmp -> layer, node->layers);
+        slack = node->deadline - current_time - workload_left(profile_list[node->type] ,tmp -> layer, node->layers);
         
         prefer = (From -> res_id ==GPU) ? profile_list[node->type] -> gpu_exec[tmp->layer] : profile_list[node->type] -> cpu_exec[tmp->layer];
         non_prefer = (From -> res_id == GPU) ? profile_list[node->type] -> cpu_exec[tmp->layer] : profile_list[node->type] -> gpu_exec[tmp->layer];
@@ -957,34 +948,16 @@ double waiting(Queue * q, dnn_queue * dnn_list, dnn_profile ** profile_list, dou
 
     if(target->priority > current->priority){
         for(int i = From->layer+1 ; i < current->layers ; i++){
-            if(current->cut == -2){
-                if (profile_list[current->type]->cfg[i] == From->res_id) {
-                    waited += (From->res_id == GPU) ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];
-                }else{
-                    break;
-                }
-            }
-            else{
-                if(current->default_cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];
-                else break;
-            }
+            if(current->default_cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[current->type]->gpu_exec[i] : profile_list[current->type]->cpu_exec[i];
+            else break;       
         }
     }
     
     for(QNode *tmp = q->front; tmp->priority < target->priority; tmp = tmp->next){
         dnn_info * dnn = find_dnn_by_id(dnn_list,tmp->id);
         for(int i = tmp->layer; i < dnn->layers ; i ++){
-            if(current->cut == -2){
-                if(profile_list[dnn->type]->cfg[i] == From->res_id) {
-                    waited += From->res_id == GPU ? profile_list[dnn->type]->gpu_exec[i] : profile_list[dnn->type]->cpu_exec[i];
-                }else{
-                    break;
-                }
-            }
-            else{
-                if(dnn->default_cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[dnn->type]->gpu_exec[i] : profile_list[dnn->type]->cpu_exec[i];
-                else break;
-            }
+            if(dnn->default_cfg[i] == From->res_id) waited += From->res_id == GPU ? profile_list[dnn->type]->gpu_exec[i] : profile_list[dnn->type]->cpu_exec[i];
+            else break;
         }
     }
 
