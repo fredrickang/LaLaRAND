@@ -86,7 +86,7 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, log_pa
 
 
 
-def lalarand(task_num, lalarand_pid ,baseline, algo, hiding,index):
+def lalarand(task_num, lalarand_pid ,baseline, algo, hiding,index, ratio):
     command_line =["./lalarand/lalarand"]
     command_line.append("-sync")
     command_line.append(str(task_num))
@@ -98,11 +98,13 @@ def lalarand(task_num, lalarand_pid ,baseline, algo, hiding,index):
     command_line.append(str(algo))
     command_line.append("-hiding")
     command_line.append(str(hiding))
+    command_line.append("-ratio")
+    command_line.append(str(ratio))
 
     sub = subprocess.Popen(command_line)
     lalarand_pid.append(sub.pid)
 
-def submain(baseline, algo, hiding,input_list, log_path, start, end):
+def submain(baseline, algo, hiding,input_list, log_path, start, end, ratio):
 
     fp = open(input_list, "r")
     lines = fp.readlines()
@@ -153,7 +155,7 @@ def submain(baseline, algo, hiding,input_list, log_path, start, end):
         pids = []
 
         lalarand_pid = []
-        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,baseline, algo, hiding ,index))
+        lalarand_thread = Thread(target = lalarand, args= (task_num, lalarand_pid ,baseline, algo, hiding ,index, ratio))
 
         if baseline != 4 and baseline != 5:
             for task in taskset_list:
@@ -248,6 +250,15 @@ def generate_dart_cut(taskset_list, mode):
     
     rnn_g = [130, 113, 107,  28,  20,   3]
     rnn_c = [113, 139, 139,  16,   5,   4]
+    
+    alexnet_g = [585,194,1349,129,504,633,406,79,32164,26,1758,25,645,508]
+    alexnet_c = [28205,2854,135360,1406,56388,83448,56406,282,18417,2,7322,2,2836,66]
+
+    darknet_g = [1338,156,551,125,353,115,356,60,308,62,429,81,1261,296,71,473,25]
+    darknet_c = [11472,3839,33940,1433,16889,1662,16572,394,20146,182,37191,332,57375,14358,44,69,28]
+
+    lenet_g = [300,81,514,90,604,27,312,71,18]
+    lenet_c = [807,112,4274,131,2443,1,18,4,1]
 
     new_list = []
     for i, task in enumerate(taskset_list):
@@ -271,7 +282,19 @@ def generate_dart_cut(taskset_list, mode):
             tmp.append(extrac_g)
             tmp.append(extrac_c)
             tmp.append(avg_util(extrac_g, extrac_c, int(task[2])))
-        
+        if task[0] == "Alexnet":
+            tmp.append(alexnet_g)
+            tmp.append(alexnet_c)
+            tmp.append(avg_util(alexnet_g, alexnet_c, int(task[2])))
+        if task[0] == "Darknet":
+            tmp.append(darknet_g)
+            tmp.append(darknet_c)
+            tmp.append(avg_util(darknet_g, darknet_c, int(task[2])))
+        if task[0] == "LeNet":
+            tmp.append(lenet_g)
+            tmp.append(lenet_c)
+            tmp.append(avg_util(lenet_g, lenet_c, int(task[2])))
+
         tmp.append(int(task[2]))
         tmp.append(i)
         new_list.append(tmp)
@@ -302,19 +325,10 @@ if __name__ == "__main__":
     parser.add_argument("--end", type = int, default = -1, help = " -1 : ALL , other is other number")
     parser.add_argument("--log_path", type = str, default = "./Exp/ALL/")
     parser.add_argument("--hiding", type = int, default = 0)
+    parser.add_argument("--ratio", type = int , default = 1)
 
     opt = parser.parse_args()
     
     print(opt)
 
-    if(opt.baseline == 1 or opt.baseline == 2):
-        submain(opt.baseline, opt.algo, opt.hiding, opt.list, opt.log_path, opt.start, opt.end)
-    else: # dart 1. ALL 2. GC 3. CG
-        if(opt.algo):
-#            submain(3, opt.algo , opt.list, "./Exp/DART_ALL_LaLa/", opt.start, opt.end)
-            submain(4, opt.algo , "./Exp/ALL_LaLa/Unsched.txt", "./Exp/DART_GC_LaLa/", 0, -1)
-            submain(5, opt.algo , "./Exp/DART_GC_LaLa/Unsched.txt", "./Exp/DART_CG_LaLa/", 0, -1)
-        else:
-#            submain(3, opt.algo , opt.list, "./Exp/DART_ALL/", opt.start, opt.end)
-            submain(4, opt.algo , "./Exp/ALL/Unsched.txt", "./Exp/DART_GC/", 0, -1)
-            submain(5, opt.algo , "./Exp/DART_GC/Unsched.txt", "./Exp/DART_CG/", 0, -1)
+    submain(opt.baseline, opt.algo, opt.hiding, opt.list, opt.log_path, opt.start, opt.end, opt.ratio)

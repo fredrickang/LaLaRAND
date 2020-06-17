@@ -564,11 +564,11 @@ int main(int argc, char **argv)
     switch (mode){
             case 1:
                 if(algo) snprintf(log_path, 60, "./Exp/ALL_LaLa/taskset_%d/task_%d.txt", index, priority);
-                else snprintf(log_path, 60, "./Exp/ALL/taskset_%d/task_%d.txt", index, priority);
+                else snprintf(log_path, 60, "./Exp/ALL/taskset_%d/task_%d.txt", index, getpid());
                 break;
             case 2:
                 if(algo) snprintf(log_path, 50, "./Exp/PR_LaLa/taskset_%d/task_%d.txt", index, priority);
-                else snprintf(log_path, 50, "./Exp/PR/taskset_%d/task_%d.txt", index, priority);
+                else snprintf(log_path, 50, "./Exp/PR/taskset_%d/task_%d.txt", index, getpid());
                 break;
             case 3:
                 if(algo) snprintf(log_path, 50, "./Exp/DART_ALL_LaLa/taskset_%d/task_%d.txt", index, priority);

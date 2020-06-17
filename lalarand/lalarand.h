@@ -50,6 +50,7 @@ typedef struct QNode{
 typedef struct Queue{
     int count;
     QNode * front;
+    QNode * rear;
 }Queue;
 
 typedef struct _MSG_PACKET{

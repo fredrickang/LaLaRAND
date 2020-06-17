@@ -189,6 +189,7 @@ Queue * createQueue(){
     Queue * q = (Queue *)malloc(sizeof(Queue));
     q-> front =  NULL;
     q-> count = 0;
+    q-> rear = NULL;
     return q;
     
 }
@@ -198,13 +199,17 @@ void enQueue(Queue *q, int layer, int id, int priority){
     q->count ++;    
     
     if(q->front == NULL){
-        q->front = tmp;
+        q->front = q->rear = tmp;
         debug_print("Enqueue : [ID] %d [layer] %d \n", id, layer);
         return;
     }    
 
     debug_print("Enqueue : [ID] %d [layer] %d \n", id, layer);
     
+    q->rear->next = tmp;
+    q->rear = tmp;
+   
+    /*
     if(q->front -> priority > tmp-> priority ){
         tmp->next = q->front;
         q->front = tmp;
@@ -219,6 +224,8 @@ void enQueue(Queue *q, int layer, int id, int priority){
         tmp->next = start->next;
         start->next = tmp;
     }
+    */
+
 
 }
 
@@ -472,7 +479,7 @@ dnn_profile ** make_profile_list(int baseline, int algo, int ratio){
 
     int yolo_gpu[24]  = {305,  37, 124,  21,  74,  17,  59,  14,  52,   9,  60,  12, 182, 39,  55,  27,  44,   5,  31,  14,  12, 101,  31,  48};
     int yolo_cpu[24] = { 3287,   698,  6423,   352,  9595,   323,  6334,   175,  6590, 54,  8118,   104, 32054,  1894,  8062,   967,   101,    11, 366,    70,    54, 19150,  1530,   388};
-    int yolo_cfg[24] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }; 
+    int yolo_cfg[24] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1 }; 
     int yolo_data_G2C[23] = {3175,1766,1228,716,880,573,675,563,561,594,589,548,610,562,563,516,151,499,487,513,627,547,610}; 
     int yolo_data_C2G[23] = {1709,554,904,288,543,540,306,386,569,363,494,452,524,105,472,100,72,113,79,352,488,542,493};
 
@@ -509,13 +516,13 @@ dnn_profile ** make_profile_list(int baseline, int algo, int ratio){
     int lenet_gpu[9] = {300,81,514,90,604,27,312,71,18};
     int lenet_cpu[9] = {807,112,4274,131,2443,1,18,4,1};
     int lenet_cfg[9] = {1,1,1,1,1,0,0,0,0};
-    int lenet_data_G2C = {483,468,398,392,338,403,282,419};
-    int lenet_data_C2G = {110,56,129,75,99,44,66,58};
+    int lenet_data_G2C[8] = {483,468,398,392,338,403,282,419};
+    int lenet_data_C2G[8] = {110,56,129,75,99,44,66,58};
 
     for(int i = 0; i < 24; i++){
         yolo_gpu[i] = yolo_gpu[i]*10;
         yolo_cpu[i] = yolo_cpu[i]*10;
-        yolo_cfg[i] = (yolo_cpu[i]/yolo_gpu[i] < ratio) ? 0 : 1; 
+        //yolo_cfg[i] = (yolo_cpu[i]/yolo_gpu[i] < ratio) ? 0 : 1; 
     }
     for(int i =0; i < 28; i++){
         extraction_gpu[i] = extraction_gpu[i]* 10;
@@ -543,24 +550,26 @@ dnn_profile ** make_profile_list(int baseline, int algo, int ratio){
         for(int i = 0; i < 9;  i++) lenet_cfg[i] = 1;
     }
     
+    /*
     if(algo){
         for(int i = 0; i < 24; i++) {
-            if(yolo_cpu[i]/yolo_gpu[i] >50.0 || i == 0 )yolo_cfg[i] = 1;
+            if(yolo_cpu[i]/yolo_gpu[i] >1.0 || i == 0 )yolo_cfg[i] = 1;
             else yolo_cfg[i] = 0;
         }
         for(int i = 0; i < 28; i++){
-            if(extraction_cpu[i]/extraction_gpu[i] > 50.0 || i == 0)extraction_cfg[i] = 1;
+            if(extraction_cpu[i]/extraction_gpu[i] > 1.0 || i == 0)extraction_cfg[i] = 1;
             else extraction_cfg[i] = 0;
         }
         for(int i = 0; i < 29; i++){
-            if(resnet_cpu[i]/resnet_gpu[i] > 50.0 || i == 0)resnet_cfg[i] = 1;
+            if(resnet_cpu[i]/resnet_gpu[i] > 1.0 || i == 0)resnet_cfg[i] = 1;
             else resnet_cfg[i] = 0;
         }
         for(int i = 0; i < 6 ; i++){
-            if(rnn_cpu[i]/rnn_gpu[i] > 50.0 || i == 0)rnn_cfg[i] = 1;
+            if(rnn_cpu[i]/rnn_gpu[i] > 1.0 || i == 0)rnn_cfg[i] = 1;
             else rnn_cfg[i] = 0;
         }
     }
+    */
 
     make_profile(profile_list[YOLOt], 24, yolo_gpu, yolo_cpu, yolo_cfg, yolo_data_G2C, yolo_data_C2G);
     make_profile(profile_list[EXTRACTION], 28, extraction_gpu, extraction_cpu, extraction_cfg, extraction_data_G2C, extraction_data_C2G);
