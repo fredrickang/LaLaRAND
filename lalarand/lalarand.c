@@ -72,7 +72,7 @@ int main(int argc, char **argv){
         if(select(fd_head +1, &readfds, NULL, NULL, NULL)){
             current_time = get_time_point();
             if(FD_ISSET(reg_fd, &readfds)) {
-                check_registration(dnn_list, reg_fd, gpu, cpu,baseline);
+                check_registration(dnn_list, reg_fd, gpu, cpu,baseline, profile_list);
                 print_list("REGIST",dnn_list);
             }
             // 2nd request check 

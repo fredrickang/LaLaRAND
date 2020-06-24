@@ -199,17 +199,13 @@ void enQueue(Queue *q, int layer, int id, int priority){
     q->count ++;    
     
     if(q->front == NULL){
-        q->front = q->rear = tmp;
+        q->front = tmp;
         debug_print("Enqueue : [ID] %d [layer] %d \n", id, layer);
         return;
     }    
 
     debug_print("Enqueue : [ID] %d [layer] %d \n", id, layer);
     
-    q->rear->next = tmp;
-    q->rear = tmp;
-   
-    /*
     if(q->front -> priority > tmp-> priority ){
         tmp->next = q->front;
         q->front = tmp;
@@ -224,7 +220,6 @@ void enQueue(Queue *q, int layer, int id, int priority){
         tmp->next = start->next;
         start->next = tmp;
     }
-    */
 
 
 }
@@ -522,7 +517,7 @@ dnn_profile ** make_profile_list(int baseline, int algo, int ratio){
     for(int i = 0; i < 24; i++){
         yolo_gpu[i] = yolo_gpu[i]*10;
         yolo_cpu[i] = yolo_cpu[i]*10;
-        //yolo_cfg[i] = (yolo_cpu[i]/yolo_gpu[i] < ratio) ? 0 : 1; 
+        yolo_cfg[i] = (yolo_cpu[i]/yolo_gpu[i] < ratio) ? 0 : 1; 
     }
     for(int i =0; i < 28; i++){
         extraction_gpu[i] = extraction_gpu[i]* 10;
@@ -541,7 +536,7 @@ dnn_profile ** make_profile_list(int baseline, int algo, int ratio){
     }
 
     if (baseline == 1 || baseline == 3){
-        for(int i = 0; i < 24; i++) yolo_cfg[i] = 1;
+        for(int i = 0; i < 24; i++) yolo_cfg[i] = 0;
         for(int i = 0; i < 28; i++) extraction_cfg[i] = 1;
         for(int i = 0; i < 29; i++) resnet_cfg[i] = 1;
         for(int i = 0; i < 6 ; i++) rnn_cfg[i] = 1;
@@ -581,16 +576,16 @@ dnn_profile ** make_profile_list(int baseline, int algo, int ratio){
     return profile_list;
 }
 
-void check_registration(dnn_queue * dnn_list, int reg_fd, resource * gpu, resource *cpu, int baseline){
+void check_registration(dnn_queue * dnn_list, int reg_fd, resource * gpu, resource *cpu, int baseline, dnn_profile ** profile_list){
     reg_msg * msg = (reg_msg *)malloc(sizeof(reg_msg));
         
     while( read(reg_fd, msg, 7*sizeof(int)) > 0){
-        if(msg -> regist == 1) regist(dnn_list, msg, baseline); 
+        if(msg -> regist == 1) regist(dnn_list, msg, baseline, profile_list); 
         else de_regist(dnn_list, msg, gpu, cpu);
     }
 }
 
-void regist(dnn_queue * dnn_list, reg_msg * msg, int baseline){
+void regist(dnn_queue * dnn_list, reg_msg * msg, int baseline, dnn_profile ** profile_list){
     dnn_info * dnn = (dnn_info *)malloc(sizeof(dnn_info));
 
     dnn -> id = dnn_list -> count;
@@ -604,7 +599,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg, int baseline){
     dnn -> assigned = 1;
     dnn -> default_cfg = (int *)malloc(sizeof(int)*dnn->layers);
     
-    if (baseline == 1 || baseline == 5) for(int i =0; i < dnn->layers; i++) dnn->default_cfg[i] = 1;
+    if (baseline == 1 || baseline == 5) for(int i =0; i < dnn->layers; i++) dnn->default_cfg[i] = 0;
 
     if (baseline == 2) dnn->default_cfg = profile_list[dnn->type]->cfg;
     
@@ -614,7 +609,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg, int baseline){
     }
     
     if (baseline == 5) for(int i = 0; i < msg->cut; i ++) dnn->default_cfg[i] = 0;
-    
+   
     debug_print("======== REGISTRATION ========\n");
     debug_print("[ID]     %3d\n", dnn-> id);
     debug_print("[PID]    %3d\n", dnn-> pid);

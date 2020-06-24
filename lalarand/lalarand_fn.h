@@ -42,8 +42,8 @@ void send_release_time(dnn_queue * dnn_list);
 //// LaLaRAND ////
 void make_profile(dnn_profile * tmp, int layers, int *gpu, int *cpu, int *cfg);
 dnn_profile ** make_profile_list(int baseline, int algo, int ratio);
-void check_registration(dnn_queue * dnn_list, int reg_fd, resource * gpu, resource *cpu,  int baseline);
-void regist(dnn_queue * dnn_list, reg_msg * msg,int baseline);
+void check_registration(dnn_queue * dnn_list, int reg_fd, resource * gpu, resource *cpu,  int baseline, dnn_profile ** profile_list);
+void regist(dnn_queue * dnn_list, reg_msg * msg,int baseline, dnn_profile ** profile_list);
 void de_regist(dnn_queue * dnn_list, reg_msg *msg, resource * gpu, resource * cpu);
 int check_request(dnn_queue * dnn_list, fd_set *readfds, int sync);
 int migration(Queue * q, dnn_queue * dnn_list, dnn_profile** profile_list, double current_time, resource * From, resource * To);
