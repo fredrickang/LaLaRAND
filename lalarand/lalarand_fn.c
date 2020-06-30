@@ -474,7 +474,7 @@ dnn_profile ** make_profile_list(int baseline, int algo, int ratio){
 
     int yolo_gpu[24]  = {305,  37, 124,  21,  74,  17,  59,  14,  52,   9,  60,  12, 182, 39,  55,  27,  44,   5,  31,  14,  12, 101,  31,  48};
     int yolo_cpu[24] = { 3287,   698,  6423,   352,  9595,   323,  6334,   175,  6590, 54,  8118,   104, 32054,  1894,  8062,   967,   101,    11, 366,    70,    54, 19150,  1530,   388};
-    int yolo_cfg[24] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1 }; 
+    int yolo_cfg[24] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }; 
     int yolo_data_G2C[23] = {3175,1766,1228,716,880,573,675,563,561,594,589,548,610,562,563,516,151,499,487,513,627,547,610}; 
     int yolo_data_C2G[23] = {1709,554,904,288,543,540,306,386,569,363,494,452,524,105,472,100,72,113,79,352,488,542,493};
 
@@ -536,7 +536,7 @@ dnn_profile ** make_profile_list(int baseline, int algo, int ratio){
     }
 
     if (baseline == 1 || baseline == 3){
-        for(int i = 0; i < 24; i++) yolo_cfg[i] = 0;
+        for(int i = 0; i < 24; i++) yolo_cfg[i] = 1;
         for(int i = 0; i < 28; i++) extraction_cfg[i] = 1;
         for(int i = 0; i < 29; i++) resnet_cfg[i] = 1;
         for(int i = 0; i < 6 ; i++) rnn_cfg[i] = 1;
@@ -599,7 +599,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg, int baseline, dnn_profile ** pr
     dnn -> assigned = 1;
     dnn -> default_cfg = (int *)malloc(sizeof(int)*dnn->layers);
     
-    if (baseline == 1 || baseline == 5) for(int i =0; i < dnn->layers; i++) dnn->default_cfg[i] = 0;
+    if (baseline == 1 || baseline == 5) for(int i =0; i < dnn->layers; i++) dnn->default_cfg[i] = 1;
 
     if (baseline == 2) dnn->default_cfg = profile_list[dnn->type]->cfg;
     

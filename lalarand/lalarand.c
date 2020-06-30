@@ -30,7 +30,7 @@
 
 int main(int argc, char **argv){
     int Sync = find_int_arg(argc, argv, "-sync", 1);
-    int baseline = find_int_arg(argc, argv, "-baseline", 1); // mode 1: ALL GPU // mode 2: preferable // mode 3: DART // mode 6: default
+    int baseline = find_int_arg(argc, argv, "-baseline", 1); // mode 1 : ALL_GPU , mode 2 : Quant
     int algo = find_int_arg(argc, argv, "-algo", 0);
     int index = find_int_arg(argc, argv, "-index", -1);
     int hiding = find_int_arg(argc,argv, "-hiding", 0);

@@ -104,14 +104,30 @@ def lalarand(task_num, lalarand_pid ,baseline, algo, hiding,index, ratio):
     sub = subprocess.Popen(command_line)
     lalarand_pid.append(sub.pid)
 
-def submain(baseline, algo, hiding,input_list, log_path, start, end, ratio):
+def make_log_path(baseline, algo):
+    prefix = "Exp/"
+    
+    if baseline == 1: 
+        subfix = "Default"
+    if baseline == 2:
+        subfix = "Quant"
+
+    if algo == 1:
+        subfix += "_algo"
+    return prefix+subfix
+
+def submain(baseline, algo, hiding, input_list, start, end, ratio):
 
     fp = open(input_list, "r")
     lines = fp.readlines()
     fp.close() 
+    log_path = make_log_path(baseline, algo)
 
-    f_sched = open(log_path+"Sched.txt","w")
-    f_unsched = open(log_path+"Unsched.txt","w")
+    if not os.path.isdir(log_path):
+        os.mkdir(log_path)
+
+    f_sched = open(log_path+"/Sched.txt","w")
+    f_unsched = open(log_path+"/Unsched.txt","w")
 
     list_of_taskset_list = []
     taskset_list = []
@@ -133,7 +149,7 @@ def submain(baseline, algo, hiding,input_list, log_path, start, end, ratio):
     print(end - start)
     for i, taskset_list in enumerate(list_of_taskset_list[start:end]):
         index = start + i
-        taskset_path = os.path.join(log_path,"taskset_"+str(index))
+        taskset_path = os.path.join(log_path,"/taskset_"+str(index))
         
         try:
             os.mkdir(taskset_path)
@@ -323,7 +339,6 @@ if __name__ == "__main__":
     parser.add_argument("--list", type = str, default = "taskset_list.txt")
     parser.add_argument("--start",type = int , default = 0 )
     parser.add_argument("--end", type = int, default = -1, help = " -1 : ALL , other is other number")
-    parser.add_argument("--log_path", type = str, default = "./Exp/ALL/")
     parser.add_argument("--hiding", type = int, default = 0)
     parser.add_argument("--ratio", type = int , default = 1)
 
