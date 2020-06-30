@@ -14,7 +14,7 @@ def clearing_mem():
     sub = subprocess.Popen(command_line)
 
 
-def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, log_path, cut):
+def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, cut):
     task_name= task_info[0]
     task_priority = int(task_info[1])
     task_period = int(task_info[2])
@@ -122,7 +122,7 @@ def submain(baseline, algo, hiding, input_list, start, end, ratio):
     lines = fp.readlines()
     fp.close() 
     log_path = make_log_path(baseline, algo)
-
+    print(log_path)
     if not os.path.isdir(log_path):
         os.mkdir(log_path)
 
@@ -149,8 +149,8 @@ def submain(baseline, algo, hiding, input_list, start, end, ratio):
     print(end - start)
     for i, taskset_list in enumerate(list_of_taskset_list[start:end]):
         index = start + i
-        taskset_path = os.path.join(log_path,"/taskset_"+str(index))
-        
+        taskset_path = os.path.join(log_path,"taskset_"+str(index))
+        print(taskset_path) 
         try:
             os.mkdir(taskset_path)
         except FileExistsError:
@@ -175,11 +175,11 @@ def submain(baseline, algo, hiding, input_list, start, end, ratio):
 
         if baseline != 4 and baseline != 5:
             for task in taskset_list:
-                task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, baseline, algo,index, log_path, -2)))
+                task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, baseline, algo,index, -2)))
         else:
             cut_list = generate_dart_cut(taskset_list, baseline)
             for i, task in enumerate(taskset_list):
-                task_thread.append(Thread(target = darknet, args = (task, pids, lalarand_pid, result, baseline, algo, index, log_path , cut_list[i])))
+                task_thread.append(Thread(target = darknet, args = (task, pids, lalarand_pid, result, baseline, algo, index, cut_list[i])))
     
         lalarand_thread.start()
        
@@ -346,4 +346,4 @@ if __name__ == "__main__":
     
     print(opt)
 
-    submain(opt.baseline, opt.algo, opt.hiding, opt.list, opt.log_path, opt.start, opt.end, opt.ratio)
+    submain(opt.baseline, opt.algo, opt.hiding, opt.list, opt.start, opt.end, opt.ratio)

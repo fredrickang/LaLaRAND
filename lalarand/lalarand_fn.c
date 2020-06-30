@@ -44,12 +44,12 @@ void logging(int baseline, int algo, int index){
     char log_path[60];
     switch (baseline){
         case 1:
-            if(algo) snprintf(log_path, 60, "./Exp/ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-            else snprintf(log_path, 60, "./Exp/ALL/taskset_%d/lala_%d.txt", index, getpid());
+            if(algo) snprintf(log_path, 60, "./Exp/Default_algo/taskset_%d/lala_%d.txt", index, getpid());
+            else snprintf(log_path, 60, "./Exp/Default/taskset_%d/lala_%d.txt", index, getpid());
             break;
         case 2:
-            if(algo) snprintf(log_path, 50, "./Exp/PR_LaLa/taskset_%d/lala_%d.txt", index, getpid());
-            else snprintf(log_path, 50, "./Exp/PR/taskset_%d/lala_%d.txt", index, getpid());
+            if(algo) snprintf(log_path, 50, "./Exp/Quant_algo/taskset_%d/lala_%d.txt", index, getpid());
+            else snprintf(log_path, 50, "./Exp/Quant/taskset_%d/lala_%d.txt", index, getpid());
             break;
         case 3:
             if(algo) snprintf(log_path, 50, "./Exp/DART_ALL_LaLa/taskset_%d/lala_%d.txt", index, getpid());
