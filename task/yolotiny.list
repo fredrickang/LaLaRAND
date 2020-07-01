@@ -1,6 +1,6 @@
 detector
-periodic
+map
 ./cfg/coco.data
 ./cfg/yolov3-tiny.cfg
 ./weights/yolov3-tiny.weights
-./coco/100.part
+./coco/5k.part

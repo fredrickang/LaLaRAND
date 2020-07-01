@@ -686,6 +686,7 @@ int detections_comparator(const void *pa, const void *pb)
 
 float validate_detector_map(char *datacfg, char *cfgfile, char *weightfile, float thresh_calc_avg_iou, const float iou_thresh, const int map_points, int letter_box, network *existing_net, int quantized)
 {
+    
     int j;
     list *options = read_data_cfg(datacfg);
     char *valid_images = option_find_str(options, "valid", "data/train.txt");
@@ -721,6 +722,16 @@ float validate_detector_map(char *datacfg, char *cfgfile, char *weightfile, floa
         //fuse_conv_batchnorm(net);
         calculate_binary_weights(net);
     }
+
+    exec_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    msg_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    msg2_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    total_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    data_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    resource_logs = (double *)malloc(sizeof(double) *net.n*numofjob);
+
+    response_logs = (double *)malloc(sizeof(double) * numofjob);
+
     if (net.layers[net.n - 1].classes != names_size) {
         printf(" Error: in the file %s number of names %d that isn't equal to classes=%d in the file %s \n",
             name_list, names_size, net.layers[net.n - 1].classes, cfgfile);
@@ -1310,6 +1321,7 @@ void calc_anchors(char *datacfg, int num_of_clusters, int width, int height, int
 void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh,
     float hier_thresh, int dont_show, int ext_output, int save_labels, char *outfile, int letter_box, int quantized)
 {
+    quantized = 1;
 
     int iter;
     double time;
@@ -1327,6 +1339,16 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
     if (weightfile) {
         load_weights(&net, weightfile);
     }
+
+
+    exec_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    msg_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    msg2_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    total_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    data_logs = (double *)malloc(sizeof(double) * net.n*numofjob);
+    resource_logs = (double *)malloc(sizeof(double) *net.n*numofjob);
+
+    response_logs = (double *)malloc(sizeof(double) * numofjob);
 
 
   // Our approach should not use layer fusion  
@@ -1364,10 +1386,10 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
     list *plist = get_paths(filename);
     char **paths = (char **)list_to_array(plist);
 
-    printf("path: %s\n", paths[0]);
+    //printf("path: %s\n", paths[0]);
 
     int m = plist->size;
-    printf("m :%d\n", m);
+    //printf("m :%d\n", m);
     for (k =0; k< m; k++){
         
         /*
@@ -1405,7 +1427,7 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
         time = get_time_point();
         network_predict(net, X);
         //network_predict_image(&net, im); letterbox = 1;
-        printf("%s: Predicted in %lf milli-seconds.\n", input, ((double)get_time_point() - time) / 1000);
+        //printf("\n%s: Predicted in %lf milli-seconds.\n", input, ((double)get_time_point() - time) / 1000);
         //printf("%s: Predicted in %f seconds.\n", input, (what_time_is_it_now()-time));
 
         int nboxes = 0;

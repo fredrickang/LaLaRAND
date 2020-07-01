@@ -1376,7 +1376,7 @@ image load_image_stb(char *filename, int channels)
     if (!data) {
         char shrinked_filename[1024];
         if (strlen(filename) >= 1024) sprintf(shrinked_filename, "name is too long");
-        else sprintf(shrinked_filename, "%s", filename);
+        else sprintf(shrinked_filename, "%s\n", filename);
         fprintf(stderr, "Cannot load image \"%s\"\nSTB Reason: %s\n", shrinked_filename, stbi_failure_reason());
         FILE* fw = fopen("bad.list", "a");
         fwrite(shrinked_filename, sizeof(char), strlen(shrinked_filename), fw);

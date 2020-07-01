@@ -50,7 +50,8 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, cut):
     command_line.append(str(index))
     command_line.append("-algo")
     command_line.append(str(algo))
-
+    command_line.append("-points")
+    command_line.append(str(101))
     if (baseline == 4 or baseline ==5):
         command_line.append("-cut")
         command_line.append(str(cut))
@@ -122,7 +123,6 @@ def submain(baseline, algo, hiding, input_list, start, end, ratio):
     lines = fp.readlines()
     fp.close() 
     log_path = make_log_path(baseline, algo)
-    print(log_path)
     if not os.path.isdir(log_path):
         os.mkdir(log_path)
 
@@ -150,7 +150,6 @@ def submain(baseline, algo, hiding, input_list, start, end, ratio):
     for i, taskset_list in enumerate(list_of_taskset_list[start:end]):
         index = start + i
         taskset_path = os.path.join(log_path,"taskset_"+str(index))
-        print(taskset_path) 
         try:
             os.mkdir(taskset_path)
         except FileExistsError:
