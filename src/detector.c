@@ -687,6 +687,8 @@ int detections_comparator(const void *pa, const void *pb)
 float validate_detector_map(char *datacfg, char *cfgfile, char *weightfile, float thresh_calc_avg_iou, const float iou_thresh, const int map_points, int letter_box, network *existing_net, int quantized)
 {
     
+    quantized = 1;
+
     int j;
     list *options = read_data_cfg(datacfg);
     char *valid_images = option_find_str(options, "valid", "data/train.txt");
@@ -1536,6 +1538,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     float hier_thresh, int dont_show, int ext_output, int save_labels, char *outfile, int letter_box, int quantized, float ms_period)
 {
 
+    quantized = 1;
     list *options = read_data_cfg(datacfg);
     char *name_list = option_find_str(options, "names", "data/names.list");
     int names_size = 0;
@@ -1570,6 +1573,11 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
         printf(" Error: in the file %s number of names %d that isn't equal to classes=%d in the file %s \n",
             name_list, names_size, net.layers[net.n - 1].classes, cfgfile);
         if (net.layers[net.n - 1].classes > names_size) getchar();
+    }
+    
+    if(quantized){
+        printf("\n\n Quantinization! \n\n");
+        quantinization_and_get_multipliers(net);
     }
     
     srand(2222222);
@@ -1717,8 +1725,8 @@ void run_detector(int argc, char **argv)
     int ext_output = find_arg(argc, argv, "-ext_output");
     int save_labels = find_arg(argc, argv, "-save_labels");
     int quantized = find_int_arg(argc, argv, "-quantized", 0);
-    
     if (argc < 4) {
+    printf("run detector Quantized : %d\n", quantized); 
         fprintf(stderr, "usage: %s %s [train/test/valid/demo/map] [data] [cfg] [weights (optional)]\n", argv[0], argv[1]);
         return;
     }

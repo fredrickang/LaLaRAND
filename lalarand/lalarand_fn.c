@@ -599,7 +599,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg, int baseline, dnn_profile ** pr
     dnn -> assigned = 1;
     dnn -> default_cfg = (int *)malloc(sizeof(int)*dnn->layers);
     
-    if (baseline == 1 || baseline == 5) for(int i =0; i < dnn->layers; i++) dnn->default_cfg[i] = 1;
+    if (baseline == 1 || baseline == 5) for(int i =0; i < dnn->layers; i++) dnn->default_cfg[i] = 0;
 
     if (baseline == 2) dnn->default_cfg = profile_list[dnn->type]->cfg;
     

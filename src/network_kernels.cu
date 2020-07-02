@@ -100,14 +100,19 @@ int communciate(int request, int type){
 void forward_network_gpu(network net, network_state state)
 {
 //    cudaDeviceSynchronize();
+
+    int quantized = net.quantized;
+    
     state.workspace = net.workspace;
     state.workspace_cpu = net.workspace_cpu;
+    
     int i;
     int size = get_network_input_size(net) * net.batch;
     
     double inference, total, data, msg, msg2;
 
     for(i = 0; i < net.n; ++i){
+        
         int idx = current_job * net.n + i;
 
         total = get_time_point();
@@ -189,7 +194,8 @@ void forward_network_gpu(network net, network_state state)
         //printf("[%d] Inference %d Start: %f\n", getpid(), i, get_time_point()/1000);
         /* Layer Level Execution Start */
         if (resource == CPU) {
-            l.forward(l,state);
+            if(quantized && l.type == CONVOLUTIONAL && (i != 0)) l.forward_quant(l,state);
+            else l.forward(l,state);
         }else if(resource == GPU){
             l.forward_gpu(l, state);
             cudaStreamSynchronize(get_cuda_stream());
@@ -210,7 +216,7 @@ void forward_network_gpu(network net, network_state state)
         
         total_logs[idx] = ((double)get_time_point() - total);
 
-        //printf("[%d] Layer %d End: %f\n", getpid(), i , get_time_point()/1000);
+//        printf("[%d] Layer %d End: %f\n", getpid(), i , get_time_point()/1000);
     }   
 }
 

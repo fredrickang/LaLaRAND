@@ -445,7 +445,9 @@ void forward_network(network net, network_state state)
         if(l.delta && state.train){
             scal_cpu(l.outputs * l.batch, 0, l.delta, 1);
         }
-        l.forward(l, state);       
+        
+        if(net.quantized == 1 && l.type == CONVOLUTIONAL && (i != 0)) l.forward_quant(l, state);
+        else l.forward(l, state);       
         state.input = l.output;
     }
 }

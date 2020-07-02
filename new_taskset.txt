@@ -1,4 +1,4 @@
-Yolo 1 100 1
+Extraction 1 2000 100
 1
 Yolo 3 80 390
 LeNet 7 260 120

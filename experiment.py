@@ -14,7 +14,7 @@ def clearing_mem():
     sub = subprocess.Popen(command_line)
 
 
-def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, cut):
+def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, quantized, index, cut):
     task_name= task_info[0]
     task_priority = int(task_info[1])
     task_period = int(task_info[2])
@@ -50,8 +50,11 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, cut):
     command_line.append(str(index))
     command_line.append("-algo")
     command_line.append(str(algo))
-    command_line.append("-points")
-    command_line.append(str(101))
+    command_line.append("-quantized")
+    print(quantized)
+    command_line.append(str(quantized))
+    
+    
     if (baseline == 4 or baseline ==5):
         command_line.append("-cut")
         command_line.append(str(cut))
@@ -63,7 +66,6 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, cut):
     
     sub.wait()
     if sub.returncode != 0:
-        '''
         for pid in lalarand_pid:
             try:
                 os.kill(pid, 0)
@@ -79,7 +81,6 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, index, cut):
                 pass
             else:
                 os.kill(pid,signal.SIGKILL)
-        '''
         result.append(-1)
     else:
         result.append(1) 
@@ -117,7 +118,7 @@ def make_log_path(baseline, algo):
         subfix += "_algo"
     return prefix+subfix
 
-def submain(baseline, algo, hiding, input_list, start, end, ratio):
+def submain(baseline, algo, hiding, input_list, start, end, ratio, quantized):
 
     fp = open(input_list, "r")
     lines = fp.readlines()
@@ -174,7 +175,7 @@ def submain(baseline, algo, hiding, input_list, start, end, ratio):
 
         if baseline != 4 and baseline != 5:
             for task in taskset_list:
-                task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, baseline, algo,index, -2)))
+                task_thread.append(Thread(target = darknet, args= (task, pids, lalarand_pid ,result, baseline, algo, quantized, index, -2)))
         else:
             cut_list = generate_dart_cut(taskset_list, baseline)
             for i, task in enumerate(taskset_list):
@@ -338,6 +339,7 @@ if __name__ == "__main__":
     parser.add_argument("--list", type = str, default = "taskset_list.txt")
     parser.add_argument("--start",type = int , default = 0 )
     parser.add_argument("--end", type = int, default = -1, help = " -1 : ALL , other is other number")
+    parser.add_argument("--quantized", type = int, default = 0, help = " 1 : quantized , 0 : w/o quantized")
     parser.add_argument("--hiding", type = int, default = 0)
     parser.add_argument("--ratio", type = int , default = 1)
 
@@ -345,4 +347,4 @@ if __name__ == "__main__":
     
     print(opt)
 
-    submain(opt.baseline, opt.algo, opt.hiding, opt.list, opt.start, opt.end, opt.ratio)
+    submain(opt.baseline, opt.algo, opt.hiding, opt.list, opt.start, opt.end, opt.ratio, opt.quantized)

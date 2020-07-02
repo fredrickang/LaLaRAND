@@ -1266,6 +1266,8 @@ typedef struct _msg{
 
 void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *filename, int quantized ,float ms_period, int top)
 {
+    
+    quantized = 1;
     network net;
     double time;
 

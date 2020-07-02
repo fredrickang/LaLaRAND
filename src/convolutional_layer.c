@@ -961,7 +961,17 @@ void forward_convolutional_layer_quant(layer l, network_state state)
 
     // convolution as GEMM (as part of BLAS)
     //for (i = 0; i < l.batch; ++i) {
-    im2col_cpu_int8(state.input_int8, l.c, l.h, l.w, l.size, l.stride, l.pad, b);    // here
+    //im2col_cpu_int8(state.input_int8, l.c, l.h, l.w, l.size, l.stride, l.pad, b);    // here
+    int8_t *im = state.input_int8 + (i*l.groups + j)*(l.c / l.groups)*l.h*l.w;
+    im2col_cpu_ext_int8(im,   // input
+                        l.c / l.groups,     // input channels
+                        l.h, l.w,           // input size (h, w)
+                        l.size, l.size,     // kernel size (h, w)
+                        l.pad, l.pad,       // padding (h, w)
+                        l.stride, l.stride, // stride (h, w)
+                        l.dilation, l.dilation, // dilation (h, w)
+                        b);                 // output
+
     //gemm_nn_int8_int16(m, n, k, 1, a, k, b, n, c, n);    // single-thread gemm
     //printf(" Layer %d, im2col: %8.5f\n\n", l.index,((double)get_time_point() - time)/1000);
 
