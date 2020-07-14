@@ -107,6 +107,7 @@ void forward_network_pure_gpu(network net, network_state state);
 void lala_init_gpu(network net, float *input);
 #endif
 
+void quantinization_and_get_multipliers(network net);
 void lala_init_cpu(network net, float * input);
 float get_current_seq_subdivisions(network net);
 int get_sequence_value(network net);

@@ -956,18 +956,30 @@ void forward_convolutional_layer_quant(layer l, network_state state)
     int fil;
 
     // cuDNN: y = conv(x)
-    int m = l.n;
-    int k = l.size*l.size*l.c;
+    int m = l.n /l.groups;
+    int k = l.size*l.size*l.c / l.groups;
     int n = out_h*out_w;
-    int8_t *a = l.weights_int8;
-    int8_t *b = (int8_t *)state.workspace_cpu;
-    conv_t *c = output_q;    // int16_t
+  // int16_t
 
     // convolution as GEMM (as part of BLAS)
     //for (i = 0; i < l.batch; ++i) {
     //im2col_cpu_int8(state.input_int8, l.c, l.h, l.w, l.size, l.stride, l.pad, b);    // here
-    int8_t *im = state.input_int8 + (i*l.groups + j)*(l.c / l.groups)*l.h*l.w;
-    im2col_cpu_ext_int8(im,   // input
+
+    for(i = 0; i < l.batch; ++i)
+    {
+        for(j = 0; j < l.groups; ++j)
+        {
+            int8_t *a = l.weights_int8 +j*l.nweights / l.groups;
+            int8_t *b = (int8_t *)state.workspace_cpu;
+            conv_t *c = output_q + (i*l.groups +j)*n*m;  
+
+            time = get_time_point();
+            int8_t *im = state.input_int8 + (i*l.groups + j)*(l.c / l.groups)*l.h*l.w;
+            if(l.size == 1){
+                b = im;
+            }
+            else{
+                im2col_cpu_ext_int8(im,   // input
                         l.c / l.groups,     // input channels
                         l.h, l.w,           // input size (h, w)
                         l.size, l.size,     // kernel size (h, w)
@@ -975,31 +987,32 @@ void forward_convolutional_layer_quant(layer l, network_state state)
                         l.stride, l.stride, // stride (h, w)
                         l.dilation, l.dilation, // dilation (h, w)
                         b);                 // output
+            }
+            debug_print(stdout," Layer %d, im2col: %8.5f\n\n", l.index,((double)get_time_point() - time)/1000);
+
+            //time = get_time_point();
+            int t;    // multi-thread gemm
+            #pragma omp parallel for
+            for (t = 0; t < m; ++t) {
+                gemm_nn_int8_int16(1, n, k, 1, a + t*k, k, b, n, c + t*n, n);
+                //gemm_nn_int8_int16_conv16(1, n, k, 1, a + t*k, k, b, n, c + t*n, n);
+                //gemm_nn_int8_int32(1, n, k, 1, a + t*k, k, b, n, c + t*n, n); // conv_t should be int32_t
+            }
+    
+        }
+        
+    }
 
     //gemm_nn_int8_int16(m, n, k, 1, a, k, b, n, c, n);    // single-thread gemm
-    debug_print(stdout," Layer %d, im2col: %8.5f\n\n", l.index,((double)get_time_point() - time)/1000);
-
-    //time = get_time_point();
-    int t;    // multi-thread gemm
-    #pragma omp parallel for
-    for (t = 0; t < m; ++t) {
-         gemm_nn_int8_int16(1, n, k, 1, a + t*k, k, b, n, c + t*n, n);
-        //gemm_nn_int8_int16_conv16(1, n, k, 1, a + t*k, k, b, n, c + t*n, n);
-        //gemm_nn_int8_int32(1, n, k, 1, a + t*k, k, b, n, c + t*n, n); // conv_t should be int32_t
-    }
-    
-
     free(state.input_int8);
     
     debug_print(stdout," Layer %d, GEMM: %8.5f\n\n", l.index,((double)get_time_point() - time)/ 1000);
 
     time = get_time_point();
 
-
     float ALPHA1 = R_MULT / (l.input_quant_multipler * l.weights_quant_multipler);
 
     //dequantized gpu version
-
     //dequantize_on_gpu(output_q,l.output,l.outputs,ALPHA1);
     
     // dequantized
