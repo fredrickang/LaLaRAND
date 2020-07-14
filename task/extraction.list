@@ -3,4 +3,4 @@ periodic
 cfg/imagenet1k.data
 cfg/extraction.cfg
 weights/extraction.weights
-./coco/100.part
+./coco/5k.part

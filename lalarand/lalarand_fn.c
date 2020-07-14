@@ -609,7 +609,7 @@ void regist(dnn_queue * dnn_list, reg_msg * msg, int baseline, dnn_profile ** pr
     }
     
     if (baseline == 5) for(int i = 0; i < msg->cut; i ++) dnn->default_cfg[i] = 0;
-   
+
     debug_print("======== REGISTRATION ========\n");
     debug_print("[ID]     %3d\n", dnn-> id);
     debug_print("[PID]    %3d\n", dnn-> pid);
@@ -804,10 +804,9 @@ void decision_handler(int target_id, dnn_queue * dnn_list, int decision){
     cpu_set_t core;
     CPU_ZERO(&core);
     if(decision == GPU) CPU_SET(2, &core);
-    if(decision == CPU) CPU_SET(4, &core);
+    if(decision == CPU) CPU_SET(5, &core);
     if(decision == MEM) CPU_SET(3, &core);
     dnn_info * target = find_dnn_by_id(dnn_list, target_id);
-    
     
     if(target->assigned != decision){
         sched_setaffinity(target->pid, sizeof(cpu_set_t), &core);

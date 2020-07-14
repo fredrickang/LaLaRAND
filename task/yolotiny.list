@@ -3,4 +3,4 @@ periodic
 ./cfg/coco.data
 ./cfg/yolov3-tiny.cfg
 ./weights/yolov3-tiny.weights
-./coco/5k.part
+./coco/1k.part

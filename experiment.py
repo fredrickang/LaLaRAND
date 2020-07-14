@@ -34,6 +34,9 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, quantized, in
         task_name = "./task/alexnet.list"
     if task_name == "LeNet":
         task_name = "./task/lenet.list"
+    if task_name == "Mobile":
+        task_name ="./task/mobilenetv2.list"
+
 
     command_line = ["./darknet"]
     command_line.append("-task")
@@ -51,11 +54,10 @@ def darknet(task_info, pids, lalarand_pid ,result, baseline, algo, quantized, in
     command_line.append("-algo")
     command_line.append(str(algo))
     command_line.append("-quantized")
-    print(quantized)
     command_line.append(str(quantized))
     
     
-    if (baseline == 4 or baseline ==5):
+    if (baseline == 4 or baseline == 5):
         command_line.append("-cut")
         command_line.append(str(cut))
 

@@ -1,6 +1,6 @@
 classifier
 periodic
 ./cfg/imagenet1k.data
-./cfg/resnet18.cfg
-./weights/resnet18.weights
+./cfg/mobilenetv2.cfg
+./weights/mobilenetv2.weights
 ./coco/1k.part

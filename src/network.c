@@ -135,7 +135,7 @@ void quantinization_and_get_multipliers(network net)
     for (j = 0; j < net.n; ++j) {
         layer *l = &net.layers[j];
 
-        if (l->type == CONVOLUTIONAL) {
+        if (l->type == CONVOLUTIONAL && (j != 0)) {
             printf("Quantize %dth %s layer\n", j, get_layer_string(l->type));
             size_t const weights_size = l->size*l->size*l->c*l->n;
             size_t const filter_size = l->size*l->size*l->c;
@@ -447,7 +447,7 @@ void forward_network(network net, network_state state)
         }
         
         if(net.quantized == 1 && l.type == CONVOLUTIONAL && (i != 0)) l.forward_quant(l, state);
-        else l.forward(l, state);       
+        else l.forward(l, state);
         state.input = l.output;
     }
 }

@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <signal.h>
 #include "darknet.h"
 #include "network.h"
@@ -26,7 +27,9 @@ static int coco_ids[] = { 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,
 extern struct timespec release_time;
 extern int period, numofjob;
 
+extern int quantized;
 extern int request_fd;
+extern int quantized;
 extern cpu_set_t gpu_core;
 
 extern FILE * pLogFile;
@@ -770,7 +773,7 @@ float validate_detector_map(char *datacfg, char *cfgfile, char *weightfile, floa
     const float thresh = .005;
     float nms = .45;
     if(quantized){
-      //  nms = 0.2;
+        nms = 0.2;
     }
     //const float iou_thresh = 0.5;
 
@@ -1538,7 +1541,6 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     float hier_thresh, int dont_show, int ext_output, int save_labels, char *outfile, int letter_box, int quantized, float ms_period)
 {
 
-    quantized = 1;
     list *options = read_data_cfg(datacfg);
     char *name_list = option_find_str(options, "names", "data/names.list");
     int names_size = 0;
@@ -1595,6 +1597,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     }
     int j;
     float nms = .45;
+    if(quantized) nms = .2;
     int k;
     
     list *plist = get_paths(filename);
@@ -1611,7 +1614,7 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
     else sized = resize_image(im, net.w, net.h);
 
     float *init_input = sized.data;
-    
+
     for(int i =0 ; i < 3 ; i++) lala_init_cpu(net, init_input);
     for(int i =0 ; i < 3 ; i++) lala_init_gpu(net, init_input);
 
@@ -1625,11 +1628,14 @@ void periodic_detector(char *datacfg, char *cfgfile, char *weightfile, char *fil
 
 
     double post;
-
+    //CPU_ZERO(&gpu_core);
+    //for(int i =0 ; i < 7 ; i++) CPU_SET(i, &gpu_core);
     if(sched_setaffinity(0, sizeof(cpu_set_t), &gpu_core) == -1) perror("SCHED_AFFINITY");
     sched_yield();
-
+    puts("======= START =======");
+    
     for (k =0; k< numofjob; k++){
+        //printf("====== JOB %d======\n",k);
         current_job = k;
         //t_period = get_time_point();
         ///// IMAGE PREPROCESSING /////
@@ -1724,7 +1730,6 @@ void run_detector(int argc, char **argv)
     // and for recall mode (extended output table-like format with results for best_class fit)
     int ext_output = find_arg(argc, argv, "-ext_output");
     int save_labels = find_arg(argc, argv, "-save_labels");
-    int quantized = find_int_arg(argc, argv, "-quantized", 0);
     if (argc < 4) {
     printf("run detector Quantized : %d\n", quantized); 
         fprintf(stderr, "usage: %s %s [train/test/valid/demo/map] [data] [cfg] [weights (optional)]\n", argv[0], argv[1]);

@@ -53,7 +53,7 @@ extern void run_super(int argc, char **argv);
 int period = -1;
 int numofjob = -1;
 int priority = -1;
-
+int quantized = -1;
 FILE * pLogFile;
 cpu_set_t gpu_core;
 struct sched_param prior;
@@ -559,6 +559,8 @@ int main(int argc, char **argv)
 
     cut = find_int_arg(argc, argv, "-cut", -2);
     
+    quantized = find_int_arg(argc, argv, "-quantized", 0);
+
     char log_path[60];
 
     switch (mode){
@@ -584,7 +586,7 @@ int main(int argc, char **argv)
     }
     pLogFile = fopen(log_path, "w");
     
-    freopen("/tmp/trash","w",stderr);
+    //freopen("/tmp/trash","w",stderr);
 
     fprintf(pLogFile, "[%d] Priority : %d , Period : %d\n", getpid(), priority, period);
     fflush(pLogFile);
@@ -604,7 +606,6 @@ int main(int argc, char **argv)
     prior.sched_priority = 50;
 
     if(sched_setscheduler(0, SCHED_FIFO, &prior) == -1) perror("SCHED_FIFO : ");
-    
     get_task_info(task, argv);
         ///// data cfg
     fprintf(pLogFile,"data path %s\n",argv[3]);
@@ -613,7 +614,6 @@ int main(int argc, char **argv)
         ///// weight cfg
     fprintf(pLogFile,"weight path %s\n",argv[5]);
         //redirect stdout & stderr to certain file.
-    
     fflush(pLogFile);
     //original darknet main process.
     if (0 == strcmp(argv[1], "average")){

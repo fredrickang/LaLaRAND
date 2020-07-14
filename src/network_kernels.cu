@@ -204,9 +204,10 @@ void forward_network_gpu(network net, network_state state)
             //printf("layer %d, pid %d resource %d config wrong\n",i, getpid(), resource);
             exit(-1);
         }
-        if(net.wait_stream)
+        if(net.wait_stream){
+            printf("I'm waiting for stream\n");
             cudaStreamSynchronize(get_cuda_stream());
-        
+        }
 
         //printf("[%d] Inference %d End: %f\n", getpid(), i , get_time_point()/1000);
         /* Layer Level Execution End */

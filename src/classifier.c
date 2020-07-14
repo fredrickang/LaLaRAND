@@ -29,6 +29,7 @@ extern struct timespec release_time;
 extern int period, numofjob;
 
 extern cpu_set_t gpu_core;
+extern quantized;
 extern int request_fd;
 float validate_classifier_single(char *datacfg, char *filename, char *weightfile, network *existing_net, int topk_custom);
 
@@ -1267,11 +1268,11 @@ typedef struct _msg{
 void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *filename, int quantized ,float ms_period, int top)
 {
     
-    quantized = 1;
     network net;
     double time;
 
-    net = parse_network_cfg_custom(cfgfile, 1, 0);
+    if(quantized) net = parse_network_cfg_custom(cfgfile, 11, 1);
+    else net = parse_network_cfg_custom(cfgfile, 1, 1);
 
     if(weightfile){
         load_weights(&net, weightfile);
@@ -1295,7 +1296,7 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
         time = get_time_point();
         printf("\n\n Quantinization! \n\n");
         quantinization_and_get_multipliers(net);
-        printf(" Quantization: %8.5f\n\n", ((double)get_time_point() - time)/ 1000);
+        printf(" Quantization time : %8.5f\n\n", ((double)get_time_point() - time)/ 1000);
     }
 
     list *options = read_data_cfg(datacfg);
@@ -1337,14 +1338,12 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
     for(int i =0 ; i < 3 ; i++) lala_init_cpu(net, init_input);
     for(int i =0 ; i < 3 ; i++) lala_init_gpu(net, init_input);
         
-
-
     int pid = getpid();
     
     if(sched_setaffinity(0, sizeof(cpu_set_t), &gpu_core) == -1) perror("SCHED_AFFINITY");
     
     sched_yield();
-
+    puts("======= START ======");
     for (int k =0; k < numofjob; k++){
         current_job = k;
 //        fprintf(pLogFile,"=====================%d JOB %d=====================\n", pid, k);
@@ -1356,8 +1355,8 @@ void periodic_classifier(char *datacfg, char *cfgfile, char *weightfile, char *f
         float *X = r.data;
 //        time=clock();
         float *predictions = network_predict(net, X);
-        if(net.hierarchy) hierarchy_predictions(predictions, net.outputs, net.hierarchy, 0);
-        top_k(predictions, net.outputs, top, indexes);
+        //if(net.hierarchy) hierarchy_predictions(predictions, net.outputs, net.hierarchy, 0);
+        //top_k(predictions, net.outputs, top, indexes);
 //        printf("%s: Predicted in %f seconds.\n", input, sec(clock()-time));
         //for(i = 0; i < top; ++i){
         //    int index = indexes[i];
@@ -1438,7 +1437,6 @@ void run_classifier(int argc, char **argv)
     char *cfg = argv[4];
     char *weights = argv[5];
     char *filename = argv[6];
-    int quantized = 0;
     // not sure layer_s exist for, need to look up
     char *layer_s = (argc > 8) ? argv[8]: 0;
     int layer = layer_s ? atoi(layer_s) : -1;
