@@ -1,5 +1,5 @@
 #define _GNU_SOURCE
-#define DEBUG 1
+#define DEBUG 0
 #define debug_print(fd ,fmt, args...) \
             do { if (DEBUG) {fprintf(fd, fmt, ##args); fflush(fd);} } while (0)
 #include "convolutional_layer.h"
@@ -933,7 +933,7 @@ void forward_convolutional_layer_quant(layer l, network_state state)
     
     // gpu version might not that good 
     //quantize_on_gpu(state.input,state.input_int8,l.inputs,l.input_quant_multipler);
-    debug_print(stdout," Layer %d, Input quantization: %8.5f\n\n", l.index,((double)get_time_point() - time)/ 1000);
+    //debug_print(stdout," Layer %d, Input quantization: %8.5f\n\n", l.index,((double)get_time_point() - time)/ 1000);
     
     for (z = 0; z < l.inputs; ++z) {
         //int16_t src = lround(state.input[k] * net.layers[0].input_quant_multipler);
